@@ -24,24 +24,35 @@ Other Rust libraries used to compare of resizing speed:
 
 Resize algorithms:
 - Nearest
-- Bilinear
-- CatmullRom
-- Lanczos3
+- Convolution with Bilinear filter
+- Convolution with CatmullRom filter
+- Convolution with Lanczos3 filter
 
-### Resize 4928x3279 => 852x567
+### Resize RGB image 4928x3279 => 852x567
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is time of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  101.98 |  204.79  |    307.0   |  421.58  |
-| resize     |  23.139 |  103.84  |   182.36   |  261.64  |
-| fir native |  0.486  |  54.479  |   81.625   |  113.37  |
-| fir sse4.1 |    -    |   12.08  |   18.733   |  26.689  |
-| fir avx2   |    -    |   9.58   |   14.319   |  20.133  |
+| image      |  105.38 |  204.21  |   301.58   |  399.52  |
+| resize     |  16.223 |  72.447  |   132.64   |  193.26  |
+| fir native |  0.476  |  57.003  |   87.564   |  120.65  |
+| fir sse4.1 |    -    |  12.143  |   18.662   |  26.334  |
+| fir avx2   |    -    |   9.346  |   13.342   |  18.934  |
 
-fir - fast_image_resize
+### Resize RGBA image 4928x3279 => 852x567
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+- Numbers in table is time of image resizing in milliseconds.
+
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      |  110.45 |  264.84  |   421.25   |  596.17  |
+| resize     |  23.919 |  100.38  |   173.62   |  247.39  |
+| fir native |  13.832 |  70.448  |   100.87   |  133.84  |
+| fir sse4.1 |  12.03  |  23.721  |   30.266   |  37.874  |
+| fir avx2   |  6.949  |  15.873  |   19.956   |  25.527  |
 
 
 ## Examples of code
