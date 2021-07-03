@@ -1,0 +1,5 @@
+/target
+.*
+!/.gitignore
+data/result
+

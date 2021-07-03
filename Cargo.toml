@@ -1,0 +1,60 @@
+[package]
+name = "fast_image_resize"
+version = "0.1.0"
+authors = ["Kirill Kuzminykh <cykooz@gmail.com>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "Library for fast image resizing with using of SIMD instructions"
+readme = "README.md"
+keywords = ["image", "resize"]
+repository = "https://github.com/cykooz/fast_image_resize"
+documentation = "https://docs.rs/crate/fast_image_resize"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num-traits = "0.2.14"
+thiserror = "1.0.26"
+
+
+[dev-dependencies]
+criterion = "0.3.4"
+image = "0.23.14"
+resize = "0.7.0"
+rgb = "0.8.25"
+
+
+[[bench]]
+name = "bench_resize"
+harness = false
+
+
+[[bench]]
+name = "bench_alpha"
+harness = false
+
+
+[[bench]]
+name = "bench_compare"
+harness = false
+
+
+[profile.dev.package.'*']
+opt-level = 3
+
+
+[profile.release]
+#debug = true
+#lto = true
+opt-level = 3
+#codegen-units = 1
+
+
+[package.metadata.release]
+pre-release-replacements = [
+    {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"},
+    {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}"}
+]
+
+# Header of next release in CHANGELOG.md:
+#   ## [Unreleased] - ReleaseDate
