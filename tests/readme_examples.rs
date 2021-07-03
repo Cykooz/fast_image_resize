@@ -18,7 +18,7 @@ fn resize_lanczos3(src_pixels: &[u8], width: NonZeroU32, height: NonZeroU32) -> 
     dst_image.get_buffer().to_owned()
 }
 
-fn resize_cropped_image(mut src_view: SrcImageView) -> ImageData<Vec<u8>> {
+fn crop_and_resize_image(mut src_view: SrcImageView) -> ImageData<Vec<u8>> {
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     src_view
         .set_crop_box(CropBox {

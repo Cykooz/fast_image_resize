@@ -1,6 +1,6 @@
 # fast_image_resize
 
-Library for fast image resizing with using of SIMD instructions.
+Rust library for fast image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/master/CHANGELOG.md)
 
@@ -9,7 +9,42 @@ Supported optimisations:
 - with using SSE4.1
 - with using AVX2
 
-## Examples
+## Benchmarks
+
+Environment:
+- CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
+- RAM: DDR4 3000 MHz 
+- Ubuntu 20.04 (linux 5.8)
+- fast_image_resize = "0.1"
+- criterion = "0.3.4"
+
+Other Rust libraries used to compare of resizing speed: 
+- image = "0.23.14" (https://crates.io/crates/image)
+- resize = "0.7.0" (https://crates.io/crates/resize)
+
+Resize algorithms:
+- Nearest
+- Bilinear
+- CatmullRom
+- Lanczos3
+
+### Resize 4928x3279 => 852x567
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+- Numbers in table is time of image resizing in milliseconds.
+
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      |  101.98 |  204.79  |    307.0   |  421.58  |
+| resize     |  23.139 |  103.84  |   182.36   |  261.64  |
+| fir native |  0.486  |  54.479  |   81.625   |  113.37  |
+| fir sse4.1 |    -    |   12.08  |   18.733   |  26.689  |
+| fir avx2   |    -    |   9.58   |   14.319   |  20.133  |
+
+fir - fast_image_resize
+
+
+## Examples of code
 
 ```rust
 use std::num::NonZeroU32;
@@ -32,7 +67,7 @@ fn resize_lanczos3(src_pixels: &[u8], width: NonZeroU32, height: NonZeroU32) -> 
     dst_image.get_buffer().to_owned()
 }
 
-fn resize_cropped_image(mut src_view: SrcImageView) -> ImageData<Vec<u8>> {
+fn crop_and_resize_image(mut src_view: SrcImageView) -> ImageData<Vec<u8>> {
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     src_view
         .set_crop_box(CropBox {

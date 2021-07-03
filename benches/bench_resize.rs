@@ -164,9 +164,9 @@ fn avx2_lanczos3_upscale_bench(c: &mut Criterion) {
 criterion_group!(
     benches,
     // downscale_nearest_wo_simd_bench,
-    // downscale_lanczos3_wo_simd_bench,
+    downscale_lanczos3_wo_simd_bench,
     // resize_lanczos3_bench,
-    // sse4_lanczos3_bench,
+    sse4_lanczos3_bench,
     avx2_lanczos3_bench,
     // avx2_supersampling_lanczos3_bench,
     // avx2_lanczos3_upscale_bench,
