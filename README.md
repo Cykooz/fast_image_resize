@@ -4,6 +4,11 @@ Library for fast image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/master/CHANGELOG.md)
 
+Supported optimisations:
+- native Rust-code without forced SIMD
+- with using SSE4.1
+- with using AVX2
+
 ## Examples
 
 ```rust
