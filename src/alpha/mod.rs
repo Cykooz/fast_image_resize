@@ -26,6 +26,24 @@ pub enum MulDivImageError {
 
 /// Methods of this structure used to multiplies or divides RGB-channels
 /// by alpha-channel.
+///
+/// By default instance of `MulDiv` created with best CPU-extensions provided by your CPU.
+/// You can change this by use method [MulDiv::set_cpu_extensions].
+///
+/// # Examples
+///
+/// ```
+/// use std::num::NonZeroU32;
+/// use fast_image_resize::{ImageData, MulDiv, PixelType};
+///
+/// let width = NonZeroU32::new(10).unwrap();
+/// let height = NonZeroU32::new(7).unwrap();
+/// let src_image = ImageData::new_owned(width, height, PixelType::U8x4);
+/// let mut dst_image = ImageData::new_owned(width, height, PixelType::U8x4);
+///
+/// let mul_div = MulDiv::default();
+/// mul_div.multiply_alpha(&src_image.src_view(), &mut dst_image.dst_view()).unwrap();
+/// ```
 #[derive(Default, Debug, Clone)]
 pub struct MulDiv {
     cpu_extensions: CpuExtensions,

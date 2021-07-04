@@ -1,6 +1,9 @@
 use std::slice;
 
-/* Handles values form -640 to 639. */
+// This code is based on C-implementation from Pillow-SIMD package for Python
+// https://github.com/uploadcare/pillow-simd
+
+// Handles values form -640 to 639.
 const CLIP8_LOOKUPS: [u8; 1280] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -62,17 +65,15 @@ const CLIP8_LOOKUPS: [u8; 1280] = [
 // in the other it will be more than 1.0. That is why we need
 // two extra bits for overflow and i32 type.
 const PRECISION_BITS: u8 = 32 - 8 - 2;
-/* We use signed INT16 type to store coefficients. */
+// We use i16 type to store coefficients.
 const MAX_COEFS_PRECISION: u8 = 16 - 1;
 
-/// The function must be used with the ``v`` and ``precision`` values
-/// such that the expression
-/// ```
-/// v >> precision
-/// ```
-/// produces a result in the range ``[-512, 511]``.
+/// # Safety
+/// The function must be used with the `v` and `precision` values
+/// such that the expression `v >> precision`
+/// produces a result in the range `[-512, 511]`.
 #[inline(always)]
-pub unsafe fn clip8(v: i32, precision: u8) -> u8 {
+pub(crate) unsafe fn clip8(v: i32, precision: u8) -> u8 {
     let index = (640 + (v >> precision)) as usize;
     // index must be in range [(640-512)..(640+511)]
     *CLIP8_LOOKUPS.get_unchecked(index)

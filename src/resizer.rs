@@ -55,6 +55,7 @@ impl Default for ResizeAlg {
     }
 }
 
+/// Methods of this structure used to resize images.
 #[derive(Default, Debug, Clone)]
 pub struct Resizer {
     pub algorithm: ResizeAlg,
@@ -64,6 +65,10 @@ pub struct Resizer {
 }
 
 impl Resizer {
+    /// Creates instance of `Resizer`
+    ///
+    /// By default instance of `Resizer` created with best CPU-extensions provided by your CPU.
+    /// You can change this by use method [Resizer::set_cpu_extensions].
     pub fn new(algorithm: ResizeAlg) -> Self {
         Self {
             algorithm,
@@ -71,6 +76,12 @@ impl Resizer {
         }
     }
 
+    /// Resize source image to the size of destination image and save
+    /// the result to the latter's pixel buffer.
+    ///
+    /// This method doesn't multiply source image and doesn't divide
+    /// destination image by alpha channel.
+    /// You must use [MulDiv](crate::MulDiv) for this actions.
     pub fn resize(&mut self, src_image: &SrcImageView, dst_image: &mut DstImageView) {
         match self.algorithm {
             ResizeAlg::Nearest => resample_nearest(&src_image, dst_image),

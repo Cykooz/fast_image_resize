@@ -4,10 +4,15 @@ Rust library for fast image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/master/CHANGELOG.md)
 
-Supported optimisations:
-- native Rust-code without forced SIMD
-- with using SSE4.1
-- with using AVX2
+Supported pixel formats and available optimisations:
+- `U8x4` - four `u8` components per pixel:
+  - native Rust-code without forced SIMD
+  - SSE4.1
+  - AVX2
+- `I32` - one `i32` component per pixel:
+  - native Rust-code without forced SIMD
+- `F32` - one `f32` component per pixel:
+  - native Rust-code without forced SIMD
 
 ## Benchmarks
 
@@ -30,6 +35,10 @@ Resize algorithms:
 
 ### Resize RGB image 4928x3279 => 852x567
 
+Pipeline: 
+
+`src_image => resize => dst_image`
+
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is time of image resizing in milliseconds.
 
@@ -41,7 +50,7 @@ Resize algorithms:
 | fir sse4.1 |    -    |  12.143  |   18.662   |  26.334  |
 | fir avx2   |    -    |   9.346  |   13.342   |  18.934  |
 
-`rustflags = ["-C", "target-cpu=native"]`
+Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
@@ -52,6 +61,10 @@ Resize algorithms:
 | fir avx2   |    -    |   8.746  |   11.818   |  17.253  |
 
 ### Resize RGBA image 4928x3279 => 852x567
+
+Pipeline: 
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is time of image resizing in milliseconds.
@@ -64,7 +77,7 @@ Resize algorithms:
 | fir sse4.1 |  12.03  |  23.721  |   30.266   |  37.874  |
 | fir avx2   |  6.949  |  15.873  |   19.956   |  25.527  |
 
-`rustflags = ["-C", "target-cpu=native"]`
+Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
