@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use glassbench::*;
 
 use fast_image_resize::ImageData;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
@@ -14,7 +14,7 @@ const NEW_BIG_WIDTH: u32 = 4928;
 const NEW_BIG_HEIGHT: u32 = 3279;
 
 fn get_big_source_image() -> ImageData<Vec<u8>> {
-    let img = utils::get_big_rgb_image();
+    let img = utils::get_big_rgba_image();
     let width = img.width();
     let height = img.height();
     let buf = img.as_raw().clone();
@@ -28,7 +28,7 @@ fn get_big_source_image() -> ImageData<Vec<u8>> {
 }
 
 fn get_small_source_image() -> ImageData<Vec<u8>> {
-    let img = utils::get_small_rgb_image();
+    let img = utils::get_small_rgba_image();
     let width = img.width();
     let height = img.height();
     let buf = img.as_raw().clone();
@@ -41,7 +41,7 @@ fn get_small_source_image() -> ImageData<Vec<u8>> {
     .unwrap()
 }
 
-fn downscale_nearest_wo_simd_bench(c: &mut Criterion) {
+fn nearest_wo_simd_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -54,14 +54,14 @@ fn downscale_nearest_wo_simd_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
-    c.bench_function("Downscale nearest wo SIMD", |b| {
-        b.iter(|| {
+    bench.task("nearest wo SIMD", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-fn downscale_lanczos3_wo_simd_bench(c: &mut Criterion) {
+fn lanczos3_wo_simd_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -74,14 +74,14 @@ fn downscale_lanczos3_wo_simd_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
-    c.bench_function("Downscale lanczos3 wo SIMD", |b| {
-        b.iter(|| {
+    bench.task("lanczos3 wo SIMD", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-fn sse4_lanczos3_bench(c: &mut Criterion) {
+fn sse4_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -94,14 +94,14 @@ fn sse4_lanczos3_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::Sse4_1);
     }
-    c.bench_function("sse4 lanczos3", |b| {
-        b.iter(|| {
+    bench.task("sse4 lanczos3", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-fn avx2_lanczos3_bench(c: &mut Criterion) {
+fn avx2_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -114,14 +114,14 @@ fn avx2_lanczos3_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
-    c.bench_function("avx2 lanczos3", |b| {
-        b.iter(|| {
+    bench.task("avx2 lanczos3", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-fn avx2_supersampling_lanczos3_bench(c: &mut Criterion) {
+fn avx2_supersampling_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -134,14 +134,14 @@ fn avx2_supersampling_lanczos3_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
-    c.bench_function("avx2 supersampling lanczos3", |b| {
-        b.iter(|| {
+    bench.task("avx2 supersampling lanczos3", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-fn avx2_lanczos3_upscale_bench(c: &mut Criterion) {
+fn avx2_lanczos3_upscale_bench(bench: &mut Bench) {
     let image = get_small_source_image();
     let mut res_image = ImageData::new_owned(
         NonZeroU32::new(NEW_BIG_WIDTH).unwrap(),
@@ -154,21 +154,19 @@ fn avx2_lanczos3_upscale_bench(c: &mut Criterion) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
-    c.bench_function("avx2 lanczos3 upscale", |b| {
-        b.iter(|| {
+    bench.task("avx2 lanczos3 upscale", |task| {
+        task.iter(|| {
             resizer.resize(&src_image, &mut dst_image);
         })
     });
 }
 
-criterion_group!(
-    benches,
-    // downscale_nearest_wo_simd_bench,
-    downscale_lanczos3_wo_simd_bench,
-    // resize_lanczos3_bench,
+glassbench!(
+    "Resize",
+    nearest_wo_simd_bench,
+    lanczos3_wo_simd_bench,
     sse4_lanczos3_bench,
     avx2_lanczos3_bench,
-    // avx2_supersampling_lanczos3_bench,
-    // avx2_lanczos3_upscale_bench,
+    avx2_supersampling_lanczos3_bench,
+    avx2_lanczos3_upscale_bench,
 );
-criterion_main!(benches);

@@ -21,7 +21,7 @@ Environment:
 - RAM: DDR4 3000 MHz 
 - Ubuntu 20.04 (linux 5.8)
 - fast_image_resize = "0.1"
-- criterion = "0.3.4"
+- glassbench = "0.3.0"
 
 Other Rust libraries used to compare of resizing speed: 
 - image = "0.23.14" (https://crates.io/crates/image)
@@ -40,25 +40,25 @@ Pipeline:
 `src_image => resize => dst_image`
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
-- Numbers in table is time of image resizing in milliseconds.
+- Numbers in table is mean duration of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  105.38 |  204.21  |   301.58   |  399.52  |
-| resize     |  16.223 |  72.447  |   132.64   |  193.26  |
-| fir rust   |  0.476  |  57.003  |   87.564   |  120.65  |
-| fir sse4.1 |    -    |  12.143  |   18.662   |  26.334  |
-| fir avx2   |    -    |   9.346  |   13.342   |  18.934  |
+| image      | 106.841 |  205.303 |   302.171  |  400.717 |
+| resize     |  16.077 |  72.027  |   132.17   |  192.05  |
+| fir rust   |  0.477  |  57.038  |   87.254   |  120.589 |
+| fir sse4.1 |    -    |  12.333  |   18.391   |  25.872  |
+| fir avx2   |    -    |   9.369  |   13.371   |  19.002  |
 
 Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  91.498 |  183.47  |   282.34   |  386.74  |
-| resize     |  15.752 |  63.137  |   116.45   |  169.73  |
-| fir rust   |  0.467  |  58.133  |   65.575   |  89.721  |
-| fir sse4.1 |    -    |  11.567  |   16.566   |  23.859  |
-| fir avx2   |    -    |   8.746  |   11.818   |  17.253  |
+| image      |  91.607 |   184.2  |   280.471  |  382.259 |
+| resize     |  15.884 |  62.297  |   115.057  |  168.398 |
+| fir rust   |  0.473  |  56.827  |   62.832   |  84.949  |
+| fir sse4.1 |    -    |  11.561  |   16.621   |   23.75  |
+| fir avx2   |    -    |   8.747  |   11.873   |   17.31  |
 
 ### Resize RGBA image 4928x3279 => 852x567
 
@@ -67,25 +67,25 @@ Pipeline:
 `src_image => multiply by alpha => resize => divide by alpha => dst_image`
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
-- Numbers in table is time of image resizing in milliseconds.
+- Numbers in table is mean duration of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  110.45 |  264.84  |   421.25   |  596.17  |
-| resize     |  23.919 |  100.38  |   173.62   |  247.39  |
-| fir rust   |  13.832 |  70.448  |   100.87   |  133.84  |
-| fir sse4.1 |  12.03  |  23.721  |   30.266   |  37.874  |
-| fir avx2   |  6.949  |  15.873  |   19.956   |  25.527  |
+| image      | 103.377 |  209.701 |   318.407  |  428.659 |
+| resize     |  20.121 |  88.308  |   161.366  |  234.437 |
+| fir rust   |  13.742 |  70.499  |   100.809  |  133.927 |
+| fir sse4.1 |  12.031 |  23.732  |   30.216   |  37.862  |
+| fir avx2   |  6.894  |  15.442  |   18.875   |  24.157  |
 
 Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  97.782 |  246.27  |   403.20   |  568.91  |
-| resize     |  24.282 |  86.244  |   151.41   |  217.74  |
-| fir rust   |  9.968  |  67.628  |    74.96   |  99.376  |
-| fir sse4.1 |  7.926  |  19.017  |    24.06   |  31.323  |
-| fir avx2   |  6.924  |  15.312  |   18.266   |  23.703  |
+| image      |  91.512 |  186.247 |   289.125  |  399.234 |
+| resize     |  20.377 |  74.147  |   139.552  |  205.352 |
+| fir rust   |  9.944  |  65.808  |   72.315   |  94.223  |
+| fir sse4.1 |  7.838  |   18.97  |   24.053   |  31.164  |
+| fir avx2   |  6.866  |  15.158  |   18.259   |  23.687  |
 
 ## Examples of code
 
