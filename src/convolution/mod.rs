@@ -64,8 +64,8 @@ pub fn precompute_coefficients(
     // Maximum number of coeffs per out pixel
     let window_size = filter_radius.ceil() as usize * 2 + 1;
     // Optimization: replace division by filter_scale
-    // with multiplication by inv_filter_scale.
-    let inv_filter_scale = 1.0 / filter_scale;
+    // with multiplication by recip_filter_scale
+    let recip_filter_scale = 1.0 / filter_scale;
 
     let count_of_coeffs = window_size * out_size as usize;
     let mut coeffs: Vec<f64> = Vec::with_capacity(count_of_coeffs);
@@ -91,7 +91,7 @@ pub fn precompute_coefficients(
         let center = in_center - 0.5;
 
         for x in x_min..x_max {
-            let w: f64 = filter((x as f64 - center) * inv_filter_scale);
+            let w: f64 = filter((x as f64 - center) * recip_filter_scale);
             coeffs.push(w);
             ww += w;
         }
