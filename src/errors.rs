@@ -1,9 +1,19 @@
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, Copy)]
-pub enum ImageError {
-    #[error("Buffer size don't corresponds to image dimensions")]
+pub enum ImageRowsError {
+    #[error("Count of rows don't match to image height")]
+    InvalidRowsCount,
+    #[error("Size of row don't match to image width")]
+    InvalidRowSize,
+}
+
+#[derive(Error, Debug, Clone, Copy)]
+pub enum ImageBufferError {
+    #[error("Size of buffer don't match to image dimensions")]
     InvalidBufferSize,
+    #[error("Alignment of buffer don't match to alignment of u32")]
+    InvalidBufferAlignment,
 }
 
 #[derive(Error, Debug, Clone, Copy)]

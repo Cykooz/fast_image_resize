@@ -77,10 +77,15 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
         };
         for alg_name in alg_names {
             let src_rgba_image = utils::get_big_rgba_image();
+            let buf: Vec<u32> = src_rgba_image
+                .as_raw()
+                .chunks_exact(4)
+                .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
+                .collect();
             let src_image_data = ImageData::new(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
-                src_rgba_image.as_raw(),
+                buf,
                 PixelType::U8x4,
             )
             .unwrap();

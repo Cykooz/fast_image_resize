@@ -22,7 +22,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     ];
 
     let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
-    let src_image_view = SrcImageView::new(
+    let src_image_view = SrcImageView::from_rows(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         rows,
@@ -60,7 +60,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
 
     // Inplace
     let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
-    let mut image_view = DstImageView::new(
+    let mut image_view = DstImageView::from_rows(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         rows,
@@ -109,7 +109,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     ];
 
     let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
-    let src_image_view = SrcImageView::new(
+    let src_image_view = SrcImageView::from_rows(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         rows,
@@ -147,7 +147,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
 
     // Inplace
     let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
-    let mut image_view = DstImageView::new(
+    let mut image_view = DstImageView::from_rows(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         rows,

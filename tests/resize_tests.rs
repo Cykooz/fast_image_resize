@@ -8,7 +8,7 @@ use image::{ColorType, GenericImageView};
 use fast_image_resize::ImageData;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer, SrcImageView};
 
-fn get_source_image() -> ImageData<Vec<u8>> {
+fn get_source_image() -> ImageData<Vec<u32>> {
     let img = ImageReader::open("./data/nasa-4928x3279.png")
         .unwrap()
         .decode()
@@ -16,7 +16,11 @@ fn get_source_image() -> ImageData<Vec<u8>> {
     let width = img.width();
     let height = img.height();
     let rgb = img.to_rgba8();
-    let buf = rgb.as_raw().clone();
+    let buf = rgb
+        .as_raw()
+        .chunks_exact(4)
+        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
+        .collect();
     ImageData::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -26,7 +30,7 @@ fn get_source_image() -> ImageData<Vec<u8>> {
     .unwrap()
 }
 
-fn get_small_source_image() -> ImageData<Vec<u8>> {
+fn get_small_source_image() -> ImageData<Vec<u32>> {
     let img = ImageReader::open("./data/nasa-852x567.png")
         .unwrap()
         .decode()
@@ -34,7 +38,11 @@ fn get_small_source_image() -> ImageData<Vec<u8>> {
     let width = img.width();
     let height = img.height();
     let rgb = img.to_rgba8();
-    let buf = rgb.as_raw().clone();
+    let buf = rgb
+        .as_raw()
+        .chunks_exact(4)
+        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
+        .collect();
     ImageData::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -100,7 +108,7 @@ fn resample_sse4_lanczos3_test() {
     save_result(&result.src_view(), "lanczos3_sse4");
 }
 
-fn resize_lanczos3(src_pixels: &[u8], width: NonZeroU32, height: NonZeroU32) -> Vec<u8> {
+fn resize_lanczos3(src_pixels: &[u32], width: NonZeroU32, height: NonZeroU32) -> Vec<u32> {
     let src_image = ImageData::new(width, height, src_pixels, PixelType::U8x4).unwrap();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     let dst_width = NonZeroU32::new(1024).unwrap();

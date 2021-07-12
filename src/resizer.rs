@@ -60,8 +60,8 @@ impl Default for ResizeAlg {
 pub struct Resizer {
     pub algorithm: ResizeAlg,
     cpu_extensions: CpuExtensions,
-    convolution_buffer: Vec<u8>,
-    super_sampling_buffer: Vec<u8>,
+    convolution_buffer: Vec<u32>,
+    super_sampling_buffer: Vec<u32>,
 }
 
 impl Resizer {
@@ -114,7 +114,8 @@ impl Resizer {
     /// Returns the size of internal buffers used to store the results of
     /// intermediate resizing steps.
     pub fn size_of_internal_buffers(&self) -> usize {
-        self.convolution_buffer.len() + self.super_sampling_buffer.len()
+        (self.convolution_buffer.capacity() + self.super_sampling_buffer.capacity())
+            * std::mem::size_of::<u32>()
     }
 
     /// Deallocates the internal buffers used to store the results of
@@ -142,12 +143,12 @@ impl Resizer {
 }
 
 fn get_temp_image_from_buffer(
-    buffer: &mut Vec<u8>,
+    buffer: &mut Vec<u32>,
     width: NonZeroU32,
     height: NonZeroU32,
     pixel_type: PixelType,
-) -> ImageData<&mut [u8]> {
-    let buf_size = (width.get() * height.get()) as usize * 4;
+) -> ImageData<&mut [u32]> {
+    let buf_size = (width.get() * height.get()) as usize;
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
     }
@@ -186,7 +187,7 @@ fn resample_convolution(
     dst_image: &mut DstImageView,
     filter_type: FilterType,
     cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u8>,
+    temp_buffer: &mut Vec<u32>,
 ) {
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width();
@@ -258,8 +259,8 @@ fn resample_super_sampling(
     filter_type: FilterType,
     multiplicity: u8,
     cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u8>,
-    convolution_temp_buffer: &mut Vec<u8>,
+    temp_buffer: &mut Vec<u32>,
+    convolution_temp_buffer: &mut Vec<u32>,
 ) {
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();

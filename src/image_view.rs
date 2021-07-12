@@ -2,7 +2,7 @@ use std::mem::transmute;
 use std::num::NonZeroU32;
 use std::slice;
 
-use crate::errors::{CropBoxError, ImageError};
+use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError};
 
 pub type TwoRows<'a> = (&'a [u32], &'a [u32]);
 pub type FourRows<'a> = (&'a [u32], &'a [u32], &'a [u32], &'a [u32]);
@@ -49,19 +49,18 @@ pub struct DstImageView<'a> {
 }
 
 impl<'a> SrcImageView<'a> {
-    #[inline(always)]
-    pub fn new(
+    pub fn from_rows(
         width: NonZeroU32,
         height: NonZeroU32,
         rows: Vec<&'a [u32]>,
         pixel_type: PixelType,
-    ) -> Result<Self, ImageError> {
+    ) -> Result<Self, ImageRowsError> {
         if rows.len() != height.get() as usize {
-            return Err(ImageError::InvalidBufferSize);
+            return Err(ImageRowsError::InvalidRowsCount);
         }
         let row_size = width.get() as usize;
         if rows.iter().any(|row| row.len() != row_size) {
-            return Err(ImageError::InvalidBufferSize);
+            return Err(ImageRowsError::InvalidRowSize);
         }
         Ok(Self {
             width,
@@ -75,6 +74,25 @@ impl<'a> SrcImageView<'a> {
             rows,
             pixel_type,
         })
+    }
+
+    pub fn from_buffer(
+        width: NonZeroU32,
+        height: NonZeroU32,
+        buffer: &'a [u8],
+        pixel_type: PixelType,
+    ) -> Result<Self, ImageBufferError> {
+        let (head, pixels, _) = unsafe { buffer.align_to::<u32>() };
+        if !head.is_empty() {
+            return Err(ImageBufferError::InvalidBufferAlignment);
+        }
+        let size = (width.get() * height.get()) as usize;
+        if pixels.len() != size {
+            return Err(ImageBufferError::InvalidBufferSize);
+        }
+
+        let rows = pixels.chunks(width.get() as usize).collect();
+        Ok(Self::from_rows(width, height, rows, pixel_type).unwrap())
     }
 
     #[inline(always)]
@@ -224,18 +242,18 @@ impl<'a> SrcImageView<'a> {
 
 impl<'a> DstImageView<'a> {
     #[inline(always)]
-    pub fn new(
+    pub fn from_rows(
         width: NonZeroU32,
         height: NonZeroU32,
         rows: Vec<&'a mut [u32]>,
         pixel_type: PixelType,
-    ) -> Result<Self, ImageError> {
+    ) -> Result<Self, ImageRowsError> {
         if rows.len() != height.get() as usize {
-            return Err(ImageError::InvalidBufferSize);
+            return Err(ImageRowsError::InvalidRowsCount);
         }
         let row_size = width.get() as usize;
         if rows.iter().any(|row| row.len() != row_size) {
-            return Err(ImageError::InvalidBufferSize);
+            return Err(ImageRowsError::InvalidRowSize);
         }
         Ok(Self {
             width,
@@ -278,32 +296,3 @@ impl<'a> DstImageView<'a> {
         self.rows.get_mut(y as usize)
     }
 }
-
-// pub struct FourRowsIterator<'a> {
-//     chunks: slice::ChunksExact<'a, &'a [u32]>,
-// }
-//
-// impl<'a> FourRowsIterator<'a> {
-//     #[inline(always)]
-//     fn new(image: &'a SrcImageView<'a>, start_y: u32, max_y: u32) -> Self {
-//         let start_y = start_y as usize;
-//         let max_y = max_y as usize;
-//         let max_y = max_y.min(image.height.get() as usize);
-//         let rows = unsafe { image.rows.get_unchecked(start_y..max_y) };
-//         Self {
-//             chunks: rows.chunks_exact(4),
-//         }
-//     }
-// }
-//
-// impl<'a> Iterator for FourRowsIterator<'a> {
-//     type Item = FourRows<'a>;
-//
-//     #[inline(always)]
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.chunks.next() {
-//             Some(&[r0, r1, r2, r3]) => Some((r0, r1, r2, r3)),
-//             _ => None,
-//         }
-//     }
-// }

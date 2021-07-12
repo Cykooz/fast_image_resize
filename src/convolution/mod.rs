@@ -38,6 +38,12 @@ pub struct Bound {
     pub size: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct CoefficientsChunk<'a> {
+    pub start: u32,
+    pub values: &'a [i16],
+}
+
 #[derive(Debug, Clone)]
 pub struct Coefficients {
     pub values: Vec<f64>,

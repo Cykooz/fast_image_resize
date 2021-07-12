@@ -84,10 +84,15 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
                 "lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };
+            let buf: Vec<u32> = src_image
+                .as_raw()
+                .chunks_exact(4)
+                .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
+                .collect();
             let src_image_data = ImageData::new(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
-                src_image.as_raw(),
+                buf,
                 PixelType::U8x4,
             )
             .unwrap();

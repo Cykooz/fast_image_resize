@@ -16,19 +16,17 @@ impl Convolution for NativeU8x4 {
     ) {
         let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-        let mut normalizer_guard = optimisations::NormalizerGuard::new(values);
+        let normalizer_guard = optimisations::NormalizerGuard::new(values);
         let precision = normalizer_guard.precision();
-        let coeffs_i16 = normalizer_guard.normalized();
+        let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
 
         let dst_rows = dst_image.iter_rows_mut();
         for (y_dst, dst_row) in dst_rows.enumerate() {
             let y_src = y_dst as u32 + offset;
 
-            for (x_dst, (&bound, dst_pixel)) in bounds.iter().zip(dst_row.iter_mut()).enumerate() {
-                let first_x_src = bound.start;
-                let start_index = window_size * x_dst;
-                let end_index = start_index + bound.size as usize;
-                let ks = &coeffs_i16[start_index..end_index];
+            for (&coeffs_chunk, dst_pixel) in coefficients_chunks.iter().zip(dst_row.iter_mut()) {
+                let first_x_src = coeffs_chunk.start;
+                let ks = coeffs_chunk.values;
 
                 let mut ss0 = 1 << (precision - 1);
                 let mut ss1 = ss0;
@@ -63,16 +61,14 @@ impl Convolution for NativeU8x4 {
     ) {
         let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-        let mut normalizer_guard = optimisations::NormalizerGuard::new(values);
+        let normalizer_guard = optimisations::NormalizerGuard::new(values);
         let precision = normalizer_guard.precision();
-        let coeffs_i16 = normalizer_guard.normalized();
+        let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
 
         let dst_rows = dst_image.iter_rows_mut();
-        for (y_dst, (&bound, dst_row)) in bounds.iter().zip(dst_rows).enumerate() {
-            let first_y_src = bound.start;
-            let start_index = window_size * y_dst;
-            let end_index = start_index + bound.size as usize;
-            let ks = &coeffs_i16[start_index..end_index];
+        for (&coeffs_chunk, dst_row) in coefficients_chunks.iter().zip(dst_rows) {
+            let first_y_src = coeffs_chunk.start;
+            let ks = coeffs_chunk.values;
 
             for (x_src, out_pixel) in dst_row.iter_mut().enumerate() {
                 let mut ss0 = 1 << (precision - 1);

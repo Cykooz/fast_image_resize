@@ -10,16 +10,9 @@ const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
 
 // Multiplies by alpha
 
-fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData<Vec<u8>> {
-    let rgba: [u8; 4] = pixel.to_le_bytes();
-    let buf_size = (width.get() * height.get()) as usize * 4;
-    let mut buffer = vec![0u8; buf_size];
-    buffer.chunks_exact_mut(4).for_each(|c| {
-        c[0] = rgba[0];
-        c[1] = rgba[1];
-        c[2] = rgba[2];
-        c[3] = rgba[3];
-    });
+fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData<Vec<u32>> {
+    let buf_size = (width.get() * height.get()) as usize;
+    let buffer = vec![pixel; buf_size];
     ImageData::new(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
