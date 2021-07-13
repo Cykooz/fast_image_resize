@@ -82,13 +82,13 @@ impl<'a> SrcImageView<'a> {
         buffer: &'a [u8],
         pixel_type: PixelType,
     ) -> Result<Self, ImageBufferError> {
+        let size = (width.get() * height.get()) as usize * 4;
+        if buffer.len() != size {
+            return Err(ImageBufferError::InvalidBufferSize);
+        }
         let (head, pixels, _) = unsafe { buffer.align_to::<u32>() };
         if !head.is_empty() {
             return Err(ImageBufferError::InvalidBufferAlignment);
-        }
-        let size = (width.get() * height.get()) as usize;
-        if pixels.len() != size {
-            return Err(ImageBufferError::InvalidBufferSize);
         }
 
         let rows = pixels.chunks(width.get() as usize).collect();

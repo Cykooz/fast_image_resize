@@ -45,8 +45,14 @@ impl<T: AsRef<[u32]>> ImageData<T> {
     }
 
     #[inline(always)]
-    pub fn get_buffer(&self) -> &[u32] {
+    pub fn get_pixels(&self) -> &[u32] {
         self.pixels.as_ref()
+    }
+
+    #[inline(always)]
+    pub fn get_buffer(&self) -> &[u8] {
+        let (_, buffer, _) = unsafe { self.pixels.as_ref().align_to::<u8>() };
+        buffer
     }
 
     #[inline(always)]
@@ -76,5 +82,27 @@ impl ImageData<Vec<u32>> {
             pixels,
             pixel_type,
         }
+    }
+
+    pub fn from_buffer(
+        width: NonZeroU32,
+        height: NonZeroU32,
+        buffer: &[u8],
+        pixel_type: PixelType,
+    ) -> Result<Self, ImageBufferError> {
+        let size = (width.get() * height.get()) as usize * 4;
+        if buffer.len() != size {
+            return Err(ImageBufferError::InvalidBufferSize);
+        }
+        let (head, pixels, _) = unsafe { buffer.align_to::<u32>() };
+        if !head.is_empty() {
+            return Err(ImageBufferError::InvalidBufferAlignment);
+        }
+        Ok(Self {
+            width,
+            height,
+            pixels: pixels.to_owned(),
+            pixel_type,
+        })
     }
 }

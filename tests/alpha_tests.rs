@@ -1,5 +1,4 @@
 use fast_image_resize::{CpuExtensions, DstImageView, ImageData, MulDiv, PixelType, SrcImageView};
-use std::convert::TryInto;
 use std::num::NonZeroU32;
 
 const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
@@ -46,11 +45,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
         .multiply_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels: Vec<u32> = dst_image
-        .get_buffer()
-        .chunks_exact(4)
-        .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
-        .collect();
+    let dst_pixels: Vec<u32> = dst_image.get_pixels().to_vec();
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
@@ -133,11 +128,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
         .divide_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels: Vec<u32> = dst_image
-        .get_buffer()
-        .chunks_exact(4)
-        .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
-        .collect();
+    let dst_pixels: Vec<u32> = dst_image.get_pixels().to_vec();
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {

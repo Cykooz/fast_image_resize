@@ -15,16 +15,11 @@ fn get_source_image() -> ImageData<Vec<u32>> {
         .unwrap();
     let width = img.width();
     let height = img.height();
-    let rgb = img.to_rgba8();
-    let buf = rgb
-        .as_raw()
-        .chunks_exact(4)
-        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
-        .collect();
-    ImageData::new(
+    let rgba = img.to_rgba8();
+    ImageData::from_buffer(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        buf,
+        rgba.as_raw(),
         PixelType::U8x4,
     )
     .unwrap()
@@ -37,16 +32,11 @@ fn get_small_source_image() -> ImageData<Vec<u32>> {
         .unwrap();
     let width = img.width();
     let height = img.height();
-    let rgb = img.to_rgba8();
-    let buf = rgb
-        .as_raw()
-        .chunks_exact(4)
-        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
-        .collect();
-    ImageData::new(
+    let rgba = img.to_rgba8();
+    ImageData::from_buffer(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        buf,
+        rgba.as_raw(),
         PixelType::U8x4,
     )
     .unwrap()
@@ -115,7 +105,7 @@ fn resize_lanczos3(src_pixels: &[u32], width: NonZeroU32, height: NonZeroU32) ->
     let dst_height = NonZeroU32::new(768).unwrap();
     let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_image.pixel_type());
     resizer.resize(&src_image.src_view(), &mut dst_image.dst_view());
-    dst_image.get_buffer().to_owned()
+    dst_image.get_pixels().to_owned()
 }
 
 #[test]
