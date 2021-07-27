@@ -4,16 +4,14 @@ use fast_image_resize::{
     CropBox, FilterType, ImageData, PixelType, ResizeAlg, Resizer, SrcImageView,
 };
 
-fn resize_lanczos3(src_pixels: &[u8], width: NonZeroU32, height: NonZeroU32) -> Vec<u8> {
-    // Create wrapper for raw data of source image
-    let src_image = ImageData::new(width, height, src_pixels, PixelType::U8x4).unwrap();
-    // Get immutable view of image data
-    let src_view = src_image.src_view();
+fn resize_lanczos3(src_pixels: &[u32], width: NonZeroU32, height: NonZeroU32) -> Vec<u8> {
+    // Create immutable view of source image data
+    let src_view = SrcImageView::from_pixels(width, height, src_pixels, PixelType::U8x4).unwrap();
 
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
     // Create wrapper that own data of destination image
-    let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_image.pixel_type());
+    let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_view.pixel_type());
     // Get mutable view of destination image data
     let mut dst_view = dst_image.dst_view();
 

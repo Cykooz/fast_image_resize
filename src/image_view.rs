@@ -2,7 +2,7 @@ use std::mem::transmute;
 use std::num::NonZeroU32;
 use std::slice;
 
-use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError};
+use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError, InvalidBufferSizeError};
 
 pub type TwoRows<'a> = (&'a [u32], &'a [u32]);
 pub type FourRows<'a> = (&'a [u32], &'a [u32], &'a [u32], &'a [u32]);
@@ -91,6 +91,20 @@ impl<'a> SrcImageView<'a> {
             return Err(ImageBufferError::InvalidBufferAlignment);
         }
 
+        let rows = pixels.chunks(width.get() as usize).collect();
+        Ok(Self::from_rows(width, height, rows, pixel_type).unwrap())
+    }
+
+    pub fn from_pixels(
+        width: NonZeroU32,
+        height: NonZeroU32,
+        pixels: &'a [u32],
+        pixel_type: PixelType,
+    ) -> Result<Self, InvalidBufferSizeError> {
+        let size = (width.get() * height.get()) as usize;
+        if pixels.len() != size {
+            return Err(InvalidBufferSizeError);
+        }
         let rows = pixels.chunks(width.get() as usize).collect();
         Ok(Self::from_rows(width, height, rows, pixel_type).unwrap())
     }
@@ -261,6 +275,25 @@ impl<'a> DstImageView<'a> {
             rows,
             pixel_type,
         })
+    }
+
+    pub fn from_buffer(
+        width: NonZeroU32,
+        height: NonZeroU32,
+        buffer: &'a mut [u8],
+        pixel_type: PixelType,
+    ) -> Result<Self, ImageBufferError> {
+        let size = (width.get() * height.get()) as usize * 4;
+        if buffer.len() != size {
+            return Err(ImageBufferError::InvalidBufferSize);
+        }
+        let (head, pixels, _) = unsafe { buffer.align_to_mut::<u32>() };
+        if !head.is_empty() {
+            return Err(ImageBufferError::InvalidBufferAlignment);
+        }
+
+        let rows = pixels.chunks_mut(width.get() as usize).collect();
+        Ok(Self::from_rows(width, height, rows, pixel_type).unwrap())
     }
 
     #[inline(always)]

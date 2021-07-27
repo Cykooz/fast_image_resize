@@ -9,6 +9,10 @@ pub enum ImageRowsError {
 }
 
 #[derive(Error, Debug, Clone, Copy)]
+#[error("Size of buffer don't match to image dimensions")]
+pub struct InvalidBufferSizeError;
+
+#[derive(Error, Debug, Clone, Copy)]
 pub enum ImageBufferError {
     #[error("Size of buffer don't match to image dimensions")]
     InvalidBufferSize,

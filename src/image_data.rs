@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::{DstImageView, ImageBufferError, PixelType, SrcImageView};
+use crate::{DstImageView, InvalidBufferSizeError, PixelType, SrcImageView};
 
 #[derive(Debug, Clone)]
 pub struct ImageData<T: AsRef<[u32]>> {
@@ -16,10 +16,10 @@ impl<T: AsRef<[u32]>> ImageData<T> {
         height: NonZeroU32,
         pixels: T,
         pixel_type: PixelType,
-    ) -> Result<Self, ImageBufferError> {
+    ) -> Result<Self, InvalidBufferSizeError> {
         let size = (width.get() * height.get()) as usize;
         if pixels.as_ref().len() != size {
-            return Err(ImageBufferError::InvalidBufferSize);
+            return Err(InvalidBufferSizeError);
         }
         Ok(Self {
             width,
@@ -89,19 +89,19 @@ impl ImageData<Vec<u32>> {
         height: NonZeroU32,
         buffer: &[u8],
         pixel_type: PixelType,
-    ) -> Result<Self, ImageBufferError> {
+    ) -> Result<Self, InvalidBufferSizeError> {
         let size = (width.get() * height.get()) as usize * 4;
         if buffer.len() != size {
-            return Err(ImageBufferError::InvalidBufferSize);
+            return Err(InvalidBufferSizeError);
         }
-        let (head, pixels, _) = unsafe { buffer.align_to::<u32>() };
-        if !head.is_empty() {
-            return Err(ImageBufferError::InvalidBufferAlignment);
-        }
+        let pixels = buffer
+            .chunks_exact(4)
+            .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
+            .collect();
         Ok(Self {
             width,
             height,
-            pixels: pixels.to_owned(),
+            pixels,
             pixel_type,
         })
     }
