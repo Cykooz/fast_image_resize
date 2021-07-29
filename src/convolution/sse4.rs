@@ -5,11 +5,11 @@ use crate::convolution::{Bound, Coefficients, CoefficientsChunk, Convolution};
 use crate::image_view::{DstImageView, FourRows, FourRowsMut, SrcImageView};
 use crate::{optimisations, simd_utils};
 
-pub struct Sse4;
+pub struct Sse4U8x4;
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
-impl Sse4 {
+impl Sse4U8x4 {
     /// For safety, it is necessary to ensure the following conditions:
     /// - length of all rows in src_rows must be equal
     /// - length of all rows in dst_rows must be equal
@@ -484,7 +484,7 @@ impl Sse4 {
     }
 }
 
-impl Convolution for Sse4 {
+impl Convolution for Sse4U8x4 {
     #[inline]
     fn horiz_convolution(
         &self,

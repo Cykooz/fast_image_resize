@@ -98,16 +98,6 @@ fn resample_sse4_lanczos3_test() {
     save_result(&result.src_view(), "lanczos3_sse4");
 }
 
-fn resize_lanczos3(src_pixels: &[u32], width: NonZeroU32, height: NonZeroU32) -> Vec<u32> {
-    let src_image = ImageData::new(width, height, src_pixels, PixelType::U8x4).unwrap();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    let dst_width = NonZeroU32::new(1024).unwrap();
-    let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_image.pixel_type());
-    resizer.resize(&src_image.src_view(), &mut dst_image.dst_view());
-    dst_image.get_pixels().to_owned()
-}
-
 #[test]
 fn resample_avx2_lanczos3_test() {
     let image = get_source_image();

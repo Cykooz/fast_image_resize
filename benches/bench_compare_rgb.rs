@@ -15,17 +15,16 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
-    // let mut group = c.benchmark_group("Downscale RGB (4928x3279 => 852x567)");
-    let alg_names = ["nearest", "triangle", "catmulrom", "lanczos3"];
+    let alg_names = ["Nearest", "Bilinear", "CatmullRom", "Lanczos3"];
 
     // image crate
     // https://crates.io/crates/image
     for alg_name in alg_names {
         let filter = match alg_name {
-            "nearest" => imageops::Nearest,
-            "triangle" => imageops::Triangle,
-            "catmulrom" => imageops::CatmullRom,
-            "lanczos3" => imageops::Lanczos3,
+            "Nearest" => imageops::Nearest,
+            "Bilinear" => imageops::Triangle,
+            "CatmullRom" => imageops::CatmullRom,
+            "Lanczos3" => imageops::Lanczos3,
             _ => continue,
         };
         bench.task(format!("image - {}", alg_name), |task| {
@@ -42,10 +41,10 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
         let mut dst = vec![RGB::new(0, 0, 0); (new_width.get() * new_height.get()) as usize];
         bench.task(format!("resize - {}", alg_name), |task| {
             let filter = match alg_name {
-                "nearest" => resize::Type::Point,
-                "triangle" => resize::Type::Triangle,
-                "catmulrom" => resize::Type::Catrom,
-                "lanczos3" => resize::Type::Lanczos3,
+                "Nearest" => resize::Type::Point,
+                "Bilinear" => resize::Type::Triangle,
+                "CatmullRom" => resize::Type::Catrom,
+                "Lanczos3" => resize::Type::Lanczos3,
                 _ => return,
             };
             let mut resize = resize::new(
@@ -94,10 +93,10 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
             let mut dst_view = dst_image.dst_view();
 
             let resize_alg = match alg_name {
-                "nearest" => ResizeAlg::Nearest,
-                "triangle" => ResizeAlg::Convolution(FilterType::Bilinear),
-                "catmulrom" => ResizeAlg::Convolution(FilterType::CatmulRom),
-                "lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
+                "Nearest" => ResizeAlg::Nearest,
+                "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
+                "CatmullRom" => ResizeAlg::Convolution(FilterType::CatmulRom),
+                "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };
             let mut fast_resizer = Resizer::new(resize_alg);
@@ -114,6 +113,8 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
             });
         }
     }
+
+    utils::print_md_table(bench);
 }
 
-glassbench!("Compare", bench_downscale_rgb,);
+glassbench!("Compare resize of RGB image", bench_downscale_rgb,);

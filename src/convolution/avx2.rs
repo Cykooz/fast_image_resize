@@ -5,11 +5,11 @@ use crate::convolution::{Bound, Coefficients, CoefficientsChunk, Convolution};
 use crate::image_view::{DstImageView, FourRows, FourRowsMut, SrcImageView};
 use crate::{optimisations, simd_utils};
 
-pub struct Avx2;
+pub struct Avx2U8x4;
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
-impl Avx2 {
+impl Avx2U8x4 {
     /// For safety, it is necessary to ensure the following conditions:
     /// - length of all rows in src_rows must be equal
     /// - length of all rows in dst_rows must be equal
@@ -464,7 +464,7 @@ impl Avx2 {
     }
 }
 
-impl Convolution for Avx2 {
+impl Convolution for Avx2U8x4 {
     #[inline]
     fn horiz_convolution(
         &self,

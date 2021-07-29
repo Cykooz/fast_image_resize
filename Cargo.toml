@@ -20,8 +20,8 @@ thiserror = "1.0.26"
 [dev-dependencies]
 glassbench = "0.3.0"
 image = "0.23.14"
-resize = "0.7.0"
-rgb = "0.8.25"
+resize = "0.7.2"
+rgb = "0.8.27"
 
 
 [[bench]]

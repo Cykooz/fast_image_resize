@@ -31,8 +31,8 @@ impl CpuExtensions {
     fn get_resampler(&self, pixel_type: PixelType) -> &dyn Convolution {
         match pixel_type {
             PixelType::U8x4 => match self {
-                Self::Sse4_1 => &convolution::Sse4,
-                Self::Avx2 => &convolution::Avx2,
+                Self::Sse4_1 => &convolution::Sse4U8x4,
+                Self::Avx2 => &convolution::Avx2U8x4,
                 _ => &convolution::NativeU8x4,
             },
             PixelType::I32 => &convolution::NativeI32,
