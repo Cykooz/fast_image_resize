@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 pub use alpha::{MulDiv, MulDivImageError, MulDivImagesError};
 pub use convolution::FilterType;
 pub use errors::{CropBoxError, ImageBufferError, ImageRowsError, InvalidBufferSizeError};

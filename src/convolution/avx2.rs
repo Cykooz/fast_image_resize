@@ -13,10 +13,8 @@ impl Avx2U8x4 {
     /// For safety, it is necessary to ensure the following conditions:
     /// - length of all rows in src_rows must be equal
     /// - length of all rows in dst_rows must be equal
-    /// - bounds.len() == dst_rows.0.len()
-    /// - coeffs.len() == dst_rows.0.len() * window_size
-    /// - max(bound.size for bound in bounds) <= window_size
-    /// - max(bound.start + bound.size for bound in bounds) <= src_row.0.len()
+    /// - coefficients_chunks.len() == dst_rows.0.len()
+    /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
     /// - precision <= MAX_COEFS_PRECISION
     #[inline]
     #[target_feature(enable = "avx2")]
@@ -58,20 +56,18 @@ impl Avx2U8x4 {
                 let mmk0 = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
                 let mmk1 = simd_utils::ptr_i16_to_256set1_epi32(k, 2);
 
-                let mut source = _mm256_inserti128_si256(
+                let mut source = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::loadu_si128(s_row0, x + x_start)),
                     simd_utils::loadu_si128(s_row1, x + x_start),
-                    1,
                 );
                 let mut pix = _mm256_shuffle_epi8(source, sh1);
                 sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk0));
                 pix = _mm256_shuffle_epi8(source, sh2);
                 sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk1));
 
-                source = _mm256_inserti128_si256(
+                source = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::loadu_si128(s_row2, x + x_start)),
                     simd_utils::loadu_si128(s_row3, x + x_start),
-                    1,
                 );
                 pix = _mm256_shuffle_epi8(source, sh1);
                 sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk0));
@@ -87,18 +83,16 @@ impl Avx2U8x4 {
             for k in coeffs_by_2 {
                 let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
 
-                let mut pix = _mm256_inserti128_si256(
+                let mut pix = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row0, x + x_start)),
                     simd_utils::loadl_epi64(s_row1, x + x_start),
-                    1,
                 );
                 pix = _mm256_shuffle_epi8(pix, sh1);
                 sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
-                pix = _mm256_inserti128_si256(
+                pix = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row2, x + x_start)),
                     simd_utils::loadl_epi64(s_row3, x + x_start),
-                    1,
                 );
                 pix = _mm256_shuffle_epi8(pix, sh1);
                 sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
@@ -111,17 +105,15 @@ impl Avx2U8x4 {
                 let mmk = _mm256_set1_epi32(k as i32);
 
                 // [16] xx a0 xx b0 xx g0 xx r0 xx a0 xx b0 xx g0 xx r0
-                let mut pix = _mm256_inserti128_si256(
+                let mut pix = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row0, x + x_start)),
                     simd_utils::mm_cvtepu8_epi32(s_row1, x + x_start),
-                    1,
                 );
                 sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
-                pix = _mm256_inserti128_si256(
+                pix = _mm256_inserti128_si256::<1>(
                     _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row2, x + x_start)),
                     simd_utils::mm_cvtepu8_epi32(s_row3, x + x_start),
-                    1,
                 );
                 sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
                 x += 1;
@@ -129,8 +121,8 @@ impl Avx2U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm256_srai_epi32(sss0, $imm8);
-                    sss1 = _mm256_srai_epi32(sss1, $imm8);
+                    sss0 = _mm256_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm256_srai_epi32::<$imm8>(sss1);
                 }};
             }
             constify_imm8!(precision, call);
@@ -140,13 +132,13 @@ impl Avx2U8x4 {
             sss0 = _mm256_packus_epi16(sss0, zero);
             sss1 = _mm256_packus_epi16(sss1, zero);
             *d_row0.get_unchecked_mut(dst_x) =
-                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256(sss0, 0)));
+                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
             *d_row1.get_unchecked_mut(dst_x) =
-                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256(sss0, 1)));
+                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
             *d_row2.get_unchecked_mut(dst_x) =
-                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256(sss1, 0)));
+                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
             *d_row3.get_unchecked_mut(dst_x) =
-                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256(sss1, 1)));
+                transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
         }
     }
 
@@ -212,7 +204,7 @@ impl Avx2U8x4 {
 
                 for k in coeffs_by_8 {
                     let tmp = simd_utils::loadu_si128(k, 0);
-                    let ksource = _mm256_insertf128_si256(_mm256_castsi128_si256(tmp), tmp, 1);
+                    let ksource = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
                     let source = simd_utils::loadu_si256(src_row, x + x_start);
 
@@ -232,10 +224,10 @@ impl Avx2U8x4 {
 
                 for k in coeffs_by_4 {
                     let tmp = simd_utils::loadl_epi64(k, 0);
-                    let ksource = _mm256_insertf128_si256(_mm256_castsi128_si256(tmp), tmp, 1);
+                    let ksource = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
                     let tmp = simd_utils::loadu_si128(src_row, x + x_start);
-                    let source = _mm256_insertf128_si256(_mm256_castsi128_si256(tmp), tmp, 1);
+                    let source = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
                     let pix = _mm256_shuffle_epi8(source, sh5);
                     let mmk = _mm256_shuffle_epi8(ksource, sh6);
@@ -245,8 +237,8 @@ impl Avx2U8x4 {
                 }
 
                 _mm_add_epi32(
-                    _mm256_extracti128_si256(sss256, 0),
-                    _mm256_extracti128_si256(sss256, 1),
+                    _mm256_extracti128_si256::<0>(sss256),
+                    _mm256_extracti128_si256::<1>(sss256),
                 )
             };
 
@@ -272,7 +264,7 @@ impl Avx2U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss = _mm_srai_epi32(sss, $imm8);
+                    sss = _mm_srai_epi32::<$imm8>(sss);
                 }};
             }
             constify_imm8!(precision, call);
@@ -354,10 +346,10 @@ impl Avx2U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm256_srai_epi32(sss0, $imm8);
-                    sss1 = _mm256_srai_epi32(sss1, $imm8);
-                    sss2 = _mm256_srai_epi32(sss2, $imm8);
-                    sss3 = _mm256_srai_epi32(sss3, $imm8);
+                    sss0 = _mm256_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm256_srai_epi32::<$imm8>(sss1);
+                    sss2 = _mm256_srai_epi32::<$imm8>(sss2);
+                    sss3 = _mm256_srai_epi32::<$imm8>(sss3);
                 }};
             }
             constify_imm8!(precision, call);
@@ -409,8 +401,8 @@ impl Avx2U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm_srai_epi32(sss0, $imm8);
-                    sss1 = _mm_srai_epi32(sss1, $imm8);
+                    sss0 = _mm_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm_srai_epi32::<$imm8>(sss1);
                 }};
             }
             constify_imm8!(precision, call);
@@ -450,7 +442,7 @@ impl Avx2U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss = _mm_srai_epi32(sss, $imm8);
+                    sss = _mm_srai_epi32::<$imm8>(sss);
                 }};
             }
             constify_imm8!(precision, call);

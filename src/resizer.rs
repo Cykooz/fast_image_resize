@@ -153,7 +153,7 @@ fn get_temp_image_from_buffer(
         buffer.resize(buf_size, 0);
     }
     let pixels = &mut buffer[0..buf_size];
-    ImageData::new(width, height, pixels, pixel_type).unwrap()
+    ImageData::from_pixels(width, height, pixels, pixel_type).unwrap()
 }
 
 fn resample_nearest(src_image: &SrcImageView, dst_image: &mut DstImageView) {

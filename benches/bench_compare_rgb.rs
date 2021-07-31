@@ -81,7 +81,7 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
                 .chunks_exact(4)
                 .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
                 .collect();
-            let src_image_data = ImageData::new(
+            let src_image_data = ImageData::from_pixels(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
                 buf,
@@ -89,7 +89,7 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
             )
             .unwrap();
             let src_view = src_image_data.src_view();
-            let mut dst_image = ImageData::new_owned(new_width, new_height, PixelType::U8x4);
+            let mut dst_image = ImageData::new(new_width, new_height, PixelType::U8x4);
             let mut dst_view = dst_image.dst_view();
 
             let resize_alg = match alg_name {

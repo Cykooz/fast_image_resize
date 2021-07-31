@@ -22,7 +22,7 @@ fn get_big_source_image() -> ImageData<Vec<u32>> {
         .chunks_exact(4)
         .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
         .collect();
-    ImageData::new(
+    ImageData::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         buf,
@@ -40,7 +40,7 @@ fn get_small_source_image() -> ImageData<Vec<u32>> {
         .chunks_exact(4)
         .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
         .collect();
-    ImageData::new(
+    ImageData::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         buf,
@@ -51,7 +51,7 @@ fn get_small_source_image() -> ImageData<Vec<u32>> {
 
 fn nearest_wo_simd_bench(bench: &mut Bench) {
     let image = get_big_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(NEW_HEIGHT).unwrap(),
         image.pixel_type(),
@@ -71,7 +71,7 @@ fn nearest_wo_simd_bench(bench: &mut Bench) {
 
 fn lanczos3_wo_simd_bench(bench: &mut Bench) {
     let image = get_big_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(NEW_HEIGHT).unwrap(),
         image.pixel_type(),
@@ -91,7 +91,7 @@ fn lanczos3_wo_simd_bench(bench: &mut Bench) {
 
 fn sse4_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(NEW_HEIGHT).unwrap(),
         image.pixel_type(),
@@ -111,7 +111,7 @@ fn sse4_lanczos3_bench(bench: &mut Bench) {
 
 fn avx2_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(NEW_HEIGHT).unwrap(),
         image.pixel_type(),
@@ -131,7 +131,7 @@ fn avx2_lanczos3_bench(bench: &mut Bench) {
 
 fn avx2_supersampling_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(NEW_HEIGHT).unwrap(),
         image.pixel_type(),
@@ -151,7 +151,7 @@ fn avx2_supersampling_lanczos3_bench(bench: &mut Bench) {
 
 fn avx2_lanczos3_upscale_bench(bench: &mut Bench) {
     let image = get_small_source_image();
-    let mut res_image = ImageData::new_owned(
+    let mut res_image = ImageData::new(
         NonZeroU32::new(NEW_BIG_WIDTH).unwrap(),
         NonZeroU32::new(NEW_BIG_HEIGHT).unwrap(),
         image.pixel_type(),

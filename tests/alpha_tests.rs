@@ -29,7 +29,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     )
     .unwrap();
 
-    let mut dst_image = ImageData::new_owned(
+    let mut dst_image = ImageData::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         PixelType::U8x4,
@@ -112,7 +112,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     )
     .unwrap();
 
-    let mut dst_image = ImageData::new_owned(
+    let mut dst_image = ImageData::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         PixelType::U8x4,

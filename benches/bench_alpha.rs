@@ -13,14 +13,14 @@ const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
 fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData<Vec<u32>> {
     let buf_size = (width.get() * height.get()) as usize;
     let buffer = vec![pixel; buf_size];
-    ImageData::new(width, height, buffer, PixelType::U8x4).unwrap()
+    ImageData::from_pixels(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
 fn multiplies_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -41,7 +41,7 @@ fn multiplies_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -62,7 +62,7 @@ fn multiplies_alpha_native(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -83,7 +83,7 @@ fn divides_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -104,7 +104,7 @@ fn divides_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -125,7 +125,7 @@ fn divides_alpha_native(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new_owned(width, height, PixelType::U8x4);
+    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
     let src_view = src_data.src_view();
     let mut dst_view = dst_data.dst_view();
     let mut alpha_mul_div: MulDiv = Default::default();

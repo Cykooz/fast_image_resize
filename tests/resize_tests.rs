@@ -72,7 +72,7 @@ fn resample_wo_simd_lanczos3_test() {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     let new_height = get_new_height(&image.src_view(), NEW_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),
@@ -89,7 +89,7 @@ fn resample_sse4_lanczos3_test() {
         resizer.set_cpu_extensions(CpuExtensions::Sse4_1);
     }
     let new_height = get_new_height(&image.src_view(), NEW_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),
@@ -106,7 +106,7 @@ fn resample_avx2_lanczos3_test() {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
     let new_height = get_new_height(&image.src_view(), NEW_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),
@@ -123,7 +123,7 @@ fn resample_avx2_lanczos3_upscale_test() {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
     let new_height = get_new_height(&image.src_view(), NEW_BIG_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_BIG_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),
@@ -140,7 +140,7 @@ fn resample_nearest_test() {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     let new_height = get_new_height(&image.src_view(), NEW_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),
@@ -157,7 +157,7 @@ fn resample_super_sampling_test() {
         resizer.set_cpu_extensions(CpuExtensions::Avx2);
     }
     let new_height = get_new_height(&image.src_view(), NEW_WIDTH);
-    let mut result = ImageData::new_owned(
+    let mut result = ImageData::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
         NonZeroU32::new(new_height).unwrap(),
         image.pixel_type(),

@@ -25,8 +25,8 @@ Environment:
 - glassbench = "0.3.0"
 
 Other Rust libraries used to compare of resizing speed: 
-- image = "0.23.14" (https://crates.io/crates/image)
-- resize = "0.7.2" (https://crates.io/crates/resize)
+- image = "0.23.14" (<https://crates.io/crates/image>)
+- resize = "0.7.2" (<https://crates.io/crates/resize>)
 
 Resize algorithms:
 - Nearest
@@ -88,52 +88,56 @@ Compiled with `rustflags = ["-C", "target-cpu=native"]`
 | fir sse4.1 |  7.865  |  18.407  |   23.586   |  30.649  |
 | fir avx2   |  6.882  |  14.847  |   18.026   |  23.450  |
 
-## Examples of code
+## Example
 
 ```rust
+use std::io::BufWriter;
 use std::num::NonZeroU32;
 
-use fast_image_resize::{
-    CropBox, FilterType, ImageData, PixelType, ResizeAlg, Resizer, SrcImageView,
-};
+use image::codecs::png::PngEncoder;
+use image::io::Reader as ImageReader;
+use image::{ColorType, GenericImageView};
 
-fn resize_lanczos3(src_pixels: &[u32], width: NonZeroU32, height: NonZeroU32) -> Vec<u8> {
+use fast_image_resize as fr;
+
+#[test]
+fn resize_image_example() {
+    // Read source image from file
+    let img = ImageReader::open("./data/nasa-4928x3279.png")
+        .unwrap()
+        .decode()
+        .unwrap();
+    let width = NonZeroU32::new(img.width()).unwrap();
+    let height = NonZeroU32::new(img.height()).unwrap();
+    let src_buffer = img.to_rgba8();
+
     // Create immutable view of source image data
-    let src_view = SrcImageView::from_pixels(width, height, src_pixels, PixelType::U8x4).unwrap();
+    let src_view =
+        fr::SrcImageView::from_buffer(width, height, src_buffer.as_raw(), fr::PixelType::U8x4)
+            .unwrap();
 
+    // Create wrapper that own data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
-    // Create wrapper that own data of destination image
-    let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_view.pixel_type());
+    let mut dst_image = fr::ImageData::new(dst_width, dst_height, src_view.pixel_type());
+
     // Get mutable view of destination image data
     let mut dst_view = dst_image.dst_view();
 
     // Create Resizer instance and resize source image into buffer of destination image
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
     resizer.resize(&src_view, &mut dst_view);
 
-    // Return destination buffer as Vec<u8>
-    dst_image.get_buffer().to_owned()
-}
-
-fn crop_and_resize_image(mut src_view: SrcImageView) -> ImageData<Vec<u32>> {
-    // Set crop-box for view of source image
-    src_view
-        .set_crop_box(CropBox {
-            left: 10,
-            top: 10,
-            width: NonZeroU32::new(100).unwrap(),
-            height: NonZeroU32::new(200).unwrap(),
-        })
+    // Write destination image as PNG-file
+    let mut result_buf = BufWriter::new(Vec::new());
+    let encoder = PngEncoder::new(&mut result_buf);
+    encoder
+        .encode(
+            dst_image.get_buffer(),
+            dst_width.get(),
+            dst_height.get(),
+            ColorType::Rgba8,
+        )
         .unwrap();
-    let dst_width = NonZeroU32::new(1024).unwrap();
-    let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = ImageData::new_owned(dst_width, dst_height, src_view.pixel_type());
-    let mut dst_view = dst_image.dst_view();
-
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    resizer.resize(&src_view, &mut dst_view);
-
-    dst_image
 }
 ```

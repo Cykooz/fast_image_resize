@@ -13,10 +13,8 @@ impl Sse4U8x4 {
     /// For safety, it is necessary to ensure the following conditions:
     /// - length of all rows in src_rows must be equal
     /// - length of all rows in dst_rows must be equal
-    /// - bounds.len() == dst_rows.0.len()
-    /// - coeffs.len() == dst_rows.0.len() * window_size
-    /// - max(bound.size for bound in bounds) <= window_size
-    /// - max(bound.start + bound.size for bound in bounds) <= src_row.0.len()
+    /// - coefficients_chunks.len() == dst_rows.0.len()
+    /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
     /// - precision <= MAX_COEFS_PRECISION
     #[target_feature(enable = "sse4.1")]
     unsafe fn horiz_convolution_8u4x(
@@ -128,10 +126,10 @@ impl Sse4U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm_srai_epi32(sss0, $imm8);
-                    sss1 = _mm_srai_epi32(sss1, $imm8);
-                    sss2 = _mm_srai_epi32(sss2, $imm8);
-                    sss3 = _mm_srai_epi32(sss3, $imm8);
+                    sss0 = _mm_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm_srai_epi32::<$imm8>(sss1);
+                    sss2 = _mm_srai_epi32::<$imm8>(sss2);
+                    sss3 = _mm_srai_epi32::<$imm8>(sss3);
                 }};
             }
             constify_imm8!(precision, call);
@@ -153,8 +151,8 @@ impl Sse4U8x4 {
 
     /// For safety, it is necessary to ensure the following conditions:
     /// - bounds.len() == dst_row.len()
-    /// - coeffs.len() == dst_rows.0.len() * window_size
-    /// - max(bound.start + bound.size for bound in bounds) <= src_row.len()
+    /// - coefficients_chunks.len() == dst_row.len()
+    /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
     /// - precision <= MAX_COEFS_PRECISION
     #[target_feature(enable = "sse4.1")]
     unsafe fn horiz_convolution_8u(
@@ -252,7 +250,7 @@ impl Sse4U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss = _mm_srai_epi32(sss, $imm8);
+                    sss = _mm_srai_epi32::<$imm8>(sss);
                 }};
             }
             constify_imm8!(precision, call);
@@ -364,14 +362,14 @@ impl Sse4U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm_srai_epi32(sss0, $imm8);
-                    sss1 = _mm_srai_epi32(sss1, $imm8);
-                    sss2 = _mm_srai_epi32(sss2, $imm8);
-                    sss3 = _mm_srai_epi32(sss3, $imm8);
-                    sss4 = _mm_srai_epi32(sss4, $imm8);
-                    sss5 = _mm_srai_epi32(sss5, $imm8);
-                    sss6 = _mm_srai_epi32(sss6, $imm8);
-                    sss7 = _mm_srai_epi32(sss7, $imm8);
+                    sss0 = _mm_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm_srai_epi32::<$imm8>(sss1);
+                    sss2 = _mm_srai_epi32::<$imm8>(sss2);
+                    sss3 = _mm_srai_epi32::<$imm8>(sss3);
+                    sss4 = _mm_srai_epi32::<$imm8>(sss4);
+                    sss5 = _mm_srai_epi32::<$imm8>(sss5);
+                    sss6 = _mm_srai_epi32::<$imm8>(sss6);
+                    sss7 = _mm_srai_epi32::<$imm8>(sss7);
                 }};
             }
             constify_imm8!(precision, call);
@@ -427,8 +425,8 @@ impl Sse4U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss0 = _mm_srai_epi32(sss0, $imm8);
-                    sss1 = _mm_srai_epi32(sss1, $imm8);
+                    sss0 = _mm_srai_epi32::<$imm8>(sss0);
+                    sss1 = _mm_srai_epi32::<$imm8>(sss1);
                 }};
             }
             constify_imm8!(precision, call);
@@ -470,7 +468,7 @@ impl Sse4U8x4 {
 
             macro_rules! call {
                 ($imm8:expr) => {{
-                    sss = _mm_srai_epi32(sss, $imm8);
+                    sss = _mm_srai_epi32::<$imm8>(sss);
                 }};
             }
             constify_imm8!(precision, call);

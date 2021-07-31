@@ -38,8 +38,8 @@ pub enum MulDivImageError {
 ///
 /// let width = NonZeroU32::new(10).unwrap();
 /// let height = NonZeroU32::new(7).unwrap();
-/// let src_image = ImageData::new_owned(width, height, PixelType::U8x4);
-/// let mut dst_image = ImageData::new_owned(width, height, PixelType::U8x4);
+/// let src_image = ImageData::new(width, height, PixelType::U8x4);
+/// let mut dst_image = ImageData::new(width, height, PixelType::U8x4);
 ///
 /// let mul_div = MulDiv::default();
 /// mul_div.multiply_alpha(&src_image.src_view(), &mut dst_image.dst_view()).unwrap();

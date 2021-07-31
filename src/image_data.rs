@@ -11,7 +11,7 @@ pub struct ImageData<T: AsRef<[u32]>> {
 }
 
 impl<T: AsRef<[u32]>> ImageData<T> {
-    pub fn new(
+    pub fn from_pixels(
         width: NonZeroU32,
         height: NonZeroU32,
         pixels: T,
@@ -73,7 +73,7 @@ impl<T: AsRef<[u32]> + AsMut<[u32]>> ImageData<T> {
 }
 
 impl ImageData<Vec<u32>> {
-    pub fn new_owned(width: NonZeroU32, height: NonZeroU32, pixel_type: PixelType) -> Self {
+    pub fn new(width: NonZeroU32, height: NonZeroU32, pixel_type: PixelType) -> Self {
         let size = (width.get() * height.get()) as usize;
         let pixels = vec![0; size];
         Self {
@@ -84,6 +84,7 @@ impl ImageData<Vec<u32>> {
         }
     }
 
+    /// Copy content of given `buffer` into internal `Vec<u32>`
     pub fn from_buffer(
         width: NonZeroU32,
         height: NonZeroU32,
