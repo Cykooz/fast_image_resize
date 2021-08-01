@@ -109,23 +109,37 @@ fn resize_image_example() {
         .unwrap();
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
-    let src_buffer = img.to_rgba8();
+    let src_buffer = img.to_rgb8();
 
     // Create immutable view of source image data
     let src_view =
-        fr::SrcImageView::from_buffer(width, height, src_buffer.as_raw(), fr::PixelType::U8x4)
-            .unwrap();
+        fr::SrcImageView::from_buffer(
+            width, 
+            height, 
+            src_buffer.as_raw(), 
+            fr::PixelType::U8x4
+        )
+        .unwrap();
 
     // Create wrapper that own data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = fr::ImageData::new(dst_width, dst_height, src_view.pixel_type());
+    let mut dst_image = fr::ImageData::new(
+        dst_width, 
+        dst_height, 
+        src_view.pixel_type()
+    );
 
     // Get mutable view of destination image data
     let mut dst_view = dst_image.dst_view();
 
-    // Create Resizer instance and resize source image into buffer of destination image
-    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
+    // Create Resizer instance and resize source image 
+    // into buffer of destination image
+    let mut resizer = fr::Resizer::new(
+        fr::ResizeAlg::Convolution(
+            fr::FilterType::Lanczos3
+        )
+    );
     resizer.resize(&src_view, &mut dst_view);
 
     // Write destination image as PNG-file
@@ -136,7 +150,7 @@ fn resize_image_example() {
             dst_image.get_buffer(),
             dst_width.get(),
             dst_height.get(),
-            ColorType::Rgba8,
+            ColorType::Rgb8,
         )
         .unwrap();
 }
