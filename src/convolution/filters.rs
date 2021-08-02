@@ -21,7 +21,7 @@ pub enum FilterType {
     /// Catmull-Rom bicubic filter calculate the output pixel value using
     /// cubic interpolation on all pixels that may contribute to the output
     /// value.
-    CatmulRom,
+    CatmullRom,
     /// Mitchell–Netravali bicubic filter calculate the output pixel value
     /// using cubic interpolation on all pixels that may contribute to the
     /// output value.
@@ -45,7 +45,7 @@ pub fn get_filter_func(filter_type: FilterType) -> (FilterFn<'static>, f64) {
         FilterType::Box => (&box_filter, 0.5),
         FilterType::Bilinear => (&bilinear_filter, 1.0),
         FilterType::Hamming => (&hamming_filter, 1.0),
-        FilterType::CatmulRom => (&catmul_filter, 2.0),
+        FilterType::CatmullRom => (&catmul_filter, 2.0),
         FilterType::Mitchell => (&mitchell_filter, 2.0),
         FilterType::Lanczos3 => (&lanczos_filter, 3.0),
     }

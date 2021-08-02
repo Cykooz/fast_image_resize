@@ -95,7 +95,7 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
             let resize_alg = match alg_name {
                 "Nearest" => ResizeAlg::Nearest,
                 "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
-                "CatmullRom" => ResizeAlg::Convolution(FilterType::CatmulRom),
+                "CatmullRom" => ResizeAlg::Convolution(FilterType::CatmullRom),
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };

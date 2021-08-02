@@ -1,3 +1,3 @@
 ## [Unreleased] - ReleaseDate
 
-- Initial version.
+- Fixed typo in name of CatmullRom filter type.
