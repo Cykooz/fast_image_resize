@@ -2,7 +2,7 @@
 
 Rust library for fast image resizing with using of SIMD instructions.
 
-[CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/master/CHANGELOG.md)
+[CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
 - `U8x4` - four `u8` components per pixel:

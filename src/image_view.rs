@@ -4,10 +4,10 @@ use std::slice;
 
 use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError, InvalidBufferSizeError};
 
-pub type TwoRows<'a> = (&'a [u32], &'a [u32]);
-pub type FourRows<'a> = (&'a [u32], &'a [u32], &'a [u32], &'a [u32]);
-pub type RowMut<'a, 'b> = &'b mut &'a mut [u32];
-pub type FourRowsMut<'a, 'b> = (
+pub(crate) type TwoRows<'a> = (&'a [u32], &'a [u32]);
+pub(crate) type FourRows<'a> = (&'a [u32], &'a [u32], &'a [u32], &'a [u32]);
+pub(crate) type RowMut<'a, 'b> = &'b mut &'a mut [u32];
+pub(crate) type FourRowsMut<'a, 'b> = (
     &'b mut &'a mut [u32],
     &'b mut &'a mut [u32],
     &'b mut &'a mut [u32],

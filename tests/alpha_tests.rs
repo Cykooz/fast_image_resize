@@ -45,7 +45,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
         .multiply_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels: Vec<u32> = dst_image.get_pixels().to_vec();
+    let dst_pixels = dst_image.get_pixels();
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
@@ -128,7 +128,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
         .divide_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels: Vec<u32> = dst_image.get_pixels().to_vec();
+    let dst_pixels = dst_image.get_pixels();
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
