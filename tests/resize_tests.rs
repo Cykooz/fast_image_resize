@@ -10,7 +10,7 @@ use fast_image_resize::{
 };
 
 fn get_source_image() -> ImageData<'static> {
-    let img = ImageReader::open("/home/cykooz/t.png")
+    let img = ImageReader::open("./data/nasa-4928x3279.png")
         .unwrap()
         .decode()
         .unwrap();
@@ -173,12 +173,12 @@ fn resize_with_cropping() {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     let mut dst_image = ImageData::new(
-        NonZeroU32::new(256).unwrap(),
+        NonZeroU32::new(1024).unwrap(),
         NonZeroU32::new(256).unwrap(),
         src_image.pixel_type(),
     );
     let mut src_view = src_image.src_view();
     src_view.set_crop_box_to_fit_dst_size(dst_image.width(), dst_image.height(), None);
     resizer.resize(&src_view, &mut dst_image.dst_view());
-    save_result(&dst_image.src_view(), "cropping_lanczos3_avx2");
+    save_result(&dst_image.src_view(), "cropping_lanczos3");
 }

@@ -13,7 +13,7 @@ const NEW_HEIGHT: u32 = 567;
 const NEW_BIG_WIDTH: u32 = 4928;
 const NEW_BIG_HEIGHT: u32 = 3279;
 
-fn get_big_source_image() -> ImageData {
+fn get_big_source_image() -> ImageData<'static> {
     let img = utils::get_big_rgba_image();
     let width = img.width();
     let height = img.height();
@@ -26,7 +26,7 @@ fn get_big_source_image() -> ImageData {
     .unwrap()
 }
 
-fn get_small_source_image() -> ImageData {
+fn get_small_source_image() -> ImageData<'static> {
     let img = utils::get_small_rgba_image();
     let width = img.width();
     let height = img.height();
