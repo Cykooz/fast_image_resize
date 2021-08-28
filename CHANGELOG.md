@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.3.0] - 2021-08-28
 
 - Added method `SrcImageView.set_crop_box_to_fit_dst_size()`.
 - Fixed out-of-bounds error during resize with cropping.
