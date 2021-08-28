@@ -13,37 +13,27 @@ const NEW_HEIGHT: u32 = 567;
 const NEW_BIG_WIDTH: u32 = 4928;
 const NEW_BIG_HEIGHT: u32 = 3279;
 
-fn get_big_source_image() -> ImageData<Vec<u32>> {
+fn get_big_source_image() -> ImageData {
     let img = utils::get_big_rgba_image();
     let width = img.width();
     let height = img.height();
-    let buf = img
-        .as_raw()
-        .chunks_exact(4)
-        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
-        .collect();
-    ImageData::from_pixels(
+    ImageData::from_vec_u8(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        buf,
+        img.into_raw(),
         PixelType::U8x4,
     )
     .unwrap()
 }
 
-fn get_small_source_image() -> ImageData<Vec<u32>> {
+fn get_small_source_image() -> ImageData {
     let img = utils::get_small_rgba_image();
     let width = img.width();
     let height = img.height();
-    let buf = img
-        .as_raw()
-        .chunks_exact(4)
-        .map(|p| u32::from_le_bytes([p[0], p[1], p[2], p[3]]))
-        .collect();
-    ImageData::from_pixels(
+    ImageData::from_vec_u8(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        buf,
+        img.into_raw(),
         PixelType::U8x4,
     )
     .unwrap()

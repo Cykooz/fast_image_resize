@@ -21,7 +21,7 @@ Environment:
 - RAM: DDR4 3000 MHz 
 - Ubuntu 20.04 (linux 5.8)
 - Rust 1.54
-- fast_image_resize = "0.1"
+- fast_image_resize = "0.3"
 - glassbench = "0.3.0"
 
 Other Rust libraries used to compare of resizing speed: 
@@ -45,21 +45,21 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 105.194 | 198.359  |  289.810   | 381.861  |
-| resize     | 16.186  |  71.964  |  132.501   | 192.672  |
-| fir rust   |  0.476  |  55.284  |   84.732   | 117.519  |
-| fir sse4.1 |    -    |  11.848  |   17.864   |  25.978  |
-| fir avx2   |    -    |  8.753   |   12.569   |  18.112  |
+| image      | 106.303 | 199.011  |  291.423   | 382.793  |
+| resize     | 16.099  |  71.947  |  132.481   | 205.961  |
+| fir rust   |  0.478  |  55.376  |   84.567   | 117.269  |
+| fir sse4.1 |    -    |  11.847  |   17.823   |  25.459  |
+| fir avx2   |    -    |  8.598   |   11.864   |  17.549  |
 
 Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 91.138  | 182.251  |  279.838   | 380.956  |
-| resize     | 15.967  |  62.125  |  114.870   | 168.013  |
-| fir rust   |  0.467  |  56.376  |   61.565   |  85.433  |
-| fir sse4.1 |    -    |  11.229  |   16.503   |  23.465  |
-| fir avx2   |    -    |  8.464   |   11.602   |  17.076  |
+| image      | 91.787  | 182.502  |  282.821   | 385.492  |
+| resize     | 15.908  |  62.011  |  114.741   | 167.815  |
+| fir rust   |  0.471  |  56.330  |   61.589   |  85.443  |
+| fir sse4.1 |    -    |  11.204  |   16.510   |  23.442  |
+| fir avx2   |    -    |  8.402   |   11.550   |  16.987  |
 
 ### Resize RGBA image 4928x3279 => 852x567
 
@@ -72,23 +72,25 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 101.499 | 216.029  |  335.151   | 455.582  |
-| resize     | 19.671  |  85.199  |  155.205   | 224.660  |
-| fir rust   | 13.583  |  67.031  |   94.816   | 124.344  |
-| fir sse4.1 | 12.012  |  23.370  |   29.345   |  36.925  |
-| fir avx2   |  6.893  |  15.162  |   18.959   |  24.518  |
+| image      | 102.564 | 205.981  |  309.851   | 423.252  |
+| resize     | 19.003  |  92.075  |  169.876   | 247.993  |
+| fir rust   | 13.619  |  67.097  |   97.157   | 125.865  |
+| fir sse4.1 | 12.182  |  23.555  |   29.506   |  37.118  |
+| fir avx2   |  6.931  |  15.052  |   18.391   |  23.812  |
 
 Compiled with `rustflags = ["-C", "target-cpu=native"]`
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 90.750  | 186.545  |  284.383   | 392.403  |
-| resize     | 19.918  |  69.129  |  130.433   | 191.987  |
-| fir rust   |  9.957  |  68.817  |   76.454   | 103.521  |
-| fir sse4.1 |  7.865  |  18.407  |   23.586   |  30.649  |
-| fir avx2   |  6.882  |  14.847  |   18.026   |  23.450  |
+| image      | 90.421  | 193.379  |  306.635   | 422.674  |
+| resize     | 19.572  |  69.091  |  130.327   | 192.235  |
+| fir rust   |  9.987  |  69.005  |   76.551   | 103.646  |
+| fir sse4.1 |  7.860  |  18.375  |   23.601   |  30.603  |
+| fir avx2   |  6.897  |  14.907  |   18.034   |  23.677  |
 
-## Example
+## Examples
+
+### Resize image
 
 ```rust
 use std::io::BufWriter;
@@ -109,38 +111,36 @@ fn resize_image_example() {
         .unwrap();
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
-    let src_buffer = img.to_rgb8();
+    let mut src_image = fr::ImageData::from_vec_u8(
+        width,
+        height,
+        img.to_rgba8().into_raw(),
+        fr::PixelType::U8x4,
+    )
+        .unwrap();
 
-    // Create immutable view of source image data
-    let src_view =
-        fr::SrcImageView::from_buffer(
-            width, 
-            height, 
-            src_buffer.as_raw(), 
-            fr::PixelType::U8x4
-        )
+    // Create MulDiv instance
+    let alpha_mul_div: fr::MulDiv = Default::default();
+    // Multiple RGB channels of source image by alpha channel
+    alpha_mul_div
+        .multiply_alpha_inplace(&mut src_image.dst_view())
         .unwrap();
 
     // Create wrapper that own data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = fr::ImageData::new(
-        dst_width, 
-        dst_height, 
-        src_view.pixel_type()
-    );
+    let mut dst_image = fr::ImageData::new(dst_width, dst_height, src_image.pixel_type());
 
     // Get mutable view of destination image data
     let mut dst_view = dst_image.dst_view();
 
-    // Create Resizer instance and resize source image 
+    // Create Resizer instance and resize source image
     // into buffer of destination image
-    let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(
-            fr::FilterType::Lanczos3
-        )
-    );
-    resizer.resize(&src_view, &mut dst_view);
+    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
+    resizer.resize(&src_image.src_view(), &mut dst_view);
+
+    // Divide RGB channels of destination image by alpha
+    alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
 
     // Write destination image as PNG-file
     let mut result_buf = BufWriter::new(Vec::new());
@@ -150,8 +150,22 @@ fn resize_image_example() {
             dst_image.get_buffer(),
             dst_width.get(),
             dst_height.get(),
-            ColorType::Rgb8,
+            ColorType::Rgba8,
         )
         .unwrap();
+}
+```
+
+### Change CPU extensions used by resizer
+
+```rust
+use fast_image_resize as fr;
+
+fn main() {
+    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(fr::CpuExtensions::Sse4_1);
+    }
+    // ...
 }
 ```

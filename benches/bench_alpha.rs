@@ -10,10 +10,10 @@ const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
 
 // Multiplies by alpha
 
-fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData<Vec<u32>> {
+fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData {
     let buf_size = (width.get() * height.get()) as usize;
     let buffer = vec![pixel; buf_size];
-    ImageData::from_pixels(width, height, buffer, PixelType::U8x4).unwrap()
+    ImageData::from_vec_u32(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
 fn multiplies_alpha_avx2(bench: &mut Bench) {

@@ -5,38 +5,37 @@ use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
 use image::{ColorType, GenericImageView};
 
-use fast_image_resize::ImageData;
-use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer, SrcImageView};
+use fast_image_resize::{
+    CpuExtensions, FilterType, ImageData, PixelType, ResizeAlg, Resizer, SrcImageView,
+};
 
-fn get_source_image() -> ImageData<Vec<u32>> {
-    let img = ImageReader::open("./data/nasa-4928x3279.png")
+fn get_source_image() -> ImageData<'static> {
+    let img = ImageReader::open("/home/cykooz/t.png")
         .unwrap()
         .decode()
         .unwrap();
     let width = img.width();
     let height = img.height();
-    let rgba = img.to_rgba8();
-    ImageData::from_buffer(
+    ImageData::from_vec_u8(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rgba.as_raw(),
+        img.to_rgba8().into_raw(),
         PixelType::U8x4,
     )
     .unwrap()
 }
 
-fn get_small_source_image() -> ImageData<Vec<u32>> {
+fn get_small_source_image() -> ImageData<'static> {
     let img = ImageReader::open("./data/nasa-852x567.png")
         .unwrap()
         .decode()
         .unwrap();
     let width = img.width();
     let height = img.height();
-    let rgba = img.to_rgba8();
-    ImageData::from_buffer(
+    ImageData::from_vec_u8(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rgba.as_raw(),
+        img.to_rgba8().into_raw(),
         PixelType::U8x4,
     )
     .unwrap()
@@ -65,7 +64,7 @@ fn save_result(image: &SrcImageView, name: &str) {
 }
 
 #[test]
-fn resample_wo_simd_lanczos3_test() {
+fn resize_wo_simd_lanczos3_test() {
     let image = get_source_image();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
@@ -82,7 +81,7 @@ fn resample_wo_simd_lanczos3_test() {
 }
 
 #[test]
-fn resample_sse4_lanczos3_test() {
+fn resize_sse4_lanczos3_test() {
     let image = get_source_image();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
@@ -99,7 +98,7 @@ fn resample_sse4_lanczos3_test() {
 }
 
 #[test]
-fn resample_avx2_lanczos3_test() {
+fn resize_avx2_lanczos3_test() {
     let image = get_source_image();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
@@ -116,7 +115,7 @@ fn resample_avx2_lanczos3_test() {
 }
 
 #[test]
-fn resample_avx2_lanczos3_upscale_test() {
+fn resize_avx2_lanczos3_upscale_test() {
     let image = get_small_source_image();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
@@ -133,7 +132,7 @@ fn resample_avx2_lanczos3_upscale_test() {
 }
 
 #[test]
-fn resample_nearest_test() {
+fn resize_nearest_test() {
     let image = get_source_image();
     let mut resizer = Resizer::new(ResizeAlg::Nearest);
     unsafe {
@@ -150,7 +149,7 @@ fn resample_nearest_test() {
 }
 
 #[test]
-fn resample_super_sampling_test() {
+fn resize_super_sampling_test() {
     let image = get_source_image();
     let mut resizer = Resizer::new(ResizeAlg::SuperSampling(FilterType::Lanczos3, 2));
     unsafe {
@@ -164,4 +163,22 @@ fn resample_super_sampling_test() {
     );
     resizer.resize(&image.src_view(), &mut result.dst_view());
     save_result(&result.src_view(), "super_sampling_avx2");
+}
+
+#[test]
+fn resize_with_cropping() {
+    let src_image = get_source_image();
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(CpuExtensions::None);
+    }
+    let mut dst_image = ImageData::new(
+        NonZeroU32::new(256).unwrap(),
+        NonZeroU32::new(256).unwrap(),
+        src_image.pixel_type(),
+    );
+    let mut src_view = src_image.src_view();
+    src_view.set_crop_box_to_fit_dst_size(dst_image.width(), dst_image.height(), None);
+    resizer.resize(&src_view, &mut dst_image.dst_view());
+    save_result(&dst_image.src_view(), "cropping_lanczos3_avx2");
 }

@@ -142,6 +142,68 @@ impl<'a> SrcImageView<'a> {
         Ok(())
     }
 
+    /// Set a crop box to resize the source image into the
+    /// aspect ratio of destination image without distortions.
+    ///
+    /// `centering` used to control the cropping position. Use (0.5, 0.5) for
+    /// center cropping (e.g. if cropping the width, take 50% off
+    /// of the left side, and therefore 50% off the right side).
+    /// (0.0, 0.0) will crop from the top left corner (i.e. if
+    /// cropping the width, take all of the crop off of the right
+    /// side, and if cropping the height, take all of it off the
+    /// bottom). (1.0, 0.0) will crop from the bottom left
+    /// corner, etc. (i.e. if cropping the width, take all of the
+    /// crop off the left side, and if cropping the height take
+    /// none from the top, and therefore all off the bottom).
+    pub fn set_crop_box_to_fit_dst_size(
+        &mut self,
+        dst_width: NonZeroU32,
+        dst_height: NonZeroU32,
+        centering: Option<(f32, f32)>,
+    ) {
+        // This function based on code of ImageOps.fit() from Pillow package.
+        // https://github.com/python-pillow/Pillow/blob/master/src/PIL/ImageOps.py
+        let centering = if let Some((x, y)) = centering {
+            (x.clamp(0.0, 1.0), y.clamp(0.0, 1.0))
+        } else {
+            (0.5, 0.5)
+        };
+
+        // calculate aspect ratios
+        let width = self.width.get() as f32;
+        let height = self.height.get() as f32;
+        let image_ratio = width / height;
+        let required_ration = dst_width.get() as f32 / dst_height.get() as f32;
+
+        let crop_width;
+        let crop_height;
+        // figure out if the sides or top/bottom will be cropped off
+        if (image_ratio - required_ration).abs() < f32::EPSILON {
+            // The image is already the needed ratio
+            crop_width = width;
+            crop_height = height;
+        } else if image_ratio >= required_ration {
+            // The image is wider than what's needed, crop the sides
+            crop_width = required_ration * height;
+            crop_height = height;
+        } else {
+            // The image is taller than what's needed, crop the top and bottom
+            crop_width = width;
+            crop_height = width / required_ration;
+        }
+
+        let crop_left = (width - crop_width) * centering.0;
+        let crop_top = (height - crop_height) * centering.1;
+
+        self.set_crop_box(CropBox {
+            left: crop_left.round() as u32,
+            top: crop_top.round() as u32,
+            width: NonZeroU32::new(crop_width.round() as u32).unwrap(),
+            height: NonZeroU32::new(crop_height.round() as u32).unwrap(),
+        })
+        .unwrap();
+    }
+
     #[inline(always)]
     pub fn get_buffer(&self) -> Vec<u8> {
         let row_size = self.width.get() as usize;

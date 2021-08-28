@@ -147,13 +147,13 @@ fn get_temp_image_from_buffer(
     width: NonZeroU32,
     height: NonZeroU32,
     pixel_type: PixelType,
-) -> ImageData<&mut [u32]> {
+) -> ImageData {
     let buf_size = (width.get() * height.get()) as usize;
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
     }
     let pixels = &mut buffer[0..buf_size];
-    ImageData::from_pixels(width, height, pixels, pixel_type).unwrap()
+    ImageData::from_slice_u32(width, height, pixels, pixel_type).unwrap()
 }
 
 fn resample_nearest(src_image: &SrcImageView, dst_image: &mut DstImageView) {
@@ -221,12 +221,6 @@ fn resample_convolution(
         let y_first = vert_coeffs.bounds[0].start;
 
         if need_vertical {
-            // Shift bounds for vertical pass
-            vert_coeffs
-                .bounds
-                .iter_mut()
-                .for_each(|b| b.start -= y_first);
-
             // Last used row in the source image
             let last_y_bound = vert_coeffs.bounds.last().unwrap();
             let y_last = last_y_bound.start + last_y_bound.size;
@@ -244,6 +238,12 @@ fn resample_convolution(
                 y_first,
                 horiz_coeffs,
             );
+
+            // Shift bounds for vertical pass
+            vert_coeffs
+                .bounds
+                .iter_mut()
+                .for_each(|b| b.start -= y_first);
             resampler.vert_convolution(&temp_image.src_view(), dst_image, vert_coeffs);
         } else {
             resampler.horiz_convolution(src_image, dst_image, y_first, horiz_coeffs);
