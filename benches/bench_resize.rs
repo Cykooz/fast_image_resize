@@ -26,6 +26,24 @@ fn get_big_source_image() -> ImageData<'static> {
     .unwrap()
 }
 
+fn get_big_i32_image() -> ImageData<'static> {
+    let img = utils::get_big_luma_image();
+    let img_data: Vec<u32> = img
+        .as_raw()
+        .iter()
+        .map(|&p| p as u32 * (i16::MAX as u32 + 1))
+        .collect();
+    let width = img.width();
+    let height = img.height();
+    ImageData::from_vec_u32(
+        NonZeroU32::new(width).unwrap(),
+        NonZeroU32::new(height).unwrap(),
+        img_data,
+        PixelType::I32,
+    )
+    .unwrap()
+}
+
 fn get_small_source_image() -> ImageData<'static> {
     let img = utils::get_small_rgba_image();
     let width = img.width();
@@ -159,6 +177,26 @@ fn avx2_lanczos3_upscale_bench(bench: &mut Bench) {
     });
 }
 
+fn native_lanczos3_i32_bench(bench: &mut Bench) {
+    let image = get_big_i32_image();
+    let mut res_image = ImageData::new(
+        NonZeroU32::new(NEW_WIDTH).unwrap(),
+        NonZeroU32::new(NEW_HEIGHT).unwrap(),
+        image.pixel_type(),
+    );
+    let src_image = image.src_view();
+    let mut dst_image = res_image.dst_view();
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(CpuExtensions::None);
+    }
+    bench.task("i32 lanczos3 wo SIMD", |task| {
+        task.iter(|| {
+            resizer.resize(&src_image, &mut dst_image);
+        })
+    });
+}
+
 glassbench!(
     "Resize",
     nearest_wo_simd_bench,
@@ -167,4 +205,5 @@ glassbench!(
     avx2_lanczos3_bench,
     avx2_supersampling_lanczos3_bench,
     avx2_lanczos3_upscale_bench,
+    native_lanczos3_i32_bench,
 );

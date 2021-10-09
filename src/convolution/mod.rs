@@ -13,6 +13,7 @@ mod macros;
 mod avx2;
 mod filters;
 mod native;
+mod optimisations;
 mod sse4;
 
 pub trait Convolution {
@@ -38,17 +39,34 @@ pub struct Bound {
     pub size: u32,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct CoefficientsChunk<'a> {
-    pub start: u32,
-    pub values: &'a [i16],
-}
-
 #[derive(Debug, Clone)]
 pub struct Coefficients {
     pub values: Vec<f64>,
     pub window_size: usize,
     pub bounds: Vec<Bound>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CoefficientsChunk<'a> {
+    pub start: u32,
+    pub values: &'a [f64],
+}
+
+impl Coefficients {
+    pub fn get_chunks(&self) -> Vec<CoefficientsChunk> {
+        let mut coeffs = self.values.as_slice();
+        let mut res = Vec::with_capacity(self.bounds.len());
+        for bound in &self.bounds {
+            let (left, right) = coeffs.split_at(self.window_size);
+            coeffs = right;
+            let size = bound.size as usize;
+            res.push(CoefficientsChunk {
+                start: bound.start,
+                values: &left[0..size],
+            });
+        }
+        res
+    }
 }
 
 pub fn precompute_coefficients(

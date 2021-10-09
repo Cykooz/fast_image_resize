@@ -1,5 +1,6 @@
-use crate::convolution::{Bound, CoefficientsChunk};
 use std::slice;
+
+use super::Bound;
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
@@ -87,6 +88,12 @@ pub struct NormalizerGuard {
     precision: u8,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct CoefficientsI16Chunk<'a> {
+    pub start: u32,
+    pub values: &'a [i16],
+}
+
 impl NormalizerGuard {
     #[inline]
     pub fn new(mut values: Vec<f64>) -> Self {
@@ -119,18 +126,18 @@ impl NormalizerGuard {
     }
 
     #[inline]
-    pub fn normalized(&self) -> &[i16] {
+    pub fn normalized_i16(&self) -> &[i16] {
         let len = self.values.len();
         let ptr = self.values.as_ptr();
         unsafe { slice::from_raw_parts(ptr as *const i16, len) }
     }
 
     #[inline]
-    pub fn normalized_chunks(
+    pub fn normalized_i16_chunks(
         &self,
         window_size: usize,
         bounds: &[Bound],
-    ) -> Vec<CoefficientsChunk> {
+    ) -> Vec<CoefficientsI16Chunk> {
         let len = self.values.len();
         let ptr = self.values.as_ptr();
         let mut cooefs = unsafe { slice::from_raw_parts(ptr as *const i16, len) };
@@ -139,7 +146,7 @@ impl NormalizerGuard {
             let (left, right) = cooefs.split_at(window_size);
             cooefs = right;
             let size = bound.size as usize;
-            res.push(CoefficientsChunk {
+            res.push(CoefficientsI16Chunk {
                 start: bound.start,
                 values: &left[0..size],
             });

@@ -12,7 +12,7 @@ use fast_image_resize::{ImageData, MulDiv};
 mod utils;
 
 pub fn bench_downscale_rgba(bench: &mut Bench) {
-    let src_image = utils::get_big_rgba_image();
+    let src_image = &utils::get_big_rgba_image();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
@@ -30,7 +30,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
         };
         bench.task(format!("image - {}", alg_name), |task| {
             task.iter(|| {
-                imageops::resize(&src_image, new_width.get(), new_height.get(), filter);
+                imageops::resize(src_image, new_width.get(), new_height.get(), filter);
             })
         });
     }
@@ -86,7 +86,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
             let src_image_data = ImageData::from_vec_u8(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
-                src_image.into_raw(),
+                src_image.as_raw().clone(),
                 PixelType::U8x4,
             )
             .unwrap();

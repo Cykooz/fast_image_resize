@@ -1,9 +1,10 @@
 use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
-use crate::convolution::{Bound, Coefficients, CoefficientsChunk, Convolution};
+use crate::convolution::optimisations::CoefficientsI16Chunk;
+use crate::convolution::{optimisations, Bound, Coefficients, Convolution};
 use crate::image_view::{DstImageView, FourRows, FourRowsMut, SrcImageView};
-use crate::{optimisations, simd_utils};
+use crate::simd_utils;
 
 pub struct Avx2U8x4;
 
@@ -22,7 +23,7 @@ impl Avx2U8x4 {
         &self,
         src_rows: FourRows,
         dst_rows: FourRowsMut,
-        coefficients_chunks: &[CoefficientsChunk],
+        coefficients_chunks: &[CoefficientsI16Chunk],
         precision: u8,
     ) {
         let (s_row0, s_row1, s_row2, s_row3) = src_rows;
@@ -31,12 +32,12 @@ impl Avx2U8x4 {
         let initial = _mm256_set1_epi32(1 << (precision - 1));
 
         #[rustfmt::skip]
-        let sh1 = _mm256_set_epi8(
+            let sh1 = _mm256_set_epi8(
             -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
             -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
         );
         #[rustfmt::skip]
-        let sh2 = _mm256_set_epi8(
+            let sh2 = _mm256_set_epi8(
             -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
             -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
         );
@@ -153,7 +154,7 @@ impl Avx2U8x4 {
         &self,
         src_row: &[u32],
         dst_row: &mut [u32],
-        coefficients_chunks: &[CoefficientsChunk],
+        coefficients_chunks: &[CoefficientsI16Chunk],
         precision: u8,
     ) {
         #[rustfmt::skip]
@@ -471,7 +472,7 @@ impl Convolution for Avx2U8x4 {
         let normalizer_guard = optimisations::NormalizerGuard::new(values);
         let precision = normalizer_guard.precision();
         let coefficients_chunks =
-            normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+            normalizer_guard.normalized_i16_chunks(window_size, &bounds_per_pixel);
         let dst_height = dst_image.height().get();
 
         let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
@@ -507,7 +508,7 @@ impl Convolution for Avx2U8x4 {
 
         let normalizer_guard = optimisations::NormalizerGuard::new(values);
         let precision = normalizer_guard.precision();
-        let coeffs_i16 = normalizer_guard.normalized();
+        let coeffs_i16 = normalizer_guard.normalized_i16();
         let coeffs_chunks = coeffs_i16.chunks(window_size);
 
         let dst_rows = dst_image.iter_rows_mut();
