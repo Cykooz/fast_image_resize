@@ -63,17 +63,13 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
     }
 
     // fast_image_resize crate;
-    for cpu_ext in [
-        CpuExtensions::None,
-        CpuExtensions::Sse4_1,
-        CpuExtensions::Avx2,
-    ] {
-        let ext_name = match cpu_ext {
-            CpuExtensions::None => "rust",
-            CpuExtensions::Sse4_1 => "sse4.1",
-            CpuExtensions::Avx2 => "avx2",
-            _ => continue,
-        };
+    let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
+        cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
+    }
+    for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
             let src_rgba_image = utils::get_big_rgba_image();
             let src_image_data = ImageData::from_vec_u8(

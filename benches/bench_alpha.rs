@@ -16,6 +16,7 @@ fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData
     ImageData::from_vec_u32(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
+#[cfg(target_arch = "x86_64")]
 fn multiplies_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
@@ -37,6 +38,7 @@ fn multiplies_alpha_avx2(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn multiplies_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
@@ -79,6 +81,7 @@ fn multiplies_alpha_native(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn divides_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
@@ -100,6 +103,7 @@ fn divides_alpha_avx2(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn divides_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
@@ -142,12 +146,28 @@ fn divides_alpha_native(bench: &mut Bench) {
     });
 }
 
-glassbench!(
-    "Alpha",
-    multiplies_alpha_avx2,
-    multiplies_alpha_sse2,
-    multiplies_alpha_native,
-    divides_alpha_avx2,
-    divides_alpha_sse2,
-    divides_alpha_native,
-);
+pub fn main() {
+    use glassbench::*;
+    let name = env!("CARGO_CRATE_NAME");
+    let cmd = Command::read();
+    if cmd.include_bench(name) {
+        let mut bench = create_bench(name, "Alpha", &cmd);
+        #[cfg(target_arch = "x86_64")]
+        {
+            multiplies_alpha_avx2(&mut bench);
+            multiplies_alpha_sse2(&mut bench);
+        }
+        multiplies_alpha_native(&mut bench);
+        #[cfg(target_arch = "x86_64")]
+        {
+            divides_alpha_avx2(&mut bench);
+            divides_alpha_sse2(&mut bench);
+        }
+        divides_alpha_native(&mut bench);
+        if let Err(e) = after_bench(&mut bench, &cmd) {
+            eprintln!("{:?}", e);
+        }
+    } else {
+        println!("skipping bench {:?}", &name);
+    }
+}

@@ -3,8 +3,11 @@ use thiserror::Error;
 use crate::{CpuExtensions, PixelType};
 use crate::{DstImageView, SrcImageView};
 
-mod div;
-mod mul;
+#[cfg(target_arch = "x86_64")]
+mod avx2;
+mod native;
+#[cfg(target_arch = "x86_64")]
+mod sse2;
 
 #[derive(Error, Debug, Clone, Copy)]
 #[non_exhaustive]
@@ -27,7 +30,7 @@ pub enum MulDivImageError {
 /// Methods of this structure used to multiplies or divides RGB-channels
 /// by alpha-channel.
 ///
-/// By default instance of `MulDiv` created with best CPU-extensions provided by your CPU.
+/// By default, instance of `MulDiv` created with best CPU-extensions provided by your CPU.
 /// You can change this by use method [MulDiv::set_cpu_extensions].
 ///
 /// # Examples
@@ -71,9 +74,14 @@ impl MulDiv {
     ) -> Result<(), MulDivImagesError> {
         self.assert_images(src_image, dst_image)?;
         match self.cpu_extensions {
-            CpuExtensions::Avx2 => mul::multiply_alpha_avx2(src_image, dst_image),
-            // CpuExtensions::Sse2 => mul::multiply_alpha_sse2(src_image, dst_image),
-            _ => mul::multiply_alpha_native(src_image, dst_image),
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::multiply_alpha_avx2(src_image, dst_image),
+            // WARNING: SSE2 implementation is drastically slower than native version
+            // #[cfg(target_arch = "x86_64")]
+            // CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
+            //     sse2::multiply_alpha_sse2(src_image, dst_image)
+            // }
+            _ => native::multiply_alpha_native(src_image, dst_image),
         }
         Ok(())
     }
@@ -82,9 +90,14 @@ impl MulDiv {
     pub fn multiply_alpha_inplace(&self, image: &mut DstImageView) -> Result<(), MulDivImageError> {
         self.assert_image(image)?;
         match self.cpu_extensions {
-            CpuExtensions::Avx2 => mul::multiply_alpha_inplace_avx2(image),
-            // CpuExtensions::Sse2 => mul::multiply_alpha_sse2(src_image, dst_image),
-            _ => mul::multiply_alpha_inplace_native(image),
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::multiply_alpha_inplace_avx2(image),
+            // WARNING: SSE2 implementation is drastically slower than native version
+            // #[cfg(target_arch = "x86_64")]
+            // CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
+            //     sse2::multiply_alpha_sse2(src_image, dst_image)
+            // }
+            _ => native::multiply_alpha_inplace_native(image),
         }
         Ok(())
     }
@@ -98,11 +111,13 @@ impl MulDiv {
     ) -> Result<(), MulDivImagesError> {
         self.assert_images(src_image, dst_image)?;
         match self.cpu_extensions {
-            CpuExtensions::Avx2 => div::divide_alpha_avx2(src_image, dst_image),
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::divide_alpha_avx2(src_image, dst_image),
+            #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
-                div::divide_alpha_sse2(src_image, dst_image)
+                sse2::divide_alpha_sse2(src_image, dst_image)
             }
-            _ => div::divide_alpha_native(src_image, dst_image),
+            _ => native::divide_alpha_native(src_image, dst_image),
         }
         Ok(())
     }
@@ -111,9 +126,11 @@ impl MulDiv {
     pub fn divide_alpha_inplace(&self, image: &mut DstImageView) -> Result<(), MulDivImageError> {
         self.assert_image(image)?;
         match self.cpu_extensions {
-            CpuExtensions::Avx2 => div::divide_alpha_inplace_avx2(image),
-            CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => div::divide_alpha_inplace_sse2(image),
-            _ => div::divide_alpha_inplace_native(image),
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::divide_alpha_inplace_avx2(image),
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => sse2::divide_alpha_inplace_sse2(image),
+            _ => native::divide_alpha_inplace_native(image),
         }
         Ok(())
     }

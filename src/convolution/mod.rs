@@ -1,8 +1,10 @@
 use std::num::NonZeroU32;
 
+#[cfg(target_arch = "x86_64")]
 pub use avx2::Avx2U8x4;
 pub use filters::{get_filter_func, FilterType};
 pub use native::{NativeF32, NativeI32, NativeU8x4};
+#[cfg(target_arch = "x86_64")]
 pub use sse4::Sse4U8x4;
 
 use crate::image_view::{DstImageView, SrcImageView};
@@ -10,10 +12,12 @@ use crate::image_view::{DstImageView, SrcImageView};
 #[macro_use]
 mod macros;
 
+#[cfg(target_arch = "x86_64")]
 mod avx2;
 mod filters;
 mod native;
 mod optimisations;
+#[cfg(target_arch = "x86_64")]
 mod sse4;
 
 pub trait Convolution {

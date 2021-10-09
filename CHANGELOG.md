@@ -1,3 +1,7 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of compilation for architectures other than x86_64.
+
 ## [0.3.0] - 2021-08-28
 
 - Added method `SrcImageView.set_crop_box_to_fit_dst_size()`.

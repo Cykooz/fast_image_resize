@@ -97,6 +97,7 @@ fn lanczos3_wo_simd_bench(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn sse4_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new(
@@ -117,6 +118,7 @@ fn sse4_lanczos3_bench(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn avx2_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new(
@@ -137,6 +139,7 @@ fn avx2_lanczos3_bench(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn avx2_supersampling_lanczos3_bench(bench: &mut Bench) {
     let image = get_big_source_image();
     let mut res_image = ImageData::new(
@@ -157,6 +160,7 @@ fn avx2_supersampling_lanczos3_bench(bench: &mut Bench) {
     });
 }
 
+#[cfg(target_arch = "x86_64")]
 fn avx2_lanczos3_upscale_bench(bench: &mut Bench) {
     let image = get_small_source_image();
     let mut res_image = ImageData::new(
@@ -197,13 +201,26 @@ fn native_lanczos3_i32_bench(bench: &mut Bench) {
     });
 }
 
-glassbench!(
-    "Resize",
-    nearest_wo_simd_bench,
-    lanczos3_wo_simd_bench,
-    sse4_lanczos3_bench,
-    avx2_lanczos3_bench,
-    avx2_supersampling_lanczos3_bench,
-    avx2_lanczos3_upscale_bench,
-    native_lanczos3_i32_bench,
-);
+pub fn main() {
+    use glassbench::*;
+    let name = env!("CARGO_CRATE_NAME");
+    let cmd = Command::read();
+    if cmd.include_bench(name) {
+        let mut bench = create_bench(name, "Resize", &cmd);
+        #[cfg(target_arch = "x86_64")]
+        {
+            sse4_lanczos3_bench(&mut bench);
+            avx2_lanczos3_bench(&mut bench);
+            avx2_supersampling_lanczos3_bench(&mut bench);
+            avx2_lanczos3_upscale_bench(&mut bench);
+        }
+        nearest_wo_simd_bench(&mut bench);
+        lanczos3_wo_simd_bench(&mut bench);
+        native_lanczos3_i32_bench(&mut bench);
+        if let Err(e) = after_bench(&mut bench, &cmd) {
+            eprintln!("{:?}", e);
+        }
+    } else {
+        println!("skipping bench {:?}", &name);
+    }
+}

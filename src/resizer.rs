@@ -7,12 +7,16 @@ use crate::image_view::{DstImageView, PixelType, SrcImageView};
 #[derive(Debug, Clone, Copy)]
 pub enum CpuExtensions {
     None,
+    #[cfg(target_arch = "x86_64")]
     Sse2,
+    #[cfg(target_arch = "x86_64")]
     Sse4_1,
+    #[cfg(target_arch = "x86_64")]
     Avx2,
 }
 
 impl Default for CpuExtensions {
+    #[cfg(target_arch = "x86_64")]
     fn default() -> Self {
         if is_x86_feature_detected!("avx2") {
             Self::Avx2
@@ -24,9 +28,15 @@ impl Default for CpuExtensions {
             Self::None
         }
     }
+
+    #[cfg(not(target_arch = "x86_64"))]
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 impl CpuExtensions {
+    #[cfg(target_arch = "x86_64")]
     #[inline]
     fn get_resampler(&self, pixel_type: PixelType) -> &dyn Convolution {
         match pixel_type {
@@ -35,6 +45,16 @@ impl CpuExtensions {
                 Self::Avx2 => &convolution::Avx2U8x4,
                 _ => &convolution::NativeU8x4,
             },
+            PixelType::I32 => &convolution::NativeI32,
+            PixelType::F32 => &convolution::NativeF32,
+        }
+    }
+
+    #[cfg(not(target_arch = "x86_64"))]
+    #[inline]
+    fn get_resampler(&self, pixel_type: PixelType) -> &dyn Convolution {
+        match pixel_type {
+            PixelType::U8x4 => &convolution::NativeU8x4,
             PixelType::I32 => &convolution::NativeI32,
             PixelType::F32 => &convolution::NativeF32,
         }
@@ -67,7 +87,7 @@ pub struct Resizer {
 impl Resizer {
     /// Creates instance of `Resizer`
     ///
-    /// By default instance of `Resizer` created with best CPU-extensions provided by your CPU.
+    /// By default, instance of `Resizer` created with best CPU-extensions provided by your CPU.
     /// You can change this by use method [Resizer::set_cpu_extensions].
     pub fn new(algorithm: ResizeAlg) -> Self {
         Self {
