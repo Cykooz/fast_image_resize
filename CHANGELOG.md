@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.3.1] - 2021-10-09
 
 - Added support of compilation for architectures other than x86_64.
 
