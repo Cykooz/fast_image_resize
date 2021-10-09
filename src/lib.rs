@@ -13,4 +13,5 @@ mod errors;
 mod image_data;
 mod image_view;
 mod resizer;
+#[cfg(target_arch = "x86_64")]
 mod simd_utils;
