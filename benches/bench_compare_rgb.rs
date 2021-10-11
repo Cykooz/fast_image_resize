@@ -5,7 +5,7 @@ use image::imageops;
 use resize::Pixel::RGB8;
 use rgb::{FromSlice, RGB};
 
-use fast_image_resize::ImageData;
+use fast_image_resize::Image;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
 
 mod utils;
@@ -72,16 +72,16 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
     for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
             let src_rgba_image = utils::get_big_rgba_image();
-            let src_image_data = ImageData::from_vec_u8(
+            let src_image_data = Image::from_vec_u8(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
                 src_rgba_image.into_raw(),
                 PixelType::U8x4,
             )
             .unwrap();
-            let src_view = src_image_data.src_view();
-            let mut dst_image = ImageData::new(new_width, new_height, PixelType::U8x4);
-            let mut dst_view = dst_image.dst_view();
+            let src_view = src_image_data.view();
+            let mut dst_image = Image::new(new_width, new_height, PixelType::U8x4);
+            let mut dst_view = dst_image.view_mut();
 
             let resize_alg = match alg_name {
                 "Nearest" => ResizeAlg::Nearest,
@@ -99,7 +99,7 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
 
             bench.task(format!("fir {} - {}", ext_name, alg_name), |task| {
                 task.iter(|| {
-                    fast_resizer.resize(&src_view, &mut dst_view);
+                    fast_resizer.resize(&src_view, &mut dst_view).unwrap();
                 })
             });
         }

@@ -1,3 +1,12 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of new type of pixels `U8` (without forced SIMD).
+- Breaking changes:
+  - ``ImageData`` renamed into ``Image``.
+  - ``SrcImageView`` and ``DstImageView`` replaced by ``ImageView``
+    and ``ImageViewMut``.
+  - Method ``Resizer.resize()`` now returns ``Result<(), DifferentTypesOfPixelsError>``.
+
 ## [0.3.1] - 2021-10-09
 
 - Added support of compilation for architectures other than x86_64.

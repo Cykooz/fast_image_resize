@@ -1,5 +1,8 @@
-use fast_image_resize::{CpuExtensions, DstImageView, ImageData, MulDiv, PixelType, SrcImageView};
 use std::num::NonZeroU32;
+
+use fast_image_resize::{
+    CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
+};
 
 const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
     u32::from_le_bytes([r, g, b, a])
@@ -21,20 +24,19 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     ];
 
     let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
-    let src_image_view = SrcImageView::from_rows(
+    let src_image_view = ImageView::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rows,
-        PixelType::U8x4,
+        ImageRows::U8x4(rows),
     )
     .unwrap();
 
-    let mut dst_image = ImageData::new(
+    let mut dst_image = Image::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         PixelType::U8x4,
     );
-    let mut dst_image_view = dst_image.dst_view();
+    let mut dst_image_view = dst_image.view_mut();
 
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
@@ -45,7 +47,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
         .multiply_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels = dst_image.get_pixels();
+    let dst_pixels = unsafe { dst_image.buffer().align_to::<u32>().1 };
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
@@ -55,11 +57,10 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
 
     // Inplace
     let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
-    let mut image_view = DstImageView::from_rows(
+    let mut image_view = ImageViewMut::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rows,
-        PixelType::U8x4,
+        ImageRowsMut::U8x4(rows),
     )
     .unwrap();
     alpha_mul_div
@@ -104,20 +105,19 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     ];
 
     let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
-    let src_image_view = SrcImageView::from_rows(
+    let src_image_view = ImageView::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rows,
-        PixelType::U8x4,
+        ImageRows::U8x4(rows),
     )
     .unwrap();
 
-    let mut dst_image = ImageData::new(
+    let mut dst_image = Image::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         PixelType::U8x4,
     );
-    let mut dst_image_view = dst_image.dst_view();
+    let mut dst_image_view = dst_image.view_mut();
 
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
@@ -128,7 +128,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
         .divide_alpha(&src_image_view, &mut dst_image_view)
         .unwrap();
 
-    let dst_pixels = dst_image.get_pixels();
+    let dst_pixels = unsafe { dst_image.buffer().align_to::<u32>().1 };
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
@@ -138,11 +138,10 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
 
     // Inplace
     let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
-    let mut image_view = DstImageView::from_rows(
+    let mut image_view = ImageViewMut::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        rows,
-        PixelType::U8x4,
+        ImageRowsMut::U8x4(rows),
     )
     .unwrap();
     alpha_mul_div.divide_alpha_inplace(&mut image_view).unwrap();

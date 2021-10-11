@@ -2,7 +2,8 @@ use std::num::NonZeroU32;
 
 use glassbench::*;
 
-use fast_image_resize::{CpuExtensions, ImageData, MulDiv, PixelType};
+use fast_image_resize::PixelType;
+use fast_image_resize::{CpuExtensions, Image, MulDiv};
 
 const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
     u32::from_le_bytes([r, g, b, a])
@@ -10,10 +11,10 @@ const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
 
 // Multiplies by alpha
 
-fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> ImageData<'static> {
+fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> Image<'static> {
     let buf_size = (width.get() * height.get()) as usize;
     let buffer = vec![pixel; buf_size];
-    ImageData::from_vec_u32(width, height, buffer, PixelType::U8x4).unwrap()
+    Image::from_vec_u32(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -21,9 +22,9 @@ fn multiplies_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::Avx2);
@@ -43,9 +44,9 @@ fn multiplies_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse2);
@@ -64,9 +65,9 @@ fn multiplies_alpha_native(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::None);
@@ -86,9 +87,9 @@ fn divides_alpha_avx2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::Avx2);
@@ -108,9 +109,9 @@ fn divides_alpha_sse2(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse2);
@@ -129,9 +130,9 @@ fn divides_alpha_native(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
-    let mut dst_data = ImageData::new(width, height, PixelType::U8x4);
-    let src_view = src_data.src_view();
-    let mut dst_view = dst_data.dst_view();
+    let mut dst_data = Image::new(width, height, PixelType::U8x4);
+    let src_view = src_data.view();
+    let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
         alpha_mul_div.set_cpu_extensions(CpuExtensions::None);

@@ -1,39 +1,37 @@
 use std::num::NonZeroU32;
 
-#[cfg(target_arch = "x86_64")]
-pub use avx2::Avx2U8x4;
+use crate::image_view::{TypedImageView, TypedImageViewMut};
+use crate::pixels::Pixel;
+use crate::CpuExtensions;
 pub use filters::{get_filter_func, FilterType};
-pub use native::{NativeF32, NativeI32, NativeU8x4};
-#[cfg(target_arch = "x86_64")]
-pub use sse4::Sse4U8x4;
-
-use crate::image_view::{DstImageView, SrcImageView};
 
 #[macro_use]
 mod macros;
 
-#[cfg(target_arch = "x86_64")]
-mod avx2;
+mod f32x1;
 mod filters;
-mod native;
+mod i32x1;
 mod optimisations;
-#[cfg(target_arch = "x86_64")]
-mod sse4;
+mod u8x1;
+mod u8x4;
 
-pub trait Convolution {
+pub(crate) trait Convolution
+where
+    Self: Pixel + Sized,
+{
     fn horiz_convolution(
-        &self,
-        src_image: &SrcImageView,
-        dst_image: &mut DstImageView,
+        src_image: TypedImageView<Self>,
+        dst_image: TypedImageViewMut<Self>,
         offset: u32,
         coeffs: Coefficients,
+        cpu_extensions: CpuExtensions,
     );
 
     fn vert_convolution(
-        &self,
-        src_image: &SrcImageView,
-        dst_image: &mut DstImageView,
+        src_image: TypedImageView<Self>,
+        dst_image: TypedImageViewMut<Self>,
         coeffs: Coefficients,
+        cpu_extensions: CpuExtensions,
     );
 }
 

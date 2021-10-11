@@ -7,7 +7,7 @@ use resize::Pixel::RGBA8;
 use rgb::FromSlice;
 
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
-use fast_image_resize::{ImageData, MulDiv};
+use fast_image_resize::{Image, MulDiv};
 
 mod utils;
 
@@ -79,21 +79,21 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };
-            let src_image_data = ImageData::from_vec_u8(
+            let src_image_data = Image::from_vec_u8(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
                 src_image.as_raw().clone(),
                 PixelType::U8x4,
             )
             .unwrap();
-            let src_view = src_image_data.src_view();
-            let mut premultiplied_src_image = ImageData::new(
+            let src_view = src_image_data.view();
+            let mut premultiplied_src_image = Image::new(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
                 PixelType::U8x4,
             );
-            let mut dst_image = ImageData::new(new_width, new_height, PixelType::U8x4);
-            let mut dst_view = dst_image.dst_view();
+            let mut dst_image = Image::new(new_width, new_height, PixelType::U8x4);
+            let mut dst_view = dst_image.view_mut();
             let mut mul_div = MulDiv::default();
 
             let mut fast_resizer = Resizer::new(resize_alg);
@@ -107,9 +107,11 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
             bench.task(format!("fir {} - {}", ext_name, alg_name), |task| {
                 task.iter(|| {
                     mul_div
-                        .multiply_alpha(&src_view, &mut premultiplied_src_image.dst_view())
+                        .multiply_alpha(&src_view, &mut premultiplied_src_image.view_mut())
                         .unwrap();
-                    fast_resizer.resize(&premultiplied_src_image.src_view(), &mut dst_view);
+                    fast_resizer
+                        .resize(&premultiplied_src_image.view(), &mut dst_view)
+                        .unwrap();
                     mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
                 })
             });

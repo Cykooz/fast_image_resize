@@ -27,3 +27,7 @@ pub enum CropBoxError {
     #[error("Size of the crop box is out of the image boundaries")]
     SizeIsOutOfImageBoundaries,
 }
+
+#[derive(Error, Debug, Clone, Copy)]
+#[error("Type of pixels of the source image is not equal to pixel type of the destination image.")]
+pub struct DifferentTypesOfPixelsError;

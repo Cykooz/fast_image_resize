@@ -1,11 +1,15 @@
 use std::arch::x86_64::*;
 
 use crate::alpha::native;
+use crate::image_view::{TypedImageView, TypedImageViewMut};
+use crate::pixels::U8x4;
 use crate::simd_utils;
-use crate::{DstImageView, SrcImageView};
 
 #[allow(dead_code)]
-pub(crate) fn multiply_alpha_sse2(src_image: &SrcImageView, dst_image: &mut DstImageView) {
+pub(crate) fn multiply_alpha_sse2(
+    src_image: TypedImageView<U8x4>,
+    mut dst_image: TypedImageViewMut<U8x4>,
+) {
     let width = src_image.width().get() as usize;
     let src_rows = src_image.iter_rows(0, src_image.height().get());
     let dst_rows = dst_image.iter_rows_mut();

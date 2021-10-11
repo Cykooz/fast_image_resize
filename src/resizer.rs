@@ -1,8 +1,10 @@
 use std::num::NonZeroU32;
 
 use crate::convolution::{self, Convolution, FilterType};
-use crate::image_data::ImageData;
-use crate::image_view::{DstImageView, PixelType, SrcImageView};
+use crate::errors::DifferentTypesOfPixelsError;
+use crate::image::InnerImage;
+use crate::image_view::{ImageView, ImageViewMut, TypedImageView, TypedImageViewMut};
+use crate::pixels::{Pixel, PixelType};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CpuExtensions {
@@ -35,32 +37,6 @@ impl Default for CpuExtensions {
     }
 }
 
-impl CpuExtensions {
-    #[cfg(target_arch = "x86_64")]
-    #[inline]
-    fn get_resampler(&self, pixel_type: PixelType) -> &dyn Convolution {
-        match pixel_type {
-            PixelType::U8x4 => match self {
-                Self::Sse4_1 => &convolution::Sse4U8x4,
-                Self::Avx2 => &convolution::Avx2U8x4,
-                _ => &convolution::NativeU8x4,
-            },
-            PixelType::I32 => &convolution::NativeI32,
-            PixelType::F32 => &convolution::NativeF32,
-        }
-    }
-
-    #[cfg(not(target_arch = "x86_64"))]
-    #[inline]
-    fn get_resampler(&self, pixel_type: PixelType) -> &dyn Convolution {
-        match pixel_type {
-            PixelType::U8x4 => &convolution::NativeU8x4,
-            PixelType::I32 => &convolution::NativeI32,
-            PixelType::F32 => &convolution::NativeF32,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum ResizeAlg {
@@ -80,8 +56,8 @@ impl Default for ResizeAlg {
 pub struct Resizer {
     pub algorithm: ResizeAlg,
     cpu_extensions: CpuExtensions,
-    convolution_buffer: Vec<u32>,
-    super_sampling_buffer: Vec<u32>,
+    convolution_buffer: Vec<u8>,
+    super_sampling_buffer: Vec<u8>,
 }
 
 impl Resizer {
@@ -101,10 +77,54 @@ impl Resizer {
     ///
     /// This method doesn't multiply source image and doesn't divide
     /// destination image by alpha channel.
-    /// You must use [MulDiv](crate::MulDiv) for this actions.
-    pub fn resize(&mut self, src_image: &SrcImageView, dst_image: &mut DstImageView) {
+    /// You must use [MulDiv](crate::MulDiv) for these actions.
+    pub fn resize(
+        &mut self,
+        src_image: &ImageView,
+        dst_image: &mut ImageViewMut,
+    ) -> Result<(), DifferentTypesOfPixelsError> {
+        if src_image.pixel_type() != dst_image.pixel_type() {
+            return Err(DifferentTypesOfPixelsError);
+        }
+        match src_image.pixel_type() {
+            PixelType::U8x4 => {
+                if let Some(src_rows) = src_image.u32_image() {
+                    if let Some(dst_rows) = dst_image.u32_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
+            PixelType::I32 => {
+                if let Some(src_rows) = src_image.i32_image() {
+                    if let Some(dst_rows) = dst_image.i32_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
+            PixelType::F32 => {
+                if let Some(src_rows) = src_image.f32_image() {
+                    if let Some(dst_rows) = dst_image.f32_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
+            PixelType::U8 => {
+                if let Some(src_rows) = src_image.u8_image() {
+                    if let Some(dst_rows) = dst_image.u8_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn resize_inner<P>(&mut self, src_image: TypedImageView<P>, dst_image: TypedImageViewMut<P>)
+    where
+        P: Convolution,
+    {
         match self.algorithm {
-            ResizeAlg::Nearest => resample_nearest(&src_image, dst_image),
+            ResizeAlg::Nearest => resample_nearest(src_image, dst_image),
             ResizeAlg::Convolution(filter_type) => {
                 let convolution_buffer = &mut self.convolution_buffer;
                 resample_convolution(
@@ -135,7 +155,7 @@ impl Resizer {
     /// intermediate resizing steps.
     pub fn size_of_internal_buffers(&self) -> usize {
         (self.convolution_buffer.capacity() + self.super_sampling_buffer.capacity())
-            * std::mem::size_of::<u32>()
+            * std::mem::size_of::<u8>()
     }
 
     /// Deallocates the internal buffers used to store the results of
@@ -162,21 +182,25 @@ impl Resizer {
     }
 }
 
-fn get_temp_image_from_buffer(
-    buffer: &mut Vec<u32>,
+fn get_temp_image_from_buffer<P: Pixel>(
+    buffer: &mut Vec<u8>,
     width: NonZeroU32,
     height: NonZeroU32,
-    pixel_type: PixelType,
-) -> ImageData {
-    let buf_size = (width.get() * height.get()) as usize;
+) -> InnerImage<P> {
+    let pixels_count = (width.get() * height.get()) as usize;
+    // Add pixel size as gap for alignment of resulted buffer.
+    let buf_size = pixels_count * P::size() + P::size();
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
     }
-    let pixels = &mut buffer[0..buf_size];
-    ImageData::from_slice_u32(width, height, pixels, pixel_type).unwrap()
+    let pixels = unsafe { buffer.align_to_mut::<P::Type>().1 };
+    InnerImage::new(width, height, &mut pixels[0..pixels_count])
 }
 
-fn resample_nearest(src_image: &SrcImageView, dst_image: &mut DstImageView) {
+fn resample_nearest<P>(src_image: TypedImageView<P>, mut dst_image: TypedImageViewMut<P>)
+where
+    P: Pixel,
+{
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();
     let x_scale = crop_box.width.get() as f64 / dst_width as f64;
@@ -202,18 +226,19 @@ fn resample_nearest(src_image: &SrcImageView, dst_image: &mut DstImageView) {
     }
 }
 
-fn resample_convolution(
-    src_image: &SrcImageView,
-    dst_image: &mut DstImageView,
+fn resample_convolution<P>(
+    src_image: TypedImageView<P>,
+    dst_image: TypedImageViewMut<P>,
     filter_type: FilterType,
     cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u32>,
-) {
+    temp_buffer: &mut Vec<u8>,
+) where
+    P: Convolution,
+{
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width();
     let dst_height = dst_image.height();
     let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
-    let resampler = cpu_extensions.get_resampler(src_image.pixel_type());
 
     let need_horizontal = dst_width != src_image.width() || crop_box.width != src_image.width();
     let need_vertical = dst_height != src_image.height() || crop_box.height != src_image.height();
@@ -246,17 +271,13 @@ fn resample_convolution(
             let y_last = last_y_bound.start + last_y_bound.size;
 
             let temp_height = NonZeroU32::new(y_last - y_first).unwrap();
-            let mut temp_image = get_temp_image_from_buffer(
-                temp_buffer,
-                dst_width,
-                temp_height,
-                src_image.pixel_type(),
-            );
-            resampler.horiz_convolution(
+            let mut temp_image = get_temp_image_from_buffer(temp_buffer, dst_width, temp_height);
+            P::horiz_convolution(
                 src_image,
-                &mut temp_image.dst_view(),
+                temp_image.dst_view(),
                 y_first,
                 horiz_coeffs,
+                cpu_extensions,
             );
 
             // Shift bounds for vertical pass
@@ -264,24 +285,31 @@ fn resample_convolution(
                 .bounds
                 .iter_mut()
                 .for_each(|b| b.start -= y_first);
-            resampler.vert_convolution(&temp_image.src_view(), dst_image, vert_coeffs);
+            P::vert_convolution(
+                temp_image.src_view(),
+                dst_image,
+                vert_coeffs,
+                cpu_extensions,
+            );
         } else {
-            resampler.horiz_convolution(src_image, dst_image, y_first, horiz_coeffs);
+            P::horiz_convolution(src_image, dst_image, y_first, horiz_coeffs, cpu_extensions);
         }
     } else if need_vertical {
-        resampler.vert_convolution(src_image, dst_image, vert_coeffs);
+        P::vert_convolution(src_image, dst_image, vert_coeffs, cpu_extensions);
     }
 }
 
-fn resample_super_sampling(
-    src_image: &SrcImageView,
-    dst_image: &mut DstImageView,
+fn resample_super_sampling<P>(
+    src_image: TypedImageView<P>,
+    dst_image: TypedImageViewMut<P>,
     filter_type: FilterType,
     multiplicity: u8,
     cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u32>,
-    convolution_temp_buffer: &mut Vec<u32>,
-) {
+    temp_buffer: &mut Vec<u8>,
+    convolution_temp_buffer: &mut Vec<u8>,
+) where
+    P: Convolution,
+{
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();
     let dst_height = dst_image.height().get();
@@ -299,12 +327,11 @@ fn resample_super_sampling(
         let tmp_height =
             NonZeroU32::new((crop_box.height.get() as f32 / factor).round() as u32).unwrap();
 
-        let mut tmp_img =
-            get_temp_image_from_buffer(temp_buffer, tmp_width, tmp_height, src_image.pixel_type());
-        resample_nearest(src_image, &mut tmp_img.dst_view());
+        let mut tmp_img = get_temp_image_from_buffer(temp_buffer, tmp_width, tmp_height);
+        resample_nearest(src_image, tmp_img.dst_view());
         // Second step is resizing the temporary image with a convolution.
         resample_convolution(
-            &tmp_img.src_view(),
+            tmp_img.src_view(),
             dst_image,
             filter_type,
             cpu_extensions,

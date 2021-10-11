@@ -16,7 +16,7 @@ fn resize_image_example() {
         .unwrap();
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
-    let mut src_image = fr::ImageData::from_vec_u8(
+    let mut src_image = fr::Image::from_vec_u8(
         width,
         height,
         img.to_rgba8().into_raw(),
@@ -28,31 +28,30 @@ fn resize_image_example() {
     let alpha_mul_div: fr::MulDiv = Default::default();
     // Multiple RGB channels of source image by alpha channel
     alpha_mul_div
-        .multiply_alpha_inplace(&mut src_image.dst_view())
+        .multiply_alpha_inplace(&mut src_image.view_mut())
         .unwrap();
 
     // Create wrapper that own data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = fr::ImageData::new(dst_width, dst_height, src_image.pixel_type());
+    let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
 
     // Get mutable view of destination image data
-    let mut dst_view = dst_image.dst_view();
+    let mut dst_view = dst_image.view_mut();
 
     // Create Resizer instance and resize source image
     // into buffer of destination image
     let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
-    resizer.resize(&src_image.src_view(), &mut dst_view);
+    resizer.resize(&src_image.view(), &mut dst_view).unwrap();
 
     // Divide RGB channels of destination image by alpha
     alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
 
     // Write destination image as PNG-file
     let mut result_buf = BufWriter::new(Vec::new());
-    let encoder = PngEncoder::new(&mut result_buf);
-    encoder
+    PngEncoder::new(&mut result_buf)
         .encode(
-            dst_image.get_buffer(),
+            dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),
             ColorType::Rgba8,
@@ -65,5 +64,4 @@ fn main() {
     unsafe {
         resizer.set_cpu_extensions(fr::CpuExtensions::Sse4_1);
     }
-    // ...
 }

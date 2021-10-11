@@ -2,16 +2,19 @@
 
 pub use alpha::{MulDiv, MulDivImageError, MulDivImagesError};
 pub use convolution::FilterType;
-pub use errors::{CropBoxError, ImageBufferError, ImageRowsError, InvalidBufferSizeError};
-pub use image_data::ImageData;
-pub use image_view::{CropBox, DstImageView, PixelType, SrcImageView};
+pub use errors::*;
+pub use image_view::{CropBox, ImageRows, ImageRowsMut, ImageView, ImageViewMut};
+pub use pixels::PixelType;
 pub use resizer::{CpuExtensions, ResizeAlg, Resizer};
+
+pub use crate::image::Image;
 
 mod alpha;
 mod convolution;
 mod errors;
-mod image_data;
+mod image;
 mod image_view;
+mod pixels;
 mod resizer;
 #[cfg(target_arch = "x86_64")]
 mod simd_utils;

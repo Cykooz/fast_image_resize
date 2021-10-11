@@ -15,7 +15,7 @@ exclude = ["/data"]
 
 [dependencies]
 num-traits = "0.2.14"
-thiserror = "1.0.26"
+thiserror = "1.0.30"
 
 
 [dev-dependencies]
@@ -42,6 +42,11 @@ harness = false
 
 [[bench]]
 name = "bench_compare_rgba"
+harness = false
+
+
+[[bench]]
+name = "bench_compare_u8"
 harness = false
 
 
