@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.4.0] - 2021-10-23
 
 - Added support of new type of pixels `U8` (without forced SIMD).
 - Breaking changes:
