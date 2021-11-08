@@ -3,6 +3,7 @@ use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
 use crate::CpuExtensions;
 
+mod avx2;
 mod native;
 
 impl Convolution for U8 {
@@ -11,17 +12,25 @@ impl Convolution for U8 {
         dst_image: TypedImageViewMut<Self>,
         offset: u32,
         coeffs: Coefficients,
-        _cpu_extensions: CpuExtensions,
+        cpu_extensions: CpuExtensions,
     ) {
-        native::horiz_convolution(src_image, dst_image, offset, coeffs);
+        match cpu_extensions {
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::horiz_convolution(src_image, dst_image, offset, coeffs),
+            _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
+        }
     }
 
     fn vert_convolution(
         src_image: TypedImageView<Self>,
         dst_image: TypedImageViewMut<Self>,
         coeffs: Coefficients,
-        _cpu_extensions: CpuExtensions,
+        cpu_extensions: CpuExtensions,
     ) {
-        native::vert_convolution(src_image, dst_image, coeffs);
+        match cpu_extensions {
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Avx2 => avx2::vert_convolution(src_image, dst_image, coeffs),
+            _ => native::vert_convolution(src_image, dst_image, coeffs),
+        }
     }
 }

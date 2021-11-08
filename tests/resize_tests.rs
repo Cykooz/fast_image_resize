@@ -235,7 +235,7 @@ fn resize_nearest_u8x1() {
 }
 
 #[test]
-fn resize_lanczos3_u8x1() {
+fn resize_lanczos3_u8x1_native() {
     let image = get_source_image_u8x1();
     assert!(matches!(image.pixel_type(), PixelType::U8));
 
@@ -253,4 +253,25 @@ fn resize_lanczos3_u8x1() {
         .resize(&image.view(), &mut result.view_mut())
         .is_ok());
     save_result(&result, "u8x1-lanczos3-native");
+}
+
+#[test]
+fn resize_lanczos3_u8x1_avx2() {
+    let image = get_source_image_u8x1();
+    assert!(matches!(image.pixel_type(), PixelType::U8));
+
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(CpuExtensions::Avx2);
+    }
+    let new_height = get_new_height(&image.view(), NEW_WIDTH);
+    let mut result = Image::new(
+        NonZeroU32::new(NEW_WIDTH).unwrap(),
+        NonZeroU32::new(new_height).unwrap(),
+        image.pixel_type(),
+    );
+    assert!(resizer
+        .resize(&image.view(), &mut result.view_mut())
+        .is_ok());
+    save_result(&result, "u8x1-lanczos3-avx2");
 }

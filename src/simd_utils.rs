@@ -23,9 +23,21 @@ pub unsafe fn mm_cvtepu8_epi32(buf: &[u32], index: usize) -> __m128i {
 }
 
 #[inline(always)]
-pub unsafe fn mm_cvtsi32_si128(buf: &[u32], index: usize) -> __m128i {
+pub unsafe fn mm_cvtepu8_epi32_from_u8(buf: &[u8], index: usize) -> __m128i {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const i32;
+    _mm_cvtepu8_epi32(_mm_cvtsi32_si128(*ptr))
+}
+
+#[inline(always)]
+pub unsafe fn mm_cvtsi32_si128_from_u32(buf: &[u32], index: usize) -> __m128i {
     let v: i32 = transmute(*buf.get_unchecked(index));
     _mm_cvtsi32_si128(v)
+}
+
+#[inline(always)]
+pub unsafe fn mm_cvtsi32_si128_from_u8(buf: &[u8], index: usize) -> __m128i {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const i32;
+    _mm_cvtsi32_si128(*ptr)
 }
 
 #[inline(always)]

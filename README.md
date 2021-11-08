@@ -5,7 +5,7 @@ Rust library for fast image resizing with using of SIMD instructions.
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
-- `U8x4` - four `u8` components per pixel:
+- `U8x4` - four `u8` components per pixel (RGB, RGBA, CMYK and other):
     - native Rust-code without forced SIMD
     - SSE4.1
     - AVX2
@@ -15,6 +15,7 @@ Supported pixel formats and available optimisations:
     - native Rust-code without forced SIMD
 - `U8` - one `u8` component per pixel:
     - native Rust-code without forced SIMD
+    - AVX2 
 
 ## Benchmarks
 
@@ -22,7 +23,7 @@ Environment:
 - CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.11)
-- Rust 1.56
+- Rust 1.56.1
 - fast_image_resize = "0.4"
 - glassbench = "0.3.0"
 
@@ -47,11 +48,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 107.950 | 198.726  |  288.085   | 380.573  |
-| resize     | 15.573  |  72.009  |  132.181   | 192.426  |
-| fir rust   |  0.473  |  56.476  |   86.983   | 120.115  |
-| fir sse4.1 |    -    |  11.856  |   17.748   |  25.288  |
-| fir avx2   |    -    |  9.052   |   12.027   |  17.477  |
+| image      | 106.320 | 199.150  |  288.609   | 380.830  |
+| resize     | 15.550  |  72.122  |  132.152   | 192.081  |
+| fir rust   |  0.476  |  56.451  |   86.984   | 119.357  |
+| fir sse4.1 |    -    |  11.798  |   17.768   |  25.296  |
+| fir avx2   |    -    |  8.995   |   13.533   |  19.525  |
 
 ### Resize RGBA image 4928x3279 => 852x567
 
@@ -64,13 +65,13 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 107.165 | 191.338  |  281.272   | 372.183  |
-| resize     | 18.099  |  79.512  |  149.128   | 225.173  |
-| fir rust   | 13.265  |  69.358  |   99.794   | 132.545  |
-| fir sse4.1 | 11.739  |  23.080  |   29.013   |  36.556  |
-| fir avx2   |  6.958  |  15.590  |   18.610   |  24.219  |
+| image      | 107.186 | 191.834  |  281.246   | 372.796  |
+| resize     | 18.163  |  79.871  |  149.159   | 218.684  |
+| fir rust   | 13.630  |  69.949  |  100.425   | 133.011  |
+| fir sse4.1 | 12.034  |  23.566  |   29.809   |  37.232  |
+| fir avx2   |  6.890  |  15.015  |   18.394   |  23.827  |
 
-### Resize gray image (U8) 4928x3279 => 852x567
+### Resize grayscale image (U8) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -80,11 +81,12 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 96.792  | 143.195  |  188.121   | 240.504  |
-| resize     | 10.582  |  26.577  |   53.537   |  81.599  |
-| fir rust   |  0.203  |  24.832  |   30.962   |  46.958  |
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    | 92.171  | 141.153  |  184.442   | 230.455  |
+| resize   |  9.890  |  26.205  |   53.054   |  81.181  |
+| fir rust |  0.197  |  26.333  |   29.450   |  43.266  |
+| fir avx2 |    -    |  14.766  |   12.567   |  16.641  |
 
 ## Examples
 

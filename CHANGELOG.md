@@ -1,3 +1,7 @@
+## [Unreleased] - ReleaseDate
+
+- Added optimisation of convolution grayscale images (U8) with helps of ``AVX2`` instructions.
+
 ## [0.4.0] - 2021-10-23
 
 - Added support of new type of pixels `U8` (without forced SIMD).

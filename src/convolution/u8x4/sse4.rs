@@ -504,8 +504,8 @@ pub(crate) unsafe fn vert_convolution_8u(
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
-            let source1 = simd_utils::mm_cvtsi32_si128(s_row1, xx); // top line
-            let source2 = simd_utils::mm_cvtsi32_si128(s_row2, xx); // bottom line
+            let source1 = simd_utils::mm_cvtsi32_si128_from_u32(s_row1, xx); // top line
+            let source2 = simd_utils::mm_cvtsi32_si128_from_u32(s_row2, xx); // bottom line
 
             let source = _mm_unpacklo_epi8(source1, source2);
             let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
