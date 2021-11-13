@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.4.1] - 2021-11-13
 
 - Added optimisation of convolution grayscale images (U8) with helps of ``AVX2`` instructions.
 
