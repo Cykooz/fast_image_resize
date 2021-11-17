@@ -6,7 +6,7 @@ use crate::image::InnerImage;
 use crate::image_view::{ImageView, ImageViewMut, TypedImageView, TypedImageViewMut};
 use crate::pixels::{Pixel, PixelType};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuExtensions {
     None,
     #[cfg(target_arch = "x86_64")]
@@ -87,6 +87,13 @@ impl Resizer {
             return Err(DifferentTypesOfPixelsError);
         }
         match src_image.pixel_type() {
+            PixelType::U8x3 => {
+                if let Some(src_rows) = src_image.u8x3_image() {
+                    if let Some(dst_rows) = dst_image.u8x3_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
             PixelType::U8x4 => {
                 if let Some(src_rows) = src_image.u32_image() {
                     if let Some(dst_rows) = dst_image.u32_image() {
@@ -193,7 +200,7 @@ fn get_temp_image_from_buffer<P: Pixel>(
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
     }
-    let pixels = unsafe { buffer.align_to_mut::<P::Type>().1 };
+    let pixels = unsafe { buffer.align_to_mut::<P>().1 };
     InnerImage::new(width, height, &mut pixels[0..pixels_count])
 }
 

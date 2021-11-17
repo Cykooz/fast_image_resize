@@ -1,11 +1,12 @@
 use std::num::NonZeroU32;
 
+use fast_image_resize::pixels::U8x4;
 use fast_image_resize::{
     CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
 };
 
-const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
-    u32::from_le_bytes([r, g, b, a])
+const fn p(r: u8, g: u8, b: u8, a: u8) -> U8x4 {
+    U8x4(u32::from_le_bytes([r, g, b, a]))
 }
 
 // Multiplies by alpha
@@ -17,13 +18,13 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     let src_pixels = [p(255, 128, 0, 128), p(255, 128, 0, 255), p(255, 128, 0, 0)];
     let res_pixels = [p(128, 64, 0, 128), p(255, 128, 0, 255), p(0, 0, 0, 0)];
 
-    let mut src_rows: [Vec<u32>; 3] = [
+    let mut src_rows: [Vec<U8x4>; 3] = [
         vec![src_pixels[0]; width as usize],
         vec![src_pixels[1]; width as usize],
         vec![src_pixels[2]; width as usize],
     ];
 
-    let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
+    let rows: Vec<&[U8x4]> = src_rows.iter().map(|r| r.as_ref()).collect();
     let src_image_view = ImageView::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -51,12 +52,12 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
-            assert_eq!(pixel.to_le_bytes(), valid_pixel.to_le_bytes());
+            assert_eq!(pixel, valid_pixel.0);
         }
     }
 
     // Inplace
-    let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
+    let rows: Vec<&mut [U8x4]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
     let mut image_view = ImageViewMut::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -69,7 +70,7 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
 
     for (row, &valid_pixel) in src_rows.iter().zip(res_pixels.iter()) {
         for &pixel in row.iter() {
-            assert_eq!(pixel.to_le_bytes(), valid_pixel.to_le_bytes());
+            assert_eq!(pixel, valid_pixel);
         }
     }
 }
@@ -98,13 +99,13 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     let src_pixels = [p(128, 64, 0, 128), p(255, 128, 0, 255), p(255, 128, 0, 0)];
     let res_pixels = [p(255, 127, 0, 128), p(255, 128, 0, 255), p(0, 0, 0, 0)];
 
-    let mut src_rows: [Vec<u32>; 3] = [
+    let mut src_rows: [Vec<U8x4>; 3] = [
         vec![src_pixels[0]; width as usize],
         vec![src_pixels[1]; width as usize],
         vec![src_pixels[2]; width as usize],
     ];
 
-    let rows: Vec<&[u32]> = src_rows.iter().map(|r| r.as_ref()).collect();
+    let rows: Vec<&[U8x4]> = src_rows.iter().map(|r| r.as_ref()).collect();
     let src_image_view = ImageView::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -132,12 +133,12 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     let dst_rows = dst_pixels.chunks_exact(width as usize);
     for (row, &valid_pixel) in dst_rows.zip(res_pixels.iter()) {
         for &pixel in row.iter() {
-            assert_eq!(pixel.to_le_bytes(), valid_pixel.to_le_bytes());
+            assert_eq!(pixel, valid_pixel.0);
         }
     }
 
     // Inplace
-    let rows: Vec<&mut [u32]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
+    let rows: Vec<&mut [U8x4]> = src_rows.iter_mut().map(|r| r.as_mut()).collect();
     let mut image_view = ImageViewMut::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -148,7 +149,7 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
 
     for (row, &valid_pixel) in src_rows.iter().zip(res_pixels.iter()) {
         for &pixel in row.iter() {
-            assert_eq!(pixel.to_le_bytes(), valid_pixel.to_le_bytes());
+            assert_eq!(pixel, valid_pixel);
         }
     }
 }

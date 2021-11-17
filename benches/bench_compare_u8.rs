@@ -67,7 +67,6 @@ pub fn bench_downscale_u8(bench: &mut Bench) {
     let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
     #[cfg(target_arch = "x86_64")]
     {
-        // cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
         cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
     }
     for (cpu_ext, ext_name) in cpu_ext_and_name {

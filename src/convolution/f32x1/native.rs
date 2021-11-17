@@ -9,19 +9,18 @@ pub(crate) fn horiz_convolution(
     coeffs: Coefficients,
 ) {
     let coefficients_chunks = coeffs.get_chunks();
-    let mut y_src = offset;
-
-    for out_row in dst_image.iter_rows_mut() {
-        for (out_pixel, coeffs_chunk) in out_row.iter_mut().zip(&coefficients_chunks) {
-            let first_x_src = coeffs_chunk.start;
+    let src_rows = src_image.iter_rows(offset);
+    let dst_rows = dst_image.iter_rows_mut();
+    for (dst_row, src_row) in dst_rows.zip(src_rows) {
+        for (dst_pixel, coeffs_chunk) in dst_row.iter_mut().zip(&coefficients_chunks) {
+            let first_x_src = coeffs_chunk.start as usize;
             let mut ss = 0.;
-            let pixels = src_image.iter_horiz(first_x_src, y_src);
-            for (&k, &pixel) in coeffs_chunk.values.iter().zip(pixels) {
-                ss += pixel as f64 * k;
+            let src_pixels = unsafe { src_row.get_unchecked(first_x_src..) };
+            for (&k, &pixel) in coeffs_chunk.values.iter().zip(src_pixels) {
+                ss += pixel.0 as f64 * k;
             }
-            *out_pixel = ss.round() as f32;
+            dst_pixel.0 = ss.round() as f32;
         }
-        y_src += 1;
     }
 }
 
@@ -31,18 +30,17 @@ pub(crate) fn vert_convolution(
     coeffs: Coefficients,
 ) {
     let coefficients_chunks = coeffs.get_chunks();
-
-    for (out_row, coeffs_chunk) in dst_image.iter_rows_mut().zip(coefficients_chunks) {
+    let dst_rows = dst_image.iter_rows_mut();
+    for (&coeffs_chunk, dst_row) in coefficients_chunks.iter().zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
-        for (x_src, out_pixel) in out_row.iter_mut().enumerate() {
+        for (x_src, dst_pixel) in dst_row.iter_mut().enumerate() {
             let mut ss = 0.;
-            let mut y_src = first_y_src;
-            for &k in coeffs_chunk.values.iter() {
-                let pixel = src_image.get_pixel(x_src as u32, y_src);
-                ss += pixel as f64 * k;
-                y_src += 1;
+            let src_rows = src_image.iter_rows(first_y_src);
+            for (src_row, &k) in src_rows.zip(coeffs_chunk.values) {
+                let src_pixel = unsafe { src_row.get_unchecked(x_src as usize) };
+                ss += src_pixel.0 as f64 * k;
             }
-            *out_pixel = ss.round() as f32;
+            dst_pixel.0 = ss.round() as f32;
         }
     }
 }

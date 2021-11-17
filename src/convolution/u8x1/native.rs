@@ -2,6 +2,7 @@ use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
 
+#[inline(always)]
 pub(crate) fn horiz_convolution(
     src_image: TypedImageView<U8>,
     mut dst_image: TypedImageViewMut<U8>,
@@ -13,25 +14,26 @@ pub(crate) fn horiz_convolution(
     let normalizer_guard = optimisations::NormalizerGuard::new(values);
     let precision = normalizer_guard.precision();
     let coefficients_chunks = normalizer_guard.normalized_i16_chunks(window_size, &bounds);
+    let initial = 1 << (precision - 1);
 
+    let src_rows = src_image.iter_rows(offset);
     let dst_rows = dst_image.iter_rows_mut();
-    for (y_dst, dst_row) in dst_rows.enumerate() {
-        let y_src = y_dst as u32 + offset;
-
+    for (dst_row, src_row) in dst_rows.zip(src_rows) {
         for (&coeffs_chunk, dst_pixel) in coefficients_chunks.iter().zip(dst_row.iter_mut()) {
-            let first_x_src = coeffs_chunk.start;
+            let first_x_src = coeffs_chunk.start as usize;
             let ks = coeffs_chunk.values;
 
-            let mut ss0 = 1 << (precision - 1);
-            let src_pixels = src_image.iter_horiz(first_x_src, y_src);
+            let mut ss = initial;
+            let src_pixels = unsafe { src_row.get_unchecked(first_x_src..) };
             for (&k, &src_pixel) in ks.iter().zip(src_pixels) {
-                ss0 += src_pixel as i32 * (k as i32);
+                ss += src_pixel.0 as i32 * (k as i32);
             }
-            *dst_pixel = unsafe { optimisations::clip8(ss0, precision) };
+            dst_pixel.0 = unsafe { optimisations::clip8(ss, precision) };
         }
     }
 }
 
+#[inline(always)]
 pub(crate) fn vert_convolution(
     src_image: TypedImageView<U8>,
     mut dst_image: TypedImageViewMut<U8>,
@@ -42,6 +44,7 @@ pub(crate) fn vert_convolution(
     let normalizer_guard = optimisations::NormalizerGuard::new(values);
     let precision = normalizer_guard.precision();
     let coefficients_chunks = normalizer_guard.normalized_i16_chunks(window_size, &bounds);
+    let initial = 1 << (precision - 1);
 
     let dst_rows = dst_image.iter_rows_mut();
     for (&coeffs_chunk, dst_row) in coefficients_chunks.iter().zip(dst_rows) {
@@ -49,12 +52,13 @@ pub(crate) fn vert_convolution(
         let ks = coeffs_chunk.values;
 
         for (x_src, dst_pixel) in dst_row.iter_mut().enumerate() {
-            let mut ss0 = 1 << (precision - 1);
-            for (dy, &k) in ks.iter().enumerate() {
-                let src_pixel = src_image.get_pixel(x_src as u32, first_y_src + dy as u32);
-                ss0 += src_pixel as i32 * (k as i32);
+            let mut ss = initial;
+            let src_rows = src_image.iter_rows(first_y_src);
+            for (&k, src_row) in ks.iter().zip(src_rows) {
+                let src_pixel = unsafe { src_row.get_unchecked(x_src as usize) };
+                ss += src_pixel.0 as i32 * (k as i32);
             }
-            *dst_pixel = unsafe { optimisations::clip8(ss0, precision) };
+            dst_pixel.0 = unsafe { optimisations::clip8(ss, precision) };
         }
     }
 }

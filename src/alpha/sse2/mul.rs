@@ -11,7 +11,7 @@ pub(crate) fn multiply_alpha_sse2(
     mut dst_image: TypedImageViewMut<U8x4>,
 ) {
     let width = src_image.width().get() as usize;
-    let src_rows = src_image.iter_rows(0, src_image.height().get());
+    let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
@@ -25,7 +25,7 @@ pub(crate) fn multiply_alpha_sse2(
 /// This implementation is twice slowly than native version.
 #[allow(dead_code)]
 #[target_feature(enable = "sse2")]
-unsafe fn multiply_alpha_row_sse2(src_row: &[u32], dst_row: &mut [u32], width: usize) {
+unsafe fn multiply_alpha_row_sse2(src_row: &[U8x4], dst_row: &mut [U8x4], width: usize) {
     let mask_alpha_color_odd_255 = _mm_set1_epi32(0xff000000u32 as i32);
     let div_255 = _mm_set1_epi16(0x8081u16 as i16);
 

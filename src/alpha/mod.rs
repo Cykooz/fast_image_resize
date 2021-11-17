@@ -21,7 +21,8 @@ mod sse2;
 ///
 /// ```
 /// use std::num::NonZeroU32;
-/// use fast_image_resize::{Image, MulDiv, PixelType};
+/// use fast_image_resize::pixels::PixelType;
+/// use fast_image_resize::{Image, MulDiv};
 ///
 /// let width = NonZeroU32::new(10).unwrap();
 /// let height = NonZeroU32::new(7).unwrap();

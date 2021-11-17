@@ -1,10 +1,24 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of new type of pixels `PixelType::U8x3` (with 
+  auto-vectorization for SSE4.1).
+- Exposed module `fast_image_resize::pixels` with types `U8x3`, 
+  `U8x4`, `F32`, `I32`, `U8` used as wrappers for represent type of 
+  one pixel of image.
+- Some optimisations in code of convolution written in Rust (without 
+  intrinsics for SIMD).
+- Breaking changes:
+  - Added variant `U8x3` into the enum `PixelType`.
+  - Changed internal tuple structures inside of variant of `ImageRows` 
+    and `ImageRowsMut` enums.
+
 ## [0.4.1] - 2021-11-13
 
 - Added optimisation of convolution grayscale images (U8) with helps of ``AVX2`` instructions.
 
 ## [0.4.0] - 2021-10-23
 
-- Added support of new type of pixels `U8` (without forced SIMD).
+- Added support of new type of pixels `PixelType::U8` (without forced SIMD).
 - Breaking changes:
   - ``ImageData`` renamed into ``Image``.
   - ``SrcImageView`` and ``DstImageView`` replaced by ``ImageView``

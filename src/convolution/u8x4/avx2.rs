@@ -78,8 +78,8 @@ pub(crate) fn vert_convolution(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<u32>,
-    dst_rows: FourRowsMut<u32>,
+    src_rows: FourRows<U8x4>,
+    dst_rows: FourRowsMut<U8x4>,
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
@@ -208,8 +208,8 @@ unsafe fn horiz_convolution_8u4x(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u(
-    src_row: &[u32],
-    dst_row: &mut [u32],
+    src_row: &[U8x4],
+    dst_row: &mut [U8x4],
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
@@ -336,7 +336,7 @@ unsafe fn horiz_convolution_8u(
 #[target_feature(enable = "avx2")]
 unsafe fn vert_convolution_8u(
     src_img: &TypedImageView<U8x4>,
-    dst_row: &mut [u32],
+    dst_row: &mut [U8x4],
     coeffs: &[i16],
     bound: Bound,
     precision: u8,
@@ -379,7 +379,7 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let mmk = _mm256_set1_epi32(coeffs[y as usize] as i32);
 
             let source1 = simd_utils::loadu_si256(s_row, x); // top line
@@ -396,8 +396,6 @@ unsafe fn vert_convolution_8u(
             sss2 = _mm256_add_epi32(sss2, _mm256_madd_epi16(pix, mmk));
             pix = _mm256_unpackhi_epi8(source, _mm256_setzero_si256());
             sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(pix, mmk));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -440,7 +438,7 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
 
             let source1 = simd_utils::loadl_epi64(s_row, x); // top line
@@ -451,8 +449,6 @@ unsafe fn vert_convolution_8u(
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
             pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -471,7 +467,7 @@ unsafe fn vert_convolution_8u(
         x += 2;
     }
 
-    while x < src_width {
+    if x < src_width {
         let mut sss = initial;
         let mut y: u32 = 0;
         for (s_row1, s_row2) in src_img.iter_2_rows(y_start, y_start + y_size) {
@@ -488,12 +484,10 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let pix = simd_utils::mm_cvtepu8_epi32(s_row, x);
             let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -505,7 +499,5 @@ unsafe fn vert_convolution_8u(
 
         sss = _mm_packs_epi32(sss, sss);
         *dst_row.get_unchecked_mut(x) = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
-
-        x += 1;
     }
 }

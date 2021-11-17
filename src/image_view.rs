@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 use std::slice;
 
 use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError};
-use crate::pixels::{Pixel, PixelType, U8x4, F32, I32, U8};
+use crate::pixels::{Pixel, PixelType, U8x3, U8x4, F32, I32, U8};
 
 pub(crate) type RowMut<'a, 'b, T> = &'a mut &'b mut [T];
 pub(crate) type TwoRows<'a, T> = (&'a [T], &'a [T]);
@@ -26,10 +26,11 @@ pub struct CropBox {
 /// An immutable rows of image.
 #[derive(Debug, Clone)]
 pub enum ImageRows<'a> {
-    U8x4(Vec<&'a [u32]>),
-    I32(Vec<&'a [i32]>),
-    F32(Vec<&'a [f32]>),
-    U8(Vec<&'a [u8]>),
+    U8x3(Vec<&'a [U8x3]>),
+    U8x4(Vec<&'a [U8x4]>),
+    I32(Vec<&'a [I32]>),
+    F32(Vec<&'a [F32]>),
+    U8(Vec<&'a [U8]>),
 }
 
 impl<'a> ImageRows<'a> {
@@ -39,6 +40,7 @@ impl<'a> ImageRows<'a> {
         height: NonZeroU32,
     ) -> Result<(), ImageRowsError> {
         match self {
+            ImageRows::U8x3(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::U8x4(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::I32(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::F32(rows) => check_rows_count_and_size(width, height, rows),
@@ -48,6 +50,7 @@ impl<'a> ImageRows<'a> {
 
     pub fn pixel_type(&self) -> PixelType {
         match self {
+            Self::U8x3(_) => PixelType::U8x3,
             Self::U8x4(_) => PixelType::U8x4,
             Self::I32(_) => PixelType::I32,
             Self::F32(_) => PixelType::F32,
@@ -59,10 +62,11 @@ impl<'a> ImageRows<'a> {
 /// A mutable rows of image.
 #[derive(Debug)]
 pub enum ImageRowsMut<'a> {
-    U8x4(Vec<&'a mut [u32]>),
-    I32(Vec<&'a mut [i32]>),
-    F32(Vec<&'a mut [f32]>),
-    U8(Vec<&'a mut [u8]>),
+    U8x3(Vec<&'a mut [U8x3]>),
+    U8x4(Vec<&'a mut [U8x4]>),
+    I32(Vec<&'a mut [I32]>),
+    F32(Vec<&'a mut [F32]>),
+    U8(Vec<&'a mut [U8]>),
 }
 
 impl<'a> ImageRowsMut<'a> {
@@ -72,6 +76,7 @@ impl<'a> ImageRowsMut<'a> {
         height: NonZeroU32,
     ) -> Result<(), ImageRowsError> {
         match self {
+            Self::U8x3(rows) => check_rows_count_and_size(width, height, rows),
             Self::U8x4(rows) => check_rows_count_and_size(width, height, rows),
             Self::I32(rows) => check_rows_count_and_size(width, height, rows),
             Self::F32(rows) => check_rows_count_and_size(width, height, rows),
@@ -81,6 +86,7 @@ impl<'a> ImageRowsMut<'a> {
 
     pub fn pixel_type(&self) -> PixelType {
         match self {
+            Self::U8x3(_) => PixelType::U8x3,
             Self::U8x4(_) => PixelType::U8x4,
             Self::I32(_) => PixelType::I32,
             Self::F32(_) => PixelType::F32,
@@ -129,19 +135,26 @@ impl<'a> ImageView<'a> {
             return Err(ImageBufferError::InvalidBufferSize);
         }
         let rows = match pixel_type {
+            PixelType::U8x3 => {
+                let pixels = align_buffer_to(buffer)?;
+                ImageRows::U8x3(pixels.chunks_exact(width.get() as usize).collect())
+            }
             PixelType::U8x4 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::U8x4(pixels.chunks(width.get() as usize).collect())
+                ImageRows::U8x4(pixels.chunks_exact(width.get() as usize).collect())
             }
             PixelType::I32 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::I32(pixels.chunks(width.get() as usize).collect())
+                ImageRows::I32(pixels.chunks_exact(width.get() as usize).collect())
             }
             PixelType::F32 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::F32(pixels.chunks(width.get() as usize).collect())
+                ImageRows::F32(pixels.chunks_exact(width.get() as usize).collect())
             }
-            PixelType::U8 => ImageRows::U8(buffer.chunks(width.get() as usize).collect()),
+            PixelType::U8 => {
+                let pixels = align_buffer_to(buffer)?;
+                ImageRows::U8(pixels.chunks_exact(width.get() as usize).collect())
+            }
         };
         Ok(Self {
             width,
@@ -251,6 +264,19 @@ impl<'a> ImageView<'a> {
         .unwrap();
     }
 
+    pub(crate) fn u8x3_image(&self) -> Option<TypedImageView<U8x3>> {
+        if let ImageRows::U8x3(ref rows) = self.rows {
+            Some(TypedImageView {
+                width: self.width,
+                height: self.height,
+                crop_box: self.crop_box,
+                rows,
+            })
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn u32_image(&self) -> Option<TypedImageView<U8x4>> {
         if let ImageRows::U8x4(ref rows) = self.rows {
             Some(TypedImageView {
@@ -312,14 +338,14 @@ where
     width: NonZeroU32,
     height: NonZeroU32,
     crop_box: CropBox,
-    rows: &'a [&'b [P::Type]],
+    rows: &'a [&'b [P]],
 }
 
 impl<'a, 'b, P> TypedImageView<'a, 'b, P>
 where
     P: Pixel,
 {
-    pub fn new(width: NonZeroU32, height: NonZeroU32, rows: &'a [&'b [P::Type]]) -> Self {
+    pub fn new(width: NonZeroU32, height: NonZeroU32, rows: &'a [&'b [P]]) -> Self {
         Self {
             width,
             height,
@@ -349,7 +375,7 @@ where
     }
 
     #[inline]
-    pub(crate) fn get_pixel(&self, x: u32, y: u32) -> P::Type {
+    pub(crate) fn get_pixel(&self, x: u32, y: u32) -> P {
         self.rows[y as usize][x as usize]
     }
 
@@ -358,7 +384,7 @@ where
         &'s self,
         start_y: u32,
         max_y: u32,
-    ) -> impl Iterator<Item = FourRows<'b, P::Type>> + 's {
+    ) -> impl Iterator<Item = FourRows<'b, P>> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
         let rows = self.rows.get(start_y..max_y).unwrap_or_else(|| &[]);
@@ -373,7 +399,7 @@ where
         &'s self,
         start_y: u32,
         max_y: u32,
-    ) -> impl Iterator<Item = TwoRows<'b, P::Type>> + 's {
+    ) -> impl Iterator<Item = TwoRows<'b, P>> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
         let rows = self.rows.get(start_y..max_y).unwrap_or_else(|| &[]);
@@ -384,30 +410,14 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn iter_rows<'s>(
-        &'s self,
-        start_y: u32,
-        max_y: u32,
-    ) -> impl Iterator<Item = &'b [P::Type]> + 's {
+    pub(crate) fn iter_rows<'s>(&'s self, start_y: u32) -> impl Iterator<Item = &'b [P]> + 's {
         let start_y = start_y as usize;
-        let max_y = max_y.min(self.height.get()) as usize;
-        let rows = self.rows.get(start_y..max_y).unwrap_or_else(|| &[]);
+        let rows = self.rows.get(start_y..).unwrap_or_else(|| &[]);
         rows.iter().copied()
     }
 
     #[inline(always)]
-    pub(crate) fn iter_horiz(&self, x: u32, y: u32) -> &'b [P::Type] {
-        if let Some(&row) = self.rows.get(y as usize) {
-            let start_pos = x as usize;
-            if let Some(res) = row.get(start_pos..) {
-                return res;
-            }
-        }
-        &[]
-    }
-
-    #[inline(always)]
-    pub(crate) fn get_row(&self, y: u32) -> Option<&'b [P::Type]> {
+    pub(crate) fn get_row(&self, y: u32) -> Option<&'b [P]> {
         self.rows.get(y as usize).copied()
     }
 
@@ -417,7 +427,7 @@ where
         mut y: f64,
         step: f64,
         max_count: usize,
-    ) -> impl Iterator<Item = &'b [P::Type]> + 's {
+    ) -> impl Iterator<Item = &'b [P]> + 's {
         let steps = (self.height.get() as f64 - y) / step;
         let steps = (steps.max(0.).ceil() as usize).min(max_count);
         (0..steps).map(move |_| {
@@ -462,19 +472,26 @@ impl<'a> ImageViewMut<'a> {
             return Err(ImageBufferError::InvalidBufferSize);
         }
         let rows = match pixel_type {
+            PixelType::U8x3 => {
+                let pixels = align_buffer_to_mut(buffer)?;
+                ImageRowsMut::U8x3(pixels.chunks_exact_mut(width.get() as usize).collect())
+            }
             PixelType::U8x4 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::U8x4(pixels.chunks_mut(width.get() as usize).collect())
+                ImageRowsMut::U8x4(pixels.chunks_exact_mut(width.get() as usize).collect())
             }
             PixelType::I32 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::I32(pixels.chunks_mut(width.get() as usize).collect())
+                ImageRowsMut::I32(pixels.chunks_exact_mut(width.get() as usize).collect())
             }
             PixelType::F32 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::F32(pixels.chunks_mut(width.get() as usize).collect())
+                ImageRowsMut::F32(pixels.chunks_exact_mut(width.get() as usize).collect())
             }
-            PixelType::U8 => ImageRowsMut::U8(buffer.chunks_mut(width.get() as usize).collect()),
+            PixelType::U8 => {
+                let pixels = align_buffer_to_mut(buffer)?;
+                ImageRowsMut::U8(pixels.chunks_exact_mut(width.get() as usize).collect())
+            }
         };
         Ok(Self {
             width,
@@ -496,6 +513,18 @@ impl<'a> ImageViewMut<'a> {
     #[inline(always)]
     pub fn height(&self) -> NonZeroU32 {
         self.height
+    }
+
+    pub(crate) fn u8x3_image<'s>(&'s mut self) -> Option<TypedImageViewMut<'s, 'a, U8x3>> {
+        if let ImageRowsMut::U8x3(rows) = &mut self.rows {
+            Some(TypedImageViewMut {
+                width: self.width,
+                height: self.height,
+                rows,
+            })
+        } else {
+            None
+        }
     }
 
     pub(crate) fn u32_image<'s>(&'s mut self) -> Option<TypedImageViewMut<'s, 'a, U8x4>> {
@@ -554,14 +583,14 @@ where
 {
     width: NonZeroU32,
     height: NonZeroU32,
-    rows: &'a mut [&'b mut [P::Type]],
+    rows: &'a mut [&'b mut [P]],
 }
 
 impl<'a, 'b, P> TypedImageViewMut<'a, 'b, P>
 where
     P: Pixel,
 {
-    pub fn new(width: NonZeroU32, height: NonZeroU32, rows: &'a mut [&'b mut [P::Type]]) -> Self {
+    pub fn new(width: NonZeroU32, height: NonZeroU32, rows: &'a mut [&'b mut [P]]) -> Self {
         Self {
             width,
             height,
@@ -580,12 +609,12 @@ where
     }
 
     #[inline(always)]
-    pub fn iter_rows_mut(&mut self) -> slice::IterMut<&'b mut [P::Type]> {
+    pub fn iter_rows_mut(&mut self) -> slice::IterMut<&'b mut [P]> {
         self.rows.iter_mut()
     }
 
     #[inline(always)]
-    pub fn iter_4_rows_mut<'s>(&'s mut self) -> impl Iterator<Item = FourRowsMut<'s, 'b, P::Type>> {
+    pub fn iter_4_rows_mut<'s>(&'s mut self) -> impl Iterator<Item = FourRowsMut<'s, 'b, P>> {
         self.rows.chunks_exact_mut(4).map(|rows| match rows {
             [a, b, c, d] => (a, b, c, d),
             _ => unreachable!(),
@@ -593,7 +622,7 @@ where
     }
 
     #[inline(always)]
-    pub fn get_row_mut<'s>(&'s mut self, y: u32) -> Option<RowMut<'s, 'b, P::Type>> {
+    pub fn get_row_mut<'s>(&'s mut self, y: u32) -> Option<RowMut<'s, 'b, P>> {
         self.rows.get_mut(y as usize)
     }
 }

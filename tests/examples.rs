@@ -31,7 +31,7 @@ fn resize_image_example() {
         .multiply_alpha_inplace(&mut src_image.view_mut())
         .unwrap();
 
-    // Create wrapper that own data of destination image
+    // Create container for data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
     let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());

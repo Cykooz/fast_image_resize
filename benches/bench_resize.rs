@@ -26,6 +26,19 @@ fn get_big_source_image() -> Image<'static> {
     .unwrap()
 }
 
+fn get_big_u8x3_source_image() -> Image<'static> {
+    let img = utils::get_big_rgb_image();
+    let width = img.width();
+    let height = img.height();
+    Image::from_vec_u8(
+        NonZeroU32::new(width).unwrap(),
+        NonZeroU32::new(height).unwrap(),
+        img.into_raw(),
+        PixelType::U8x3,
+    )
+    .unwrap()
+}
+
 fn get_big_i32_image() -> Image<'static> {
     let img = utils::get_big_luma16_image();
     let img_data: Vec<u32> = img
@@ -90,7 +103,7 @@ fn native_nearest_bench(bench: &mut Bench) {
     });
 }
 
-fn native_lanczos3_bench(bench: &mut Bench) {
+fn u8x4_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: &str) {
     let image = get_big_source_image();
     let mut res_image = Image::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -101,51 +114,9 @@ fn native_lanczos3_bench(bench: &mut Bench) {
     let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
+        resizer.set_cpu_extensions(cpu_extensions);
     }
-    bench.task("lanczos3 wo SIMD", |task| {
-        task.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
-    });
-}
-
-#[cfg(target_arch = "x86_64")]
-fn sse4_lanczos3_bench(bench: &mut Bench) {
-    let image = get_big_source_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Sse4_1);
-    }
-    bench.task("lanczos3 sse4", |task| {
-        task.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
-    });
-}
-
-#[cfg(target_arch = "x86_64")]
-fn avx2_lanczos3_bench(bench: &mut Bench) {
-    let image = get_big_source_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Avx2);
-    }
-    bench.task("lanczos3 avx2", |task| {
+    bench.task(name, |task| {
         task.iter(|| {
             resizer.resize(&src_image, &mut dst_image).unwrap();
         })
@@ -214,7 +185,7 @@ fn native_lanczos3_i32_bench(bench: &mut Bench) {
     });
 }
 
-fn avx2_lanczos3_u8_bench(bench: &mut Bench) {
+fn u8_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: &str) {
     let image = get_big_u8_image();
     let mut res_image = Image::new(
         NonZeroU32::new(NEW_WIDTH).unwrap(),
@@ -225,29 +196,9 @@ fn avx2_lanczos3_u8_bench(bench: &mut Bench) {
     let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Avx2);
+        resizer.set_cpu_extensions(cpu_extensions);
     }
-    bench.task("u8 lanczos3 avx2", |task| {
-        task.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
-    });
-}
-
-fn native_lanczos3_u8_bench(bench: &mut Bench) {
-    let image = get_big_u8_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
-    }
-    bench.task("u8 lanczos3 wo SIMD", |task| {
+    bench.task(name, |task| {
         task.iter(|| {
             resizer.resize(&src_image, &mut dst_image).unwrap();
         })
@@ -274,6 +225,26 @@ fn native_nearest_u8_bench(bench: &mut Bench) {
     });
 }
 
+fn u8x3_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: &str) {
+    let image = get_big_u8x3_source_image();
+    let mut res_image = Image::new(
+        NonZeroU32::new(NEW_WIDTH).unwrap(),
+        NonZeroU32::new(NEW_HEIGHT).unwrap(),
+        image.pixel_type(),
+    );
+    let src_image = image.view();
+    let mut dst_image = res_image.view_mut();
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(cpu_extensions);
+    }
+    bench.task(name, |task| {
+        task.iter(|| {
+            resizer.resize(&src_image, &mut dst_image).unwrap();
+        })
+    });
+}
+
 pub fn main() {
     use glassbench::*;
     let name = env!("CARGO_CRATE_NAME");
@@ -281,17 +252,24 @@ pub fn main() {
     if cmd.include_bench(name) {
         let mut bench = create_bench(name, "Resize", &cmd);
         native_nearest_bench(&mut bench);
-        native_lanczos3_bench(&mut bench);
-        native_lanczos3_i32_bench(&mut bench);
-        native_lanczos3_u8_bench(&mut bench);
         native_nearest_u8_bench(&mut bench);
+
+        u8_lanczos3_bench(&mut bench, CpuExtensions::None, "u8 lanczos3 wo SIMD");
+        u8x3_lanczos3_bench(&mut bench, CpuExtensions::None, "u8x3 lanczos3 wo SIMD");
+        u8x4_lanczos3_bench(&mut bench, CpuExtensions::None, "u8x4 lanczos3 wo SIMD");
+        native_lanczos3_i32_bench(&mut bench);
         #[cfg(target_arch = "x86_64")]
         {
-            sse4_lanczos3_bench(&mut bench);
+            u8_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8 lanczos3 avx2");
+
+            u8x3_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8x3 lanczos3 sse4.1");
+            // u8x3_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8x3 lanczos3 avx2");
+
+            u8x4_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8x4 lanczos3 sse4.1");
+            u8x4_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8x4 lanczos3 avx2");
+
             avx2_supersampling_lanczos3_bench(&mut bench);
             avx2_lanczos3_upscale_bench(&mut bench);
-            avx2_lanczos3_bench(&mut bench);
-            avx2_lanczos3_u8_bench(&mut bench);
         }
         if let Err(e) = after_bench(&mut bench, &cmd) {
             eprintln!("{:?}", e);

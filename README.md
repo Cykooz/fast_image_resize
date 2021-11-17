@@ -5,7 +5,13 @@ Rust library for fast image resizing with using of SIMD instructions.
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
-- `U8x4` - four `u8` components per pixel (RGB, RGBA, CMYK and other):
+- `U8` - one `u8` component per pixel:
+    - native Rust-code without forced SIMD
+    - AVX2
+- `U8x3` - three `u8` components per pixel (e.g. RGB):
+    - native Rust-code without forced SIMD
+    - SSE4.1 (auto-vectorization)
+- `U8x4` - four `u8` components per pixel (RGBA, RGBx, CMYK and other):
     - native Rust-code without forced SIMD
     - SSE4.1
     - AVX2
@@ -13,9 +19,6 @@ Supported pixel formats and available optimisations:
     - native Rust-code without forced SIMD
 - `F32` - one `f32` component per pixel:
     - native Rust-code without forced SIMD
-- `U8` - one `u8` component per pixel:
-    - native Rust-code without forced SIMD
-    - AVX2 
 
 ## Benchmarks
 
@@ -24,8 +27,9 @@ Environment:
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.11)
 - Rust 1.56.1
-- fast_image_resize = "0.4"
+- fast_image_resize = "0.5"
 - glassbench = "0.3.0"
+- `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
 Other Rust libraries used to compare of resizing speed:
 - image = "0.23.14" (<https://crates.io/crates/image>)
@@ -37,7 +41,7 @@ Resize algorithms:
 - Convolution with CatmullRom filter
 - Convolution with Lanczos3 filter
 
-### Resize RGB image 4928x3279 => 852x567
+### Resize RGB image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -48,13 +52,12 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 106.320 | 199.150  |  288.609   | 380.830  |
-| resize     | 15.550  |  72.122  |  132.152   | 192.081  |
-| fir rust   |  0.476  |  56.451  |   86.984   | 119.357  |
-| fir sse4.1 |    -    |  11.798  |   17.768   |  25.296  |
-| fir avx2   |    -    |  8.995   |   13.533   |  19.525  |
+| image      | 108.064 | 196.203  |  279.562   | 363.843  |
+| resize     | 15.607  |  72.011  |  132.167   | 205.827  |
+| fir rust   |  0.481  |  53.753  |   86.047   | 117.852  |
+| fir sse4.1 |    -    |  43.236  |   54.124   |  76.111  |
 
-### Resize RGBA image 4928x3279 => 852x567
+### Resize RGBA image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -65,11 +68,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 107.186 | 191.834  |  281.246   | 372.796  |
-| resize     | 18.163  |  79.871  |  149.159   | 218.684  |
-| fir rust   | 13.630  |  69.949  |  100.425   | 133.011  |
-| fir sse4.1 | 12.034  |  23.566  |   29.809   |  37.232  |
-| fir avx2   |  6.890  |  15.015  |   18.394   |  23.827  |
+| image      | 110.485 | 191.373  |  267.640   | 348.590  |
+| resize     | 18.169  |  81.034  |  152.473   | 219.331  |
+| fir rust   | 13.236  |  63.711  |   88.811   | 117.468  |
+| fir sse4.1 | 11.760  |  23.090  |   29.461   |  36.958  |
+| fir avx2   |  6.952  |  15.563  |   18.769   |  24.088  |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -83,10 +86,10 @@ Pipeline:
 
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    | 92.171  | 141.153  |  184.442   | 230.455  |
-| resize   |  9.890  |  26.205  |   53.054   |  81.181  |
-| fir rust |  0.197  |  26.333  |   29.450   |  43.266  |
-| fir avx2 |    -    |  14.766  |   12.567   |  16.641  |
+| image    | 94.548  | 140.978  |  178.725   | 218.875  |
+| resize   |  9.884  |  26.831  |   54.274   |  82.708  |
+| fir rust |  0.196  |  22.045  |   24.734   |  35.630  |
+| fir avx2 |    -    |  9.623   |   7.869    |  11.832  |
 
 ## Examples
 
@@ -117,7 +120,7 @@ fn resize_image_example() {
         img.to_rgba8().into_raw(),
         fr::PixelType::U8x4,
     )
-        .unwrap();
+    .unwrap();
 
     // Create MulDiv instance
     let alpha_mul_div: fr::MulDiv = Default::default();
@@ -126,7 +129,7 @@ fn resize_image_example() {
         .multiply_alpha_inplace(&mut src_image.view_mut())
         .unwrap();
 
-    // Create wrapper that own data of destination image
+    // Create container for data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
     let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());

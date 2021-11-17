@@ -10,7 +10,7 @@ pub(crate) fn divide_alpha_avx2(
     mut dst_image: TypedImageViewMut<U8x4>,
 ) {
     let width = src_image.width().get();
-    let src_rows = src_image.iter_rows(0, src_image.height().get());
+    let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
@@ -31,7 +31,7 @@ pub(crate) fn divide_alpha_inplace_avx2(mut image: TypedImageViewMut<U8x4>) {
 }
 
 #[target_feature(enable = "avx2")]
-unsafe fn divide_alpha_row_avx2(src_row: &[u32], dst_row: &mut [u32], width: usize) {
+unsafe fn divide_alpha_row_avx2(src_row: &[U8x4], dst_row: &mut [U8x4], width: usize) {
     let mut x: usize = 0;
     let zero = _mm256_setzero_si256();
     #[rustfmt::skip]

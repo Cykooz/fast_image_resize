@@ -14,7 +14,7 @@ mod convolution;
 mod errors;
 mod image;
 mod image_view;
-mod pixels;
+pub mod pixels;
 mod resizer;
 #[cfg(target_arch = "x86_64")]
 mod simd_utils;

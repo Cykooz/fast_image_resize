@@ -41,6 +41,11 @@ harness = false
 
 
 [[bench]]
+name = "bench_compare_rgbx"
+harness = false
+
+
+[[bench]]
 name = "bench_compare_rgba"
 harness = false
 
@@ -56,9 +61,9 @@ opt-level = 3
 
 [profile.release]
 #debug = true
-#lto = true
+lto = true
 opt-level = 3
-#codegen-units = 1
+codegen-units = 1
 
 
 [package.metadata.release]

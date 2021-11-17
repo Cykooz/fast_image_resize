@@ -74,8 +74,8 @@ pub(crate) fn vert_convolution(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<u8>,
-    dst_rows: FourRowsMut<u8>,
+    src_rows: FourRows<U8>,
+    dst_rows: FourRowsMut<U8>,
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
@@ -124,14 +124,14 @@ unsafe fn horiz_convolution_8u4x(
         for &coeff in reminder8 {
             let coeff_i32 = coeff as i32;
             for i in 0..4 {
-                result_i32x4[i] += s_rows[i].get_unchecked(x).to_owned() as i32 * coeff_i32;
+                result_i32x4[i] += s_rows[i].get_unchecked(x).0.to_owned() as i32 * coeff_i32;
             }
             x += 1;
         }
 
         let result_u8x4 = result_i32x4.map(|v| optimisations::clip8(v, precision));
         for i in 0..4 {
-            *d_rows[i].get_unchecked_mut(dst_x) = result_u8x4[i];
+            d_rows[i].get_unchecked_mut(dst_x).0 = result_u8x4[i];
         }
     }
 }
@@ -144,8 +144,8 @@ unsafe fn horiz_convolution_8u4x(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u(
-    src_row: &[u8],
-    dst_row: &mut [u8],
+    src_row: &[U8],
+    dst_row: &mut [U8],
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
@@ -188,11 +188,11 @@ unsafe fn horiz_convolution_8u(
 
         for &coeff in reminder8 {
             let coeff_i32 = coeff as i32;
-            result_i32 += *src_row.get_unchecked(x) as i32 * coeff_i32;
+            result_i32 += src_row.get_unchecked(x).0 as i32 * coeff_i32;
             x += 1;
         }
 
-        *dst_row.get_unchecked_mut(dst_x) = optimisations::clip8(result_i32, precision);
+        dst_row.get_unchecked_mut(dst_x).0 = optimisations::clip8(result_i32, precision);
     }
 }
 
@@ -200,7 +200,7 @@ unsafe fn horiz_convolution_8u(
 #[target_feature(enable = "avx2")]
 unsafe fn vert_convolution_8u(
     src_img: &TypedImageView<U8>,
-    dst_row: &mut [u8],
+    dst_row: &mut [U8],
     coeffs: &[i16],
     bound: Bound,
     precision: u8,
@@ -244,7 +244,7 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let one_coeff = _mm256_set1_epi32(coeffs[y as usize] as i32);
 
             let row1 = simd_utils::loadu_si256(s_row, x); // top line
@@ -261,8 +261,6 @@ unsafe fn vert_convolution_8u(
             sss2 = _mm256_add_epi32(sss2, _mm256_madd_epi16(lo_hi, one_coeff));
             let hi_hi = _mm256_unpackhi_epi8(hi_pixels, zero_256);
             sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(hi_hi, one_coeff));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -305,7 +303,7 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let one_coeff = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
 
             let row1 = simd_utils::loadl_epi64(s_row, x); // top line
@@ -316,8 +314,6 @@ unsafe fn vert_convolution_8u(
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(lo_pixels, one_coeff));
             let hi_pixels = _mm_unpackhi_epi8(pixels, zero_128);
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(hi_pixels, one_coeff));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -353,12 +349,10 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        for s_row in src_img.iter_rows(y_start + y, y_start + y_size) {
+        if let Some(s_row) = src_img.get_row(y_start + y) {
             let pix = simd_utils::mm_cvtepu8_epi32_from_u8(s_row, x);
             let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
-
-            y += 1;
         }
 
         macro_rules! call {
@@ -370,10 +364,10 @@ unsafe fn vert_convolution_8u(
 
         sss = _mm_packs_epi32(sss, sss);
         let u8x4: [u8; 4] = _mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)).to_le_bytes();
-        *dst_row.get_unchecked_mut(x) = u8x4[0];
-        *dst_row.get_unchecked_mut(x + 1) = u8x4[1];
-        *dst_row.get_unchecked_mut(x + 2) = u8x4[2];
-        *dst_row.get_unchecked_mut(x + 3) = u8x4[3];
+        dst_row.get_unchecked_mut(x).0 = u8x4[0];
+        dst_row.get_unchecked_mut(x + 1).0 = u8x4[1];
+        dst_row.get_unchecked_mut(x + 2).0 = u8x4[2];
+        dst_row.get_unchecked_mut(x + 3).0 = u8x4[3];
         x += 4;
     }
 
@@ -381,9 +375,9 @@ unsafe fn vert_convolution_8u(
         let mut ss0 = 1 << (precision - 1);
         for (dy, &k) in coeffs.iter().take(y_size as usize).enumerate() {
             let src_pixel = src_img.get_pixel(x as u32, y_start + dy as u32);
-            ss0 += src_pixel as i32 * (k as i32);
+            ss0 += src_pixel.0 as i32 * (k as i32);
         }
-        *dst_pixel = optimisations::clip8(ss0, precision);
+        dst_pixel.0 = optimisations::clip8(ss0, precision);
         x += 1;
     }
 }

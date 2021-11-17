@@ -6,8 +6,7 @@ use resize::px::RGBA;
 use resize::Pixel::RGBA8;
 use rgb::FromSlice;
 
-use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
-use fast_image_resize::{Image, MulDiv};
+use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, PixelType, ResizeAlg, Resizer};
 
 mod utils;
 

@@ -13,6 +13,7 @@ mod filters;
 mod i32x1;
 mod optimisations;
 mod u8x1;
+mod u8x3;
 mod u8x4;
 
 pub(crate) trait Convolution

@@ -16,7 +16,7 @@ pub fn get_big_rgb_image() -> RgbImage {
 
 pub fn get_big_rgba_image() -> RgbaImage {
     let cur_dir = env::current_dir().unwrap();
-    let img = Reader::open(cur_dir.join("data/nasa-4928x3279.png"))
+    let img = Reader::open(cur_dir.join("data/nasa-4928x3279-rgba.png"))
         .unwrap()
         .decode()
         .unwrap();

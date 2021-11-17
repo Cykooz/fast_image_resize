@@ -3,8 +3,9 @@ use std::num::NonZeroU32;
 
 use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
-use image::{ColorType, GenericImageView};
+use image::{ColorType, DynamicImage, GenericImageView};
 
+use fast_image_resize::pixels::*;
 use fast_image_resize::{
     CpuExtensions, DifferentTypesOfPixelsError, FilterType, Image, ImageView, PixelType, ResizeAlg,
     Resizer,
@@ -22,22 +23,6 @@ fn get_source_image_u8x4() -> Image<'static> {
         NonZeroU32::new(height).unwrap(),
         img.to_rgba8().into_raw(),
         PixelType::U8x4,
-    )
-    .unwrap()
-}
-
-fn get_source_image_u8x1() -> Image<'static> {
-    let img = ImageReader::open("./data/nasa-4928x3279.png")
-        .unwrap()
-        .decode()
-        .unwrap();
-    let width = img.width();
-    let height = img.height();
-    Image::from_vec_u8(
-        NonZeroU32::new(width).unwrap(),
-        NonZeroU32::new(height).unwrap(),
-        img.to_luma8().into_raw(),
-        PixelType::U8,
     )
     .unwrap()
 }
@@ -70,6 +55,7 @@ fn save_result(image: &Image, name: &str) {
     std::fs::create_dir_all("./data/result").unwrap();
     let mut file = File::create(format!("./data/result/{}.png", name)).unwrap();
     let color_type = match image.pixel_type() {
+        PixelType::U8x3 => ColorType::Rgb8,
         PixelType::U8x4 => ColorType::Rgba8,
         PixelType::U8 => ColorType::L8,
         _ => panic!("Unsupported type of pixels"),
@@ -82,63 +68,6 @@ fn save_result(image: &Image, name: &str) {
             color_type,
         )
         .unwrap();
-}
-
-#[test]
-fn resize_wo_simd_lanczos3_test() {
-    let image = get_source_image_u8x4();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
-    }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x4-lanczos3-native");
-}
-
-#[test]
-fn resize_sse4_lanczos3_test() {
-    let image = get_source_image_u8x4();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Sse4_1);
-    }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x4-lanczos3-sse4");
-}
-
-#[test]
-fn resize_avx2_lanczos3_test() {
-    let image = get_source_image_u8x4();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Avx2);
-    }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x4-lanczos3-avx2");
 }
 
 #[test]
@@ -161,44 +90,6 @@ fn resize_avx2_lanczos3_upscale_test() {
 }
 
 #[test]
-fn resize_nearest_test() {
-    let image = get_source_image_u8x4();
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
-    }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x4-nearest-native");
-}
-
-#[test]
-fn resize_super_sampling_test() {
-    let image = get_source_image_u8x4();
-    let mut resizer = Resizer::new(ResizeAlg::SuperSampling(FilterType::Lanczos3, 2));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Avx2);
-    }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x4-super_sampling-avx2");
-}
-
-#[test]
 fn try_resize_to_other_pixel_type() {
     let src_image = get_source_image_u8x4();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
@@ -213,14 +104,81 @@ fn try_resize_to_other_pixel_type() {
     ));
 }
 
-#[test]
-fn resize_nearest_u8x1() {
-    let image = get_source_image_u8x1();
-    assert!(matches!(image.pixel_type(), PixelType::U8));
+trait PixelExt: Pixel {
+    fn pixel_type_str() -> &'static str {
+        match Self::pixel_type() {
+            PixelType::U8 => "u8",
+            PixelType::U8x3 => "u8x3",
+            PixelType::U8x4 => "u8x4",
+            PixelType::I32 => "i32",
+            PixelType::F32 => "f32",
+        }
+    }
 
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
+    fn load_src_image() -> Image<'static> {
+        let img = ImageReader::open("./data/nasa-4928x3279.png")
+            .unwrap()
+            .decode()
+            .unwrap();
+        Image::from_vec_u8(
+            NonZeroU32::new(img.width()).unwrap(),
+            NonZeroU32::new(img.height()).unwrap(),
+            Self::img_into_bytes(img),
+            Self::pixel_type(),
+        )
+        .unwrap()
+    }
+
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8>;
+}
+
+impl PixelExt for U8 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_luma8().into_raw()
+    }
+}
+
+impl PixelExt for U8x3 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_rgb8().into_raw()
+    }
+}
+
+impl PixelExt for U8x4 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_rgba8().into_raw()
+    }
+}
+
+impl PixelExt for I32 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_luma16()
+            .as_raw()
+            .iter()
+            .map(|&p| p as u32 * (i16::MAX as u32 + 1))
+            .flat_map(|val| val.to_le_bytes())
+            .collect()
+    }
+}
+
+impl PixelExt for F32 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_luma16()
+            .as_raw()
+            .iter()
+            .map(|&p| p as f32 * (i16::MAX as f32 + 1.0))
+            .flat_map(|val| val.to_le_bytes())
+            .collect()
+    }
+}
+
+fn resize_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions) {
+    let image = P::load_src_image();
+    assert_eq!(image.pixel_type(), P::pixel_type());
+
+    let mut resizer = Resizer::new(resize_alg);
     unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
+        resizer.set_cpu_extensions(cpu_extensions);
     }
     let new_height = get_new_height(&image.view(), NEW_WIDTH);
     let mut result = Image::new(
@@ -231,47 +189,73 @@ fn resize_nearest_u8x1() {
     assert!(resizer
         .resize(&image.view(), &mut result.view_mut())
         .is_ok());
-    save_result(&result, "u8x1-nearest-native");
+
+    let alg_name = match resize_alg {
+        ResizeAlg::Nearest => "nearest",
+        ResizeAlg::Convolution(filter) => match filter {
+            FilterType::Box => "box",
+            FilterType::Bilinear => "bilinear",
+            FilterType::Hamming => "hamming",
+            FilterType::Mitchell => "mitchell",
+            FilterType::CatmullRom => "catmullrom",
+            FilterType::Lanczos3 => "lanczos3",
+            _ => "unknown",
+        },
+        ResizeAlg::SuperSampling(_, _) => "supersampling",
+        _ => "unknown",
+    };
+
+    let ext_name = match cpu_extensions {
+        CpuExtensions::None => "native",
+        CpuExtensions::Sse2 => "sse2",
+        CpuExtensions::Sse4_1 => "sse41",
+        CpuExtensions::Avx2 => "avx2",
+    };
+
+    let name = format!("{}-{}-{}", P::pixel_type_str(), alg_name, ext_name);
+    save_result(&result, &name);
 }
 
 #[test]
-fn resize_lanczos3_u8x1_native() {
-    let image = get_source_image_u8x1();
-    assert!(matches!(image.pixel_type(), PixelType::U8));
-
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
+fn resize_u8() {
+    type P = U8;
+    resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    for cpu_extensions in [CpuExtensions::None, CpuExtensions::Avx2] {
+        resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
     }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x1-lanczos3-native");
 }
 
 #[test]
-fn resize_lanczos3_u8x1_avx2() {
-    let image = get_source_image_u8x1();
-    assert!(matches!(image.pixel_type(), PixelType::U8));
-
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::Avx2);
+fn resize_u8x3() {
+    type P = U8x3;
+    resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    for cpu_extensions in [CpuExtensions::None] {
+        resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
     }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
-    save_result(&result, "u8x1-lanczos3-avx2");
+}
+
+#[test]
+fn resize_u8x4() {
+    type P = U8x4;
+    resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    for cpu_extensions in [
+        CpuExtensions::None,
+        CpuExtensions::Sse4_1,
+        CpuExtensions::Avx2,
+    ] {
+        resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
+        resize_test::<P>(
+            ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
+            cpu_extensions,
+        );
+    }
+}
+
+// #[test]
+fn _resize_i32() {
+    type P = I32;
+    resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    for cpu_extensions in [CpuExtensions::None] {
+        resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
+    }
 }

@@ -10,7 +10,7 @@ pub(crate) fn divide_alpha_sse2(
     mut dst_image: TypedImageViewMut<U8x4>,
 ) {
     let width = src_image.width().get() as usize;
-    let src_rows = src_image.iter_rows(0, src_image.height().get());
+    let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
@@ -31,7 +31,7 @@ pub(crate) fn divide_alpha_inplace_sse2(mut image: TypedImageViewMut<U8x4>) {
 }
 
 #[target_feature(enable = "sse2")]
-unsafe fn divide_alpha_row_sse2(src_row: &[u32], dst_row: &mut [u32], width: usize) {
+unsafe fn divide_alpha_row_sse2(src_row: &[U8x4], dst_row: &mut [U8x4], width: usize) {
     let zero = _mm_setzero_si128();
     let alpha_mask = _mm_set1_epi32(0xff000000u32 as i32);
     let shuffle0 = _mm_set_epi8(5, 4, 5, 4, 5, 4, 5, 4, 1, 0, 1, 0, 1, 0, 1, 0);
