@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.5.0] - 2021-11-18
 
 - Added support of new type of pixels `PixelType::U8x3` (with 
   auto-vectorization for SSE4.1).
