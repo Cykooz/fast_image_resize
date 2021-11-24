@@ -3,6 +3,7 @@ use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
 use crate::CpuExtensions;
 
+#[cfg(target_arch = "x86_64")]
 mod avx2;
 mod native;
 
