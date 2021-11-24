@@ -1,3 +1,7 @@
+## [Unreleased] - ReleaseDate
+
+- Fixed compile errors on non-x86 architectures.
+
 ## [0.5.0] - 2021-11-18
 
 - Added support of new type of pixels `PixelType::U8x3` (with 
