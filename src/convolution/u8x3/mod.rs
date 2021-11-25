@@ -4,6 +4,7 @@ use crate::pixels::U8x3;
 use crate::CpuExtensions;
 
 mod native;
+#[cfg(target_arch = "x86_64")]
 mod sse4;
 
 impl Convolution for U8x3 {
