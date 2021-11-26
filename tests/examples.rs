@@ -59,6 +59,7 @@ fn resize_image_example() {
         .unwrap();
 }
 
+#[cfg(target_arch = "x86_64")]
 fn main() {
     let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
     unsafe {

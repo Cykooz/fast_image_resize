@@ -75,11 +75,13 @@ fn multiply_alpha_test(cpu_extensions: CpuExtensions) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test]
 fn multiply_alpha_avx2_test() {
     multiply_alpha_test(CpuExtensions::Avx2);
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test]
 fn multiply_alpha_sse2_test() {
     multiply_alpha_test(CpuExtensions::Sse2);
@@ -154,11 +156,13 @@ fn divide_alpha_test(cpu_extensions: CpuExtensions) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test]
 fn divide_alpha_avx2_test() {
     divide_alpha_test(CpuExtensions::Avx2);
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test]
 fn divide_alpha_sse2_test() {
     divide_alpha_test(CpuExtensions::Sse2);

@@ -70,6 +70,7 @@ fn save_result(image: &Image, name: &str) {
         .unwrap();
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test]
 fn resize_avx2_lanczos3_upscale_test() {
     let image = get_small_source_image();
@@ -207,8 +208,11 @@ fn resize_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions
 
     let ext_name = match cpu_extensions {
         CpuExtensions::None => "native",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse2 => "sse2",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse4_1 => "sse41",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Avx2 => "avx2",
     };
 
@@ -220,7 +224,12 @@ fn resize_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions
 fn resize_u8() {
     type P = U8;
     resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    for cpu_extensions in [CpuExtensions::None, CpuExtensions::Avx2] {
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    for cpu_extensions in cpu_extensions_vec {
         resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
     }
 }
@@ -238,11 +247,13 @@ fn resize_u8x3() {
 fn resize_u8x4() {
     type P = U8x4;
     resize_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    for cpu_extensions in [
-        CpuExtensions::None,
-        CpuExtensions::Sse4_1,
-        CpuExtensions::Avx2,
-    ] {
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    for cpu_extensions in cpu_extensions_vec {
         resize_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
         resize_test::<P>(
             ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
