@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.5.2] - 2021-11-26
 
 - Fixed compile errors on non-x86 architectures.
 
