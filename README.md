@@ -28,7 +28,7 @@ Environment:
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.11)
 - Rust 1.57.0
-- fast_image_resize = "0.5.2"
+- fast_image_resize = "0.5.3"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 

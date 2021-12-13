@@ -3,6 +3,7 @@ use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8x3;
 use crate::CpuExtensions;
 
+#[cfg(target_arch = "x86_64")]
 mod avx2;
 mod native;
 #[cfg(target_arch = "x86_64")]
@@ -19,6 +20,7 @@ impl Convolution for U8x3 {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Avx2 => avx2::horiz_convolution(src_image, dst_image, offset, coeffs),
+            #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe {
                 sse4::horiz_convolution(src_image, dst_image, offset, coeffs)
             },
@@ -35,6 +37,7 @@ impl Convolution for U8x3 {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Avx2 => avx2::vert_convolution(src_image, dst_image, coeffs),
+            #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe {
                 sse4::vert_convolution(src_image, dst_image, coeffs)
             },
