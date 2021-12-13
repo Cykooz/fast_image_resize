@@ -90,8 +90,7 @@ unsafe fn horiz_convolution_8u4x(
     let mask = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let x_start = coeffs_chunk.start as usize;
-        let mut x: usize = 0;
+        let mut x: usize = coeffs_chunk.start as usize;
 
         let mut sss0 = initial;
         let mut sss1 = initial;
@@ -107,7 +106,7 @@ unsafe fn horiz_convolution_8u4x(
             let mmk_hi = simd_utils::ptr_i16_to_set1_epi32(k, 2);
 
             // [8] a3 b3 g3 r3 a2 b2 g2 r2 a1 b1 g1 r1 a0 b0 g0 r0
-            let mut source = simd_utils::loadu_si128(s_row0, x + x_start);
+            let mut source = simd_utils::loadu_si128(s_row0, x);
             // [16] a1 a0 b1 b0 g1 g0 r1 r0
             let mut pix = _mm_shuffle_epi8(source, mask_lo);
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk_lo));
@@ -115,19 +114,19 @@ unsafe fn horiz_convolution_8u4x(
             pix = _mm_shuffle_epi8(source, mask_hi);
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk_hi));
 
-            source = simd_utils::loadu_si128(s_row1, x + x_start);
+            source = simd_utils::loadu_si128(s_row1, x);
             pix = _mm_shuffle_epi8(source, mask_lo);
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk_lo));
             pix = _mm_shuffle_epi8(source, mask_hi);
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk_hi));
 
-            source = simd_utils::loadu_si128(s_row2, x + x_start);
+            source = simd_utils::loadu_si128(s_row2, x);
             pix = _mm_shuffle_epi8(source, mask_lo);
             sss2 = _mm_add_epi32(sss2, _mm_madd_epi16(pix, mmk_lo));
             pix = _mm_shuffle_epi8(source, mask_hi);
             sss2 = _mm_add_epi32(sss2, _mm_madd_epi16(pix, mmk_hi));
 
-            source = simd_utils::loadu_si128(s_row3, x + x_start);
+            source = simd_utils::loadu_si128(s_row3, x);
             pix = _mm_shuffle_epi8(source, mask_lo);
             sss3 = _mm_add_epi32(sss3, _mm_madd_epi16(pix, mmk_lo));
             pix = _mm_shuffle_epi8(source, mask_hi);
@@ -143,20 +142,20 @@ unsafe fn horiz_convolution_8u4x(
             let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
 
             // [8] x x x x x x x x a1 b1 g1 r1 a0 b0 g0 r0
-            let mut pix = simd_utils::loadl_epi64(s_row0, x + x_start);
+            let mut pix = simd_utils::loadl_epi64(s_row0, x);
             // [16] a1 a0 b1 b0 g1 g0 r1 r0
             pix = _mm_shuffle_epi8(pix, mask);
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
 
-            pix = simd_utils::loadl_epi64(s_row1, x + x_start);
+            pix = simd_utils::loadl_epi64(s_row1, x);
             pix = _mm_shuffle_epi8(pix, mask);
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
 
-            pix = simd_utils::loadl_epi64(s_row2, x + x_start);
+            pix = simd_utils::loadl_epi64(s_row2, x);
             pix = _mm_shuffle_epi8(pix, mask);
             sss2 = _mm_add_epi32(sss2, _mm_madd_epi16(pix, mmk));
 
-            pix = simd_utils::loadl_epi64(s_row3, x + x_start);
+            pix = simd_utils::loadl_epi64(s_row3, x);
             pix = _mm_shuffle_epi8(pix, mask);
             sss3 = _mm_add_epi32(sss3, _mm_madd_epi16(pix, mmk));
 
@@ -229,8 +228,7 @@ unsafe fn horiz_convolution_8u(
     let sh7 = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let x_start = coeffs_chunk.start as usize;
-        let mut x: usize = 0;
+        let mut x: usize = coeffs_chunk.start as usize;
         let mut sss = initial;
 
         let coeffs_by_8 = coeffs_chunk.values.chunks_exact(8);
@@ -239,7 +237,7 @@ unsafe fn horiz_convolution_8u(
         for k in coeffs_by_8 {
             let ksource = simd_utils::loadu_si128(k, 0);
 
-            let mut source = simd_utils::loadu_si128(src_row, x + x_start);
+            let mut source = simd_utils::loadu_si128(src_row, x);
 
             let mut pix = _mm_shuffle_epi8(source, sh1);
             let mut mmk = _mm_shuffle_epi8(ksource, sh2);
@@ -249,7 +247,7 @@ unsafe fn horiz_convolution_8u(
             mmk = _mm_shuffle_epi8(ksource, sh4);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
 
-            source = simd_utils::loadu_si128(src_row, x + 4 + x_start);
+            source = simd_utils::loadu_si128(src_row, x + 4);
 
             pix = _mm_shuffle_epi8(source, sh1);
             mmk = _mm_shuffle_epi8(ksource, sh5);
@@ -266,7 +264,7 @@ unsafe fn horiz_convolution_8u(
         let reminder4 = coeffs_by_4.remainder();
 
         for k in coeffs_by_4 {
-            let source = simd_utils::loadu_si128(src_row, x + x_start);
+            let source = simd_utils::loadu_si128(src_row, x);
             let ksource = simd_utils::loadl_epi64(k, 0);
 
             let mut pix = _mm_shuffle_epi8(source, sh1);
@@ -285,7 +283,7 @@ unsafe fn horiz_convolution_8u(
 
         for k in coeffs_by_2 {
             let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
-            let source = simd_utils::loadl_epi64(src_row, x + x_start);
+            let source = simd_utils::loadl_epi64(src_row, x);
             let pix = _mm_shuffle_epi8(source, sh7);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
 
@@ -293,7 +291,7 @@ unsafe fn horiz_convolution_8u(
         }
 
         if let Some(&k) = reminder2.get(0) {
-            let pix = simd_utils::mm_cvtepu8_epi32(src_row, x + x_start);
+            let pix = simd_utils::mm_cvtepu8_epi32(src_row, x);
             let mmk = _mm_set1_epi32(k as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }

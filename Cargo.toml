@@ -19,10 +19,10 @@ thiserror = "1.0.30"
 
 
 [dev-dependencies]
-glassbench = "0.3.0"
+glassbench = "0.3.1"
 image = "0.23.14"
 resize = "0.7.2"
-rgb = "0.8.27"
+rgb = "0.8.30"
 
 
 [[bench]]

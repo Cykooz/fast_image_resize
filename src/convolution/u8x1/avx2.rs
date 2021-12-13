@@ -82,7 +82,8 @@ unsafe fn horiz_convolution_8u4x(
     let s_rows = [src_rows.0, src_rows.1, src_rows.2, src_rows.3];
     let d_rows = [dst_rows.0, dst_rows.1, dst_rows.2, dst_rows.3];
     let zero = _mm_setzero_si128();
-    let initial = _mm256_set1_epi32(1 << (precision - 1));
+    // 8 components will be added, use only 1/8 of the error
+    let initial = _mm256_set1_epi32(1 << (precision - 4));
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
@@ -150,7 +151,8 @@ unsafe fn horiz_convolution_8u(
     precision: u8,
 ) {
     let zero = _mm_setzero_si128();
-    let initial = _mm256_set1_epi32(1 << (precision - 1));
+    // 8 components will be added, use only 1/8 of the error
+    let initial = _mm256_set1_epi32(1 << (precision - 4));
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;

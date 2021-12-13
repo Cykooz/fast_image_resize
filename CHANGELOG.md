@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+- Added optimisation of convolution U8x3 images with helps of ``AVX2`` instructions.
+- Fixed error in code for convolution U8x4 images with helps of ``SSE4.1`` instructions.
+- Fixed error in code for convolution U8 images with helps of ``AVX2`` instructions.
+
 ## [0.5.1] - 2021-11-24
 
 - Fixed compile errors on non-x86 architectures.

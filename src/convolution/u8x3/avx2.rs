@@ -4,16 +4,13 @@ use std::intrinsics::transmute;
 use crate::convolution::optimisations::CoefficientsI16Chunk;
 use crate::convolution::{optimisations, Bound, Coefficients};
 use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut};
-use crate::pixels::U8x4;
+use crate::pixels::{Pixel, U8x3};
 use crate::simd_utils;
-
-// This code is based on C-implementation from Pillow-SIMD package for Python
-// https://github.com/uploadcare/pillow-simd
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U8x4>,
-    mut dst_image: TypedImageViewMut<U8x4>,
+    src_image: TypedImageView<U8x3>,
+    mut dst_image: TypedImageViewMut<U8x3>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -50,8 +47,8 @@ pub(crate) fn horiz_convolution(
 
 #[inline]
 pub(crate) fn vert_convolution(
-    src_image: TypedImageView<U8x4>,
-    mut dst_image: TypedImageViewMut<U8x4>,
+    src_image: TypedImageView<U8x3>,
+    mut dst_image: TypedImageViewMut<U8x3>,
     coeffs: Coefficients,
 ) {
     let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
@@ -78,8 +75,8 @@ pub(crate) fn vert_convolution(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<U8x4>,
-    dst_rows: FourRowsMut<U8x4>,
+    src_rows: FourRows<U8x3>,
+    dst_rows: FourRowsMut<U8x3>,
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
@@ -87,92 +84,127 @@ unsafe fn horiz_convolution_8u4x(
     let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
     let zero = _mm256_setzero_si256();
     let initial = _mm256_set1_epi32(1 << (precision - 1));
+    let src_width = s_row0.len();
 
+    /*
+        |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R |
+        |00 01 02| |03 04 05| |06 07 08| |09 10 11| |12 13 14| |15|
+
+        Ignore 12-15 bytes in each half of 32-bytes register and
+        shuffle other components with converting from u8 into i16:
+
+        x: |-1 -1| |-1 -1|
+        B: |-1 05| |-1 02|
+        G: |-1 04| |-1 01|
+        R: |-1 03| |-1 00|
+    */
     #[rustfmt::skip]
     let sh1 = _mm256_set_epi8(
-        -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
-        -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
+        -1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0,
+        -1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0,
     );
+    /*
+        x: |-1 -1| |-1 -1|
+        B: |-1 11| |-1 08|
+        G: |-1 10| |-1 07|
+        R: |-1 09| |-1 06|
+    */
     #[rustfmt::skip]
     let sh2 = _mm256_set_epi8(
-        -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
-        -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
+        -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
+        -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
     );
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let mut x = coeffs_chunk.start as usize;
+        let x_start = coeffs_chunk.start as usize;
+        let mut x = x_start;
 
         let mut sss0 = initial;
         let mut sss1 = initial;
-        let coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values;
 
-        let coeffs_by_4 = coeffs.chunks_exact(4);
-        let reminder1 = coeffs_by_4.remainder();
+        // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 byte
+        let max_x = src_width.saturating_sub(5);
+        if x < max_x {
+            let coeffs_by_4 = coeffs.chunks_exact(4);
 
-        for k in coeffs_by_4 {
-            let mmk0 = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
-            let mmk1 = simd_utils::ptr_i16_to_256set1_epi32(k, 2);
+            for k in coeffs_by_4 {
+                let mmk0 = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
+                let mmk1 = simd_utils::ptr_i16_to_256set1_epi32(k, 2);
 
-            let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row0, x)),
-                simd_utils::loadu_si128(s_row1, x),
-            );
-            let pix = _mm256_shuffle_epi8(source, sh1);
-            sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk0));
-            let pix = _mm256_shuffle_epi8(source, sh2);
-            sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk1));
+                let source = _mm256_inserti128_si256::<1>(
+                    _mm256_castsi128_si256(simd_utils::loadu_si128(s_row0, x)),
+                    simd_utils::loadu_si128(s_row1, x),
+                );
+                let pix = _mm256_shuffle_epi8(source, sh1);
+                sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk0));
+                let pix = _mm256_shuffle_epi8(source, sh2);
+                sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk1));
 
-            let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row2, x)),
-                simd_utils::loadu_si128(s_row3, x),
-            );
-            let pix = _mm256_shuffle_epi8(source, sh1);
-            sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk0));
-            let pix = _mm256_shuffle_epi8(source, sh2);
-            sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk1));
+                let source = _mm256_inserti128_si256::<1>(
+                    _mm256_castsi128_si256(simd_utils::loadu_si128(s_row2, x)),
+                    simd_utils::loadu_si128(s_row3, x),
+                );
+                let pix = _mm256_shuffle_epi8(source, sh1);
+                sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk0));
+                let pix = _mm256_shuffle_epi8(source, sh2);
+                sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk1));
 
-            x += 4;
+                x += 4;
+                if x >= max_x {
+                    break;
+                }
+            }
         }
 
-        let coeffs_by_2 = reminder1.chunks_exact(2);
-        let reminder2 = coeffs_by_2.remainder();
+        // (8 bytes) / (3 bytes per pixel) = 2 whole pixels + 2 bytes
+        let max_x = src_width.saturating_sub(2);
+        if x < max_x {
+            let coeffs_by_2 = coeffs[x - x_start..].chunks_exact(2);
 
-        for k in coeffs_by_2 {
-            let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
+            for k in coeffs_by_2 {
+                let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
 
-            let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row0, x)),
-                simd_utils::loadl_epi64(s_row1, x),
-            );
-            let pix = _mm256_shuffle_epi8(source, sh1);
-            sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
+                let source = _mm256_inserti128_si256::<1>(
+                    _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row0, x)),
+                    simd_utils::loadl_epi64(s_row1, x),
+                );
+                let pix = _mm256_shuffle_epi8(source, sh1);
+                sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
-            let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row2, x)),
-                simd_utils::loadl_epi64(s_row3, x),
-            );
-            let pix = _mm256_shuffle_epi8(source, sh1);
-            sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
+                let source = _mm256_inserti128_si256::<1>(
+                    _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row2, x)),
+                    simd_utils::loadl_epi64(s_row3, x),
+                );
+                let pix = _mm256_shuffle_epi8(source, sh1);
+                sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
 
-            x += 2;
+                x += 2;
+                if x >= max_x {
+                    break;
+                }
+            }
         }
 
-        if let Some(&k) = reminder2.get(0) {
+        coeffs = coeffs.split_at(x - x_start).1;
+        for &k in coeffs {
             // [16] xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0
             let mmk = _mm256_set1_epi32(k as i32);
 
             // [16] xx a0 xx b0 xx g0 xx r0 xx a0 xx b0 xx g0 xx r0
             let pix = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row0, x)),
-                simd_utils::mm_cvtepu8_epi32(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32_u8x3(s_row0, x)),
+                simd_utils::mm_cvtepu8_epi32_u8x3(s_row1, x),
             );
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let pix = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row2, x)),
-                simd_utils::mm_cvtepu8_epi32(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32_u8x3(s_row2, x)),
+                simd_utils::mm_cvtepu8_epi32_u8x3(s_row3, x),
             );
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
+
+            x += 1;
         }
 
         macro_rules! call {
@@ -187,14 +219,22 @@ unsafe fn horiz_convolution_8u4x(
         sss1 = _mm256_packs_epi32(sss1, zero);
         sss0 = _mm256_packus_epi16(sss0, zero);
         sss1 = _mm256_packus_epi16(sss1, zero);
-        *d_row0.get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
-        *d_row1.get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
-        *d_row2.get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
-        *d_row3.get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
+
+        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
+        let bytes = pixel.to_le_bytes();
+        d_row0.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+
+        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
+        let bytes = pixel.to_le_bytes();
+        d_row1.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+
+        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
+        let bytes = pixel.to_le_bytes();
+        d_row2.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+
+        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
+        let bytes = pixel.to_le_bytes();
+        d_row3.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
     }
 }
 
@@ -206,15 +246,15 @@ unsafe fn horiz_convolution_8u4x(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u(
-    src_row: &[U8x4],
-    dst_row: &mut [U8x4],
+    src_row: &[U8x3],
+    dst_row: &mut [U8x3],
     coefficients_chunks: &[CoefficientsI16Chunk],
     precision: u8,
 ) {
     #[rustfmt::skip]
     let sh1 = _mm256_set_epi8(
-        -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
-        -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
+        -1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0,
+        -1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0,
     );
     #[rustfmt::skip]
     let sh2 = _mm256_set_epi8(
@@ -223,8 +263,8 @@ unsafe fn horiz_convolution_8u(
     );
     #[rustfmt::skip]
     let sh3 = _mm256_set_epi8(
-        -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
-        -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
+        -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
+        -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
     );
     #[rustfmt::skip]
     let sh4 = _mm256_set_epi8(
@@ -233,34 +273,54 @@ unsafe fn horiz_convolution_8u(
     );
     #[rustfmt::skip]
     let sh5 = _mm256_set_epi8(
-        -1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8,
-        -1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0,
+        -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
+        -1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0,
     );
     #[rustfmt::skip]
     let sh6 = _mm256_set_epi8(
         7, 6, 5, 4, 7, 6, 5, 4, 7, 6, 5, 4, 7, 6, 5, 4,
         3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0,
     );
-    let sh7 = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
+    /*
+        Load 8 bytes from memory into low half of 16-bytes register:
+        |R  G  B | |R  G  B | |R  G |
+        |00 01 02| |03 04 05| |06 07| 08 09 10 11 12 13 14 15
+
+        Ignore 06-16 bytes in 16-bytes register and
+        shuffle other components with converting from u8 into i16:
+
+        x: |-1 -1| |-1 -1|
+        B: |-1 05| |-1 02|
+        G: |-1 04| |-1 01|
+        R: |-1 03| |-1 00|
+    */
+    let sh7 = _mm_set_epi8(-1, -1, -1, -1, -1, 5, -1, 2, -1, 4, -1, 1, -1, 3, -1, 0);
+    let src_width = src_row.len();
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let mut x = coeffs_chunk.start as usize;
+        let x_start = coeffs_chunk.start as usize;
+        let mut x = x_start;
         let mut coeffs = coeffs_chunk.values;
 
-        let mut sss = if coeffs.len() < 8 {
+        // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 bytes
+        // 4 + 5 = 9
+        let max_x = src_width.saturating_sub(9);
+
+        // (32 bytes) / (3 bytes per pixel) = 10 whole pixels + 2 bytes
+        let mut sss = if coeffs.len() < 8 || x >= max_x {
             _mm_set1_epi32(1 << (precision - 1))
         } else {
             // Lower part will be added to higher, use only half of the error
             let mut sss256 = _mm256_set1_epi32(1 << (precision - 2));
 
             let coeffs_by_8 = coeffs.chunks_exact(8);
-            let reminder1 = coeffs_by_8.remainder();
-
             for k in coeffs_by_8 {
                 let tmp = simd_utils::loadu_si128(k, 0);
                 let ksource = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
-                let source = simd_utils::loadu_si256(src_row, x);
+                let s_upper = simd_utils::loadu_si128(src_row, x);
+                let s_lower = simd_utils::loadu_si128(src_row, x + 4);
+                let source = _mm256_inserti128_si256::<1>(_mm256_castsi128_si256(s_upper), s_lower);
 
                 let pix = _mm256_shuffle_epi8(source, sh1);
                 let mmk = _mm256_shuffle_epi8(ksource, sh2);
@@ -271,23 +331,32 @@ unsafe fn horiz_convolution_8u(
                 sss256 = _mm256_add_epi32(sss256, _mm256_madd_epi16(pix, mmk));
 
                 x += 8;
+                if x >= max_x {
+                    break;
+                }
             }
 
-            let coeffs_by_4 = reminder1.chunks_exact(4);
-            coeffs = coeffs_by_4.remainder();
+            // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 bytes
+            let max_x = src_width.saturating_sub(5);
+            if x < max_x {
+                let coeffs_by_4 = coeffs[x - x_start..].chunks_exact(4);
 
-            for k in coeffs_by_4 {
-                let tmp = simd_utils::loadl_epi64(k, 0);
-                let ksource = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
+                for k in coeffs_by_4 {
+                    let tmp = simd_utils::loadl_epi64(k, 0);
+                    let ksource = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
-                let tmp = simd_utils::loadu_si128(src_row, x);
-                let source = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
+                    let tmp = simd_utils::loadu_si128(src_row, x);
+                    let source = _mm256_insertf128_si256::<1>(_mm256_castsi128_si256(tmp), tmp);
 
-                let pix = _mm256_shuffle_epi8(source, sh5);
-                let mmk = _mm256_shuffle_epi8(ksource, sh6);
-                sss256 = _mm256_add_epi32(sss256, _mm256_madd_epi16(pix, mmk));
+                    let pix = _mm256_shuffle_epi8(source, sh5);
+                    let mmk = _mm256_shuffle_epi8(ksource, sh6);
+                    sss256 = _mm256_add_epi32(sss256, _mm256_madd_epi16(pix, mmk));
 
-                x += 4;
+                    x += 4;
+                    if x >= max_x {
+                        break;
+                    }
+                }
             }
 
             _mm_add_epi32(
@@ -296,22 +365,30 @@ unsafe fn horiz_convolution_8u(
             )
         };
 
-        let coeffs_by_2 = coeffs.chunks_exact(2);
-        let reminder1 = coeffs_by_2.remainder();
+        // (8 bytes) / (3 bytes per pixel) = 2 whole pixels + 2 bytes
+        let max_x = src_width.saturating_sub(2);
+        if x < max_x {
+            let coeffs_by_2 = coeffs[x - x_start..].chunks_exact(2);
 
-        for k in coeffs_by_2 {
-            let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
-            let source = simd_utils::loadl_epi64(src_row, x);
-            let pix = _mm_shuffle_epi8(source, sh7);
-            sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
+            for k in coeffs_by_2 {
+                let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
+                let source = simd_utils::loadl_epi64(src_row, x);
+                let pix = _mm_shuffle_epi8(source, sh7);
+                sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
 
-            x += 2
+                x += 2;
+                if x >= max_x {
+                    break;
+                }
+            }
         }
 
-        if let Some(&k) = reminder1.get(0) {
-            let pix = simd_utils::mm_cvtepu8_epi32(src_row, x);
+        coeffs = coeffs.split_at(x - x_start).1;
+        for &k in coeffs {
+            let pix = simd_utils::mm_cvtepu8_epi32_u8x3(src_row, x);
             let mmk = _mm_set1_epi32(k as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
+            x += 1;
         }
 
         macro_rules! call {
@@ -322,16 +399,17 @@ unsafe fn horiz_convolution_8u(
         constify_imm8!(precision, call);
 
         sss = _mm_packs_epi32(sss, sss);
-        *dst_row.get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
+        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
+        let bytes = pixel.to_le_bytes();
+        dst_row.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
     }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn vert_convolution_8u(
-    src_img: &TypedImageView<U8x4>,
-    dst_row: &mut [U8x4],
+    src_img: &TypedImageView<U8x3>,
+    dst_row: &mut [U8x3],
     coeffs: &[i16],
     bound: Bound,
     precision: u8,
@@ -343,8 +421,11 @@ unsafe fn vert_convolution_8u(
     let initial = _mm_set1_epi32(1 << (precision - 1));
     let initial_256 = _mm256_set1_epi32(1 << (precision - 1));
 
-    let mut x: usize = 0;
-    while x < src_width.saturating_sub(7) {
+    let mut x_in_bytes: usize = 0;
+    let width_in_bytes = src_width * U8x3::size();
+    let dst_ptr_u8 = dst_row.as_mut_ptr() as *mut u8;
+
+    while x_in_bytes < width_in_bytes.saturating_sub(31) {
         let mut sss0 = initial_256;
         let mut sss1 = initial_256;
         let mut sss2 = initial_256;
@@ -356,8 +437,8 @@ unsafe fn vert_convolution_8u(
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_256set1_epi32(coeffs, y as usize);
 
-            let source1 = simd_utils::loadu_si256(s_row1, x); // top line
-            let source2 = simd_utils::loadu_si256(s_row2, x); // bottom line
+            let source1 = simd_utils::loadu_si256_raw(s_row1, x_in_bytes); // top line
+            let source2 = simd_utils::loadu_si256_raw(s_row2, x_in_bytes); // bottom line
 
             let source = _mm256_unpacklo_epi8(source1, source2);
             let pix = _mm256_unpacklo_epi8(source, _mm256_setzero_si256());
@@ -377,7 +458,7 @@ unsafe fn vert_convolution_8u(
         if let Some(s_row) = src_img.get_row(y_start + y) {
             let mmk = _mm256_set1_epi32(coeffs[y as usize] as i32);
 
-            let source1 = simd_utils::loadu_si256(s_row, x); // top line
+            let source1 = simd_utils::loadu_si256_raw(s_row, x_in_bytes); // top line
             let source2 = _mm256_setzero_si256(); // bottom line is empty
 
             let source = _mm256_unpacklo_epi8(source1, source2);
@@ -406,13 +487,14 @@ unsafe fn vert_convolution_8u(
         sss0 = _mm256_packs_epi32(sss0, sss1);
         sss2 = _mm256_packs_epi32(sss2, sss3);
         sss0 = _mm256_packus_epi16(sss0, sss2);
-        let dst_ptr = dst_row.get_unchecked_mut(x..).as_mut_ptr() as *mut __m256i;
+
+        let dst_ptr = dst_ptr_u8.add(x_in_bytes) as *mut __m256i;
         _mm256_storeu_si256(dst_ptr, sss0);
 
-        x += 8;
+        x_in_bytes += 32;
     }
 
-    while x < src_width.saturating_sub(1) {
+    while x_in_bytes < width_in_bytes.saturating_sub(7) {
         let mut sss0 = initial; // left row
         let mut sss1 = initial; // right row
         let mut y: u32 = 0;
@@ -421,8 +503,8 @@ unsafe fn vert_convolution_8u(
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
-            let source1 = simd_utils::loadl_epi64(s_row1, x); // top line
-            let source2 = simd_utils::loadl_epi64(s_row2, x); // bottom line
+            let source1 = simd_utils::loadl_epi64_raw(s_row1, x_in_bytes); // top line
+            let source2 = simd_utils::loadl_epi64_raw(s_row2, x_in_bytes); // bottom line
 
             let source = _mm_unpacklo_epi8(source1, source2);
             let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
@@ -436,7 +518,7 @@ unsafe fn vert_convolution_8u(
         if let Some(s_row) = src_img.get_row(y_start + y) {
             let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
 
-            let source1 = simd_utils::loadl_epi64(s_row, x); // top line
+            let source1 = simd_utils::loadl_epi64_raw(s_row, x_in_bytes); // top line
             let source2 = _mm_setzero_si128(); // bottom line is empty
 
             let source = _mm_unpacklo_epi8(source1, source2);
@@ -456,31 +538,32 @@ unsafe fn vert_convolution_8u(
 
         sss0 = _mm_packs_epi32(sss0, sss1);
         sss0 = _mm_packus_epi16(sss0, sss0);
-        let dst_ptr = dst_row.get_unchecked_mut(x..).as_mut_ptr() as *mut __m128i;
+
+        let dst_ptr = dst_ptr_u8.add(x_in_bytes) as *mut __m128i;
         _mm_storel_epi64(dst_ptr, sss0);
 
-        x += 2;
+        x_in_bytes += 8;
     }
 
-    if x < src_width {
+    while x_in_bytes < width_in_bytes.saturating_sub(3) {
         let mut sss = initial;
         let mut y: u32 = 0;
         for (s_row1, s_row2) in src_img.iter_2_rows(y_start, y_start + y_size) {
             // Load two coefficients at once
-            let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
+            let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
-            let source1 = simd_utils::mm_cvtsi32_si128_from_u32(s_row1, x); // top line
-            let source2 = simd_utils::mm_cvtsi32_si128_from_u32(s_row2, x); // bottom line
+            let row1 = simd_utils::mm_cvtsi32_si128_from_raw(s_row1, x_in_bytes); // top line
+            let row2 = simd_utils::mm_cvtsi32_si128_from_raw(s_row2, x_in_bytes); // bottom line
 
-            let source = _mm_unpacklo_epi8(source1, source2);
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
+            let pixels_u8 = _mm_unpacklo_epi8(row1, row2);
+            let pixels_i16 = _mm_unpacklo_epi8(pixels_u8, _mm_setzero_si128());
+            sss = _mm_add_epi32(sss, _mm_madd_epi16(pixels_i16, two_coeffs));
 
             y += 2;
         }
 
         if let Some(s_row) = src_img.get_row(y_start + y) {
-            let pix = simd_utils::mm_cvtepu8_epi32(s_row, x);
+            let pix = simd_utils::mm_cvtepu8_epi32_from_raw(s_row, x_in_bytes);
             let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }
@@ -493,6 +576,27 @@ unsafe fn vert_convolution_8u(
         constify_imm8!(precision, call);
 
         sss = _mm_packs_epi32(sss, sss);
-        *dst_row.get_unchecked_mut(x) = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
+        let dst_ptr_i32 = dst_ptr_u8.add(x_in_bytes) as *mut i32;
+        *dst_ptr_i32 = _mm_cvtsi128_si32(_mm_packus_epi16(sss, sss));
+
+        x_in_bytes += 4;
+    }
+
+    if x_in_bytes < width_in_bytes {
+        let dst_u8 =
+            std::slice::from_raw_parts_mut(dst_ptr_u8.add(x_in_bytes), width_in_bytes - x_in_bytes);
+
+        for dst_pixel in dst_u8 {
+            let mut ss0 = 1 << (precision - 1);
+            for (dy, &k) in coeffs.iter().take(y_size as usize).enumerate() {
+                if let Some(src_row) = src_img.get_row(y_start + dy as u32) {
+                    let src_ptr = src_row.as_ptr() as *const u8;
+                    let src_component = *src_ptr.add(x_in_bytes);
+                    ss0 += src_component as i32 * (k as i32);
+                }
+            }
+            *dst_pixel = optimisations::clip8(ss0, precision);
+            x_in_bytes += 1;
+        }
     }
 }

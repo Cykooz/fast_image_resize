@@ -99,7 +99,7 @@ impl NormalizerGuard {
     pub fn new(mut values: Vec<f64>) -> Self {
         let max_weight = values
             .iter()
-            .max_by(|&x, &y| x.partial_cmp(&y).unwrap())
+            .max_by(|&x, &y| x.partial_cmp(y).unwrap())
             .unwrap_or(&0.0)
             .to_owned();
 
@@ -107,11 +107,12 @@ impl NormalizerGuard {
         for cur_precision in 0..PRECISION_BITS {
             precision = cur_precision;
             let next_value: i32 = (max_weight * (1 << (precision + 1)) as f64).round() as i32;
-            // The next value will be outside of the range, so just stop
+            // The next value will be outside the range, so just stop
             if next_value >= (1 << MAX_COEFS_PRECISION) {
                 break;
             }
         }
+        debug_assert!(precision >= 4); // required for some SIMD optimisations
 
         let len = values.len();
         let ptr = values.as_mut_ptr();
@@ -157,5 +158,16 @@ impl NormalizerGuard {
     #[inline]
     pub fn precision(&self) -> u8 {
         self.precision
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_minimal_precision() {
+        assert!(NormalizerGuard::new(vec![0.0]).precision() >= 4);
+        assert!(NormalizerGuard::new(vec![2.0]).precision() >= 4);
     }
 }

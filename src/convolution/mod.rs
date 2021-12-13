@@ -125,7 +125,7 @@ pub fn precompute_coefficients(
         if ww != 0.0 {
             coeffs[cur_index..].iter_mut().for_each(|w| *w /= ww);
         }
-        // Remaining values should stay empty if they are used despite of x_max.
+        // Remaining values should stay empty if they are used despite x_max.
         coeffs.resize(cur_index + window_size, 0.);
         bounds.push(Bound {
             start: x_min,

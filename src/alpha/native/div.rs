@@ -21,8 +21,8 @@ pub(crate) fn divide_alpha_inplace_native(mut image: TypedImageViewMut<U8x4>) {
 }
 
 #[inline(always)]
-pub(crate) fn div_and_clip(v: u8, rev_alpha: f32) -> u8 {
-    let res = v as f32 * rev_alpha;
+pub(crate) fn div_and_clip(v: u8, recip_alpha: f32) -> u8 {
+    let res = v as f32 * recip_alpha;
     res.min(255.) as u8
 }
 
