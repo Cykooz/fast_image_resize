@@ -181,8 +181,11 @@ fn downscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensi
 
     let ext_name = match cpu_extensions {
         CpuExtensions::None => "native",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse2 => "sse2",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse4_1 => "sse41",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Avx2 => "avx2",
     };
 
@@ -247,7 +250,12 @@ fn downscale_u8() {
     let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
     assert_eq!(image_checksum::<1>(&buffer), [2920317]);
 
-    for cpu_extensions in [CpuExtensions::None, CpuExtensions::Avx2] {
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    for cpu_extensions in cpu_extensions_vec {
         let buffer =
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
         assert_eq!(image_checksum::<1>(&buffer), [2923520]);
