@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.5.3] - 2021-12-14
 
 - Added optimisation of convolution U8x3 images with helps of ``AVX2`` instructions.
 - Fixed error in code for convolution U8x4 images with helps of ``SSE4.1`` instructions.
