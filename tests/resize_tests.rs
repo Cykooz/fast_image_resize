@@ -234,8 +234,11 @@ fn upscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtension
 
     let ext_name = match cpu_extensions {
         CpuExtensions::None => "native",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse2 => "sse2",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Sse4_1 => "sse41",
+        #[cfg(target_arch = "x86_64")]
         CpuExtensions::Avx2 => "avx2",
     };
 
