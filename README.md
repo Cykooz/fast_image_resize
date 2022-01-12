@@ -178,7 +178,7 @@ fn resize_image_example() {
 use fast_image_resize as fr;
 
 fn main() {
-    le mut resizer = fr::Resizer::new(
+    let mut resizer = fr::Resizer::new(
         fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
     );
     unsafe {
