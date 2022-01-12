@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.6.0] - 2022-01-12
 
 - Added optimisation of multiplying and dividing image by alpha channel with helps
   of ``SSE4.1`` instructions.
