@@ -131,7 +131,7 @@ fn resize_image_example() {
     .unwrap();
 
     // Create MulDiv instance
-    let alpha_mul_div: fr::MulDiv = Default::default();
+    let alpha_mul_div = fr::MulDiv::default();
     // Multiple RGB channels of source image by alpha channel
     alpha_mul_div
         .multiply_alpha_inplace(&mut src_image.view_mut())
@@ -140,14 +140,20 @@ fn resize_image_example() {
     // Create container for data of destination image
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
-    let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
+    let mut dst_image = fr::Image::new(
+      dst_width, 
+      dst_height, 
+      src_image.pixel_type(),
+    );
 
     // Get mutable view of destination image data
     let mut dst_view = dst_image.view_mut();
 
     // Create Resizer instance and resize source image
     // into buffer of destination image
-    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
+    let mut resizer = fr::Resizer::new(
+        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3)
+    );
     resizer.resize(&src_image.view(), &mut dst_view).unwrap();
 
     // Divide RGB channels of destination image by alpha
@@ -172,7 +178,9 @@ fn resize_image_example() {
 use fast_image_resize as fr;
 
 fn main() {
-    le mut resizer = fr::Resizer::new(fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3));
+    le mut resizer = fr::Resizer::new(
+        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
+    );
     unsafe {
         resizer.set_cpu_extensions(fr::CpuExtensions::Sse4_1);
     }
