@@ -40,7 +40,7 @@ fn multiplies_alpha_avx2(bench: &mut Bench) {
 }
 
 #[cfg(target_arch = "x86_64")]
-fn multiplies_alpha_sse2(bench: &mut Bench) {
+fn multiplies_alpha_sse4(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(255, 128, 0, 128));
@@ -49,10 +49,10 @@ fn multiplies_alpha_sse2(bench: &mut Bench) {
     let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
-        alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse2);
+        alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse4_1);
     }
 
-    bench.task("Multiplies alpha SSE2", |task| {
+    bench.task("Multiplies alpha SSE4.1", |task| {
         task.iter(|| {
             alpha_mul_div
                 .multiply_alpha(&src_view, &mut dst_view)
@@ -105,7 +105,7 @@ fn divides_alpha_avx2(bench: &mut Bench) {
 }
 
 #[cfg(target_arch = "x86_64")]
-fn divides_alpha_sse2(bench: &mut Bench) {
+fn divides_alpha_sse4(bench: &mut Bench) {
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let src_data = get_src_image(width, height, p(128, 64, 0, 128));
@@ -114,10 +114,10 @@ fn divides_alpha_sse2(bench: &mut Bench) {
     let mut dst_view = dst_data.view_mut();
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
-        alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse2);
+        alpha_mul_div.set_cpu_extensions(CpuExtensions::Sse4_1);
     }
 
-    bench.task("Divides alpha SSE2", |task| {
+    bench.task("Divides alpha SSE4.1", |task| {
         task.iter(|| {
             alpha_mul_div
                 .divide_alpha(&src_view, &mut dst_view)
@@ -149,6 +149,7 @@ fn divides_alpha_native(bench: &mut Bench) {
 
 pub fn main() {
     use glassbench::*;
+
     let name = env!("CARGO_CRATE_NAME");
     let cmd = Command::read();
     if cmd.include_bench(name) {
@@ -156,13 +157,13 @@ pub fn main() {
         #[cfg(target_arch = "x86_64")]
         {
             multiplies_alpha_avx2(&mut bench);
-            multiplies_alpha_sse2(&mut bench);
+            multiplies_alpha_sse4(&mut bench);
         }
         multiplies_alpha_native(&mut bench);
         #[cfg(target_arch = "x86_64")]
         {
             divides_alpha_avx2(&mut bench);
-            divides_alpha_sse2(&mut bench);
+            divides_alpha_sse4(&mut bench);
         }
         divides_alpha_native(&mut bench);
         if let Err(e) = after_bench(&mut bench, &cmd) {

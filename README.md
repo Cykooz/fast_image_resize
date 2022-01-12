@@ -2,6 +2,12 @@
 
 Rust library for fast image resizing with using of SIMD instructions.
 
+_Note: This library does not support converting image color spaces.
+If it is important for you to resize images with a non-linear color space 
+(e.g. sRGB) correctly, then you need to convert it to a linear color space 
+before resizing. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
+about resizing with respect to color space._
+
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
@@ -28,7 +34,7 @@ Environment:
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.11)
 - Rust 1.57.0
-- fast_image_resize = "0.5.3"
+- fast_image_resize = "0.6.0"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
@@ -53,11 +59,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 91.896  | 176.959  |  256.786   | 341.548  |
-| resize     | 15.453  |  71.340  |  131.232   | 191.469  |
-| fir rust   |  0.481  |  53.733  |   90.519   | 121.121  |
-| fir sse4.1 |    -    |  43.113  |   53.484   |  75.127  |
-| fir avx2   |    -    |  10.765  |   14.131   |  19.827  |
+| image      | 92.300  | 180.063  |  257.043   | 342.268  |
+| resize     | 15.429  |  71.589  |  131.447   | 191.048  |
+| fir rust   |  0.481  |  55.347  |   89.512   | 121.270  |
+| fir sse4.1 |    -    |  44.841  |   54.630   |  75.284  |
+| fir avx2   |    -    |  10.814  |   14.408   |  20.897  |
 
 ### Resize RGBA image (U8x4) 4928x3279 => 852x567
 
@@ -65,16 +71,16 @@ Pipeline:
 
 `src_image => multiply by alpha => resize => divide by alpha => dst_image`
 
-- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+- Source image [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 98.113  | 177.039  |  254.666   | 337.147  |
-| resize     | 17.875  |  79.014  |  148.691   | 218.400  |
-| fir rust   | 13.188  |  63.942  |   89.681   | 119.664  |
-| fir sse4.1 | 11.868  |  22.957  |   29.164   |  36.799  |
-| fir avx2   |  6.949  |  14.854  |   18.399   |  23.772  |
+| image      | 98.598  | 177.427  |  253.149   | 336.999  |
+| resize     | 17.988  |  79.891  |  149.178   | 218.593  |
+| fir rust   | 11.952  |  63.214  |   89.397   | 118.714  |
+| fir sse4.1 |  9.169  |  20.664  |   26.442   |  34.326  |
+| fir avx2   |  7.353  |  15.514  |   18.936   |  24.624  |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -88,10 +94,10 @@ Pipeline:
 
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    | 76.981  | 126.595  |  166.765   | 209.593  |
-| resize   |  9.632  |  24.332  |   47.533   |  80.667  |
-| fir rust |  0.197  |  21.773  |   24.476   |  34.909  |
-| fir avx2 |    -    |  9.467   |   7.691    |  11.776  |
+| image    | 77.209  | 128.704  |  166.905   | 210.503  |
+| resize   |  9.694  |  24.477  |   47.722   |  80.824  |
+| fir rust |  0.198  |  21.457  |   24.256   |  36.893  |
+| fir avx2 |    -    |  9.758   |   7.787    |  12.099  |
 
 ## Examples
 
@@ -162,7 +168,7 @@ fn resize_image_example() {
 
 ### Change CPU extensions used by resizer
 
-```ignore
+```rust, ignore
 use fast_image_resize as fr;
 
 fn main() {

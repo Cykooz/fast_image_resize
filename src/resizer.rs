@@ -10,8 +10,6 @@ use crate::pixels::{Pixel, PixelType};
 pub enum CpuExtensions {
     None,
     #[cfg(target_arch = "x86_64")]
-    Sse2,
-    #[cfg(target_arch = "x86_64")]
     Sse4_1,
     #[cfg(target_arch = "x86_64")]
     Avx2,
@@ -24,8 +22,6 @@ impl Default for CpuExtensions {
             Self::Avx2
         } else if is_x86_feature_detected!("sse4.1") {
             Self::Sse4_1
-        } else if is_x86_feature_detected!("sse2") {
-            Self::Sse2
         } else {
             Self::None
         }

@@ -1,3 +1,12 @@
+## [Unreleased] - ReleaseDate
+
+- Added optimisation of multiplying and dividing image by alpha channel with helps
+  of ``SSE4.1`` instructions.
+- Improved performance of dividing image by alpha channel without forced 
+  SIMD instructions.
+- Breaking changes:
+  - Deleted variant `SSE2` from enum ``CpuExtensions``.
+
 ## [0.5.3] - 2021-12-14
 
 - Added optimisation of convolution U8x3 images with helps of ``AVX2`` instructions.

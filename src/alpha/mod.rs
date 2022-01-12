@@ -1,15 +1,16 @@
+pub use errors::*;
+
 use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8x4;
 use crate::CpuExtensions;
 use crate::{ImageView, ImageViewMut};
-pub use errors::*;
 
 #[cfg(target_arch = "x86_64")]
 mod avx2;
 mod errors;
 mod native;
 #[cfg(target_arch = "x86_64")]
-mod sse2;
+mod sse4;
 
 /// Methods of this structure used to multiply or divide RGB-channels
 /// by alpha-channel.
@@ -60,13 +61,14 @@ impl MulDiv {
         let (src_image_u8x4, dst_image_u8x4) = assert_images(src_image, dst_image)?;
         match self.cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => avx2::multiply_alpha_avx2(src_image_u8x4, dst_image_u8x4),
-            // WARNING: SSE2 implementation is drastically slower than native version
-            // #[cfg(target_arch = "x86_64")]
-            // CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
-            //     sse2::multiply_alpha_sse2(src_image, dst_image)
-            // }
-            _ => native::multiply_alpha_native(src_image_u8x4, dst_image_u8x4),
+            CpuExtensions::Avx2 => unsafe {
+                avx2::mul::multiply_alpha_avx2(src_image_u8x4, dst_image_u8x4)
+            },
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Sse4_1 => unsafe {
+                sse4::mul::multiply_alpha_sse4(src_image_u8x4, dst_image_u8x4)
+            },
+            _ => native::mul::multiply_alpha_native(src_image_u8x4, dst_image_u8x4),
         }
         Ok(())
     }
@@ -76,13 +78,10 @@ impl MulDiv {
         let image_u8x4 = assert_image(image)?;
         match self.cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => avx2::multiply_alpha_inplace_avx2(image_u8x4),
-            // WARNING: SSE2 implementation is drastically slower than native version
-            // #[cfg(target_arch = "x86_64")]
-            // CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
-            //     sse2::multiply_alpha_sse2(src_image, dst_image)
-            // }
-            _ => native::multiply_alpha_inplace_native(image_u8x4),
+            CpuExtensions::Avx2 => unsafe { avx2::mul::multiply_alpha_inplace_avx2(image_u8x4) },
+            #[cfg(target_arch = "x86_64")]
+            CpuExtensions::Sse4_1 => unsafe { sse4::mul::multiply_alpha_inplace_sse4(image_u8x4) },
+            _ => native::mul::multiply_alpha_inplace_native(image_u8x4),
         }
         Ok(())
     }
@@ -97,12 +96,14 @@ impl MulDiv {
         let (src_image_u8x4, dst_image_u8x4) = assert_images(src_image, dst_image)?;
         match self.cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => avx2::divide_alpha_avx2(src_image_u8x4, dst_image_u8x4),
+            CpuExtensions::Avx2 => unsafe {
+                avx2::div::divide_alpha_avx2(src_image_u8x4, dst_image_u8x4)
+            },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
-                sse2::divide_alpha_sse2(src_image_u8x4, dst_image_u8x4)
-            }
-            _ => native::divide_alpha_native(src_image_u8x4, dst_image_u8x4),
+            CpuExtensions::Sse4_1 => unsafe {
+                sse4::div::divide_alpha_sse4(src_image_u8x4, dst_image_u8x4)
+            },
+            _ => native::div::divide_alpha_native(src_image_u8x4, dst_image_u8x4),
         }
         Ok(())
     }
@@ -112,12 +113,10 @@ impl MulDiv {
         let image_u8x4 = assert_image(image)?;
         match self.cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => avx2::divide_alpha_inplace_avx2(image_u8x4),
+            CpuExtensions::Avx2 => unsafe { avx2::div::divide_alpha_inplace_avx2(image_u8x4) },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 | CpuExtensions::Sse2 => {
-                sse2::divide_alpha_inplace_sse2(image_u8x4)
-            }
-            _ => native::divide_alpha_inplace_native(image_u8x4),
+            CpuExtensions::Sse4_1 => unsafe { sse4::div::divide_alpha_inplace_sse4(image_u8x4) },
+            _ => native::div::divide_alpha_inplace_native(image_u8x4),
         }
         Ok(())
     }
