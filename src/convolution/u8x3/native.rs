@@ -11,9 +11,9 @@ pub(crate) fn horiz_convolution(
 ) {
     let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-    let normalizer_guard = optimisations::NormalizerGuard::new(values);
+    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
     let precision = normalizer_guard.precision();
-    let coefficients_chunks = normalizer_guard.normalized_i16_chunks(window_size, &bounds);
+    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
     let initial = 1 << (precision - 1);
 
     let src_rows = src_image.iter_rows(offset);
@@ -29,7 +29,7 @@ pub(crate) fn horiz_convolution(
                 }
             }
             for (i, s) in ss.iter().copied().enumerate() {
-                dst_pixel.0[i] = unsafe { optimisations::clip8(s, precision) };
+                dst_pixel.0[i] = unsafe { normalizer_guard.clip(s) };
             }
         }
     }
@@ -43,9 +43,9 @@ pub(crate) fn vert_convolution(
 ) {
     let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-    let normalizer_guard = optimisations::NormalizerGuard::new(values);
+    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
     let precision = normalizer_guard.precision();
-    let coefficients_chunks = normalizer_guard.normalized_i16_chunks(window_size, &bounds);
+    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
     let initial = 1 << (precision - 1);
 
     let dst_rows = dst_image.iter_rows_mut();
@@ -63,7 +63,7 @@ pub(crate) fn vert_convolution(
                 }
             }
             for (i, s) in ss.iter().copied().enumerate() {
-                dst_pixel.0[i] = unsafe { optimisations::clip8(s, precision) };
+                dst_pixel.0[i] = unsafe { normalizer_guard.clip(s) };
             }
         }
     }

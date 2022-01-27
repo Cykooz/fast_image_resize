@@ -3,7 +3,9 @@ use std::env;
 
 use glassbench::*;
 use image::io::Reader;
-use image::{GrayImage, ImageBuffer, Luma, RgbImage, RgbaImage};
+use image::{GrayImage, ImageBuffer, Luma, Rgb, RgbImage, RgbaImage};
+
+pub type Rgb16Image = ImageBuffer<Rgb<u16>, Vec<u16>>;
 
 pub fn get_big_rgb_image() -> RgbImage {
     let cur_dir = env::current_dir().unwrap();
@@ -12,6 +14,15 @@ pub fn get_big_rgb_image() -> RgbImage {
         .decode()
         .unwrap();
     img.to_rgb8()
+}
+
+pub fn get_big_rgb16_image() -> Rgb16Image {
+    let cur_dir = env::current_dir().unwrap();
+    let img = Reader::open(cur_dir.join("data/nasa-4928x3279.png"))
+        .unwrap()
+        .decode()
+        .unwrap();
+    img.to_rgb16()
 }
 
 pub fn get_big_rgba_image() -> RgbaImage {

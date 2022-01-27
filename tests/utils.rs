@@ -1,7 +1,5 @@
-use std::fs::File;
 use std::num::NonZeroU32;
 
-use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
 use image::{ColorType, DynamicImage, GenericImageView};
 
@@ -16,12 +14,22 @@ pub fn image_checksum<const N: usize>(buffer: &[u8]) -> [u32; N] {
     res
 }
 
+pub fn image_u16_checksum<const N: usize>(buffer: &[u8]) -> [u64; N] {
+    let buffer_u16 = unsafe { buffer.align_to::<u16>().1 };
+    let mut res = [0u64; N];
+    for pixel in buffer_u16.chunks_exact(N) {
+        res.iter_mut().zip(pixel).for_each(|(d, &s)| *d += s as u64);
+    }
+    res
+}
+
 pub trait PixelExt: Pixel {
     fn pixel_type_str() -> &'static str {
         match Self::pixel_type() {
             PixelType::U8 => "u8",
             PixelType::U8x3 => "u8x3",
             PixelType::U8x4 => "u8x4",
+            PixelType::U16x3 => "u16x3",
             PixelType::I32 => "i32",
             PixelType::F32 => "f32",
         }
@@ -90,6 +98,16 @@ impl PixelExt for U8x4 {
     }
 }
 
+impl PixelExt for U16x3 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_rgb8()
+            .as_raw()
+            .iter()
+            .flat_map(|&c| [c, c])
+            .collect()
+    }
+}
+
 impl PixelExt for I32 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_luma16()
@@ -117,21 +135,22 @@ pub fn save_result(image: &Image, name: &str) {
         return;
     }
     std::fs::create_dir_all("./data/result").unwrap();
-    let mut file = File::create(format!("./data/result/{}.png", name)).unwrap();
+    let path = format!("./data/result/{}.png", name);
     let color_type = match image.pixel_type() {
         PixelType::U8x3 => ColorType::Rgb8,
         PixelType::U8x4 => ColorType::Rgba8,
+        PixelType::U16x3 => ColorType::Rgb16,
         PixelType::U8 => ColorType::L8,
         _ => panic!("Unsupported type of pixels"),
     };
-    PngEncoder::new(&mut file)
-        .encode(
-            image.buffer(),
-            image.width().get(),
-            image.height().get(),
-            color_type,
-        )
-        .unwrap();
+    image::save_buffer(
+        &path,
+        image.buffer(),
+        image.width().get(),
+        image.height().get(),
+        color_type,
+    )
+    .unwrap();
 }
 
 pub fn cpu_ext_into_str(cpu_extensions: CpuExtensions) -> &'static str {

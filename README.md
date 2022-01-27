@@ -3,8 +3,8 @@
 Rust library for fast image resizing with using of SIMD instructions.
 
 _Note: This library does not support converting image color spaces.
-If it is important for you to resize images with a non-linear color space 
-(e.g. sRGB) correctly, then you need to convert it to a linear color space 
+If it is important for you to resize images with a non-linear color space
+(e.g. sRGB) correctly, then you need to convert it to a linear color space
 before resizing. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
 about resizing with respect to color space._
 
@@ -22,6 +22,8 @@ Supported pixel formats and available optimisations:
     - native Rust-code without forced SIMD
     - SSE4.1
     - AVX2
+- `U16x3` - three `u16` components per pixel (e.g. RGB):
+    - native Rust-code without forced SIMD
 - `I32` - one `i32` component per pixel:
     - native Rust-code without forced SIMD
 - `F32` - one `f32` component per pixel:
@@ -33,7 +35,7 @@ Environment:
 - CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.11)
-- Rust 1.57.0
+- Rust 1.57.1
 - fast_image_resize = "0.6.0"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
@@ -59,11 +61,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 92.300  | 180.063  |  257.043   | 342.268  |
-| resize     | 15.429  |  71.589  |  131.447   | 191.048  |
-| fir rust   |  0.481  |  55.347  |   89.512   | 121.270  |
-| fir sse4.1 |    -    |  44.841  |   54.630   |  75.284  |
-| fir avx2   |    -    |  10.814  |   14.408   |  20.897  |
+| image      | 96.466  | 186.243  |  268.888   | 358.235  |
+| resize     | 15.812  |  68.793  |  125.291   | 181.471  |
+| fir rust   |  0.495  |  56.372  |   93.182   | 127.870  |
+| fir sse4.1 |    -    |  44.775  |   56.014   |  78.759  |
+| fir avx2   |    -    |  11.290  |   14.731   |  20.678  |
 
 ### Resize RGBA image (U8x4) 4928x3279 => 852x567
 
@@ -76,11 +78,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 98.598  | 177.427  |  253.149   | 336.999  |
-| resize     | 17.988  |  79.891  |  149.178   | 218.593  |
-| fir rust   | 11.952  |  63.214  |   89.397   | 118.714  |
-| fir sse4.1 |  9.169  |  20.664  |   26.442   |  34.326  |
-| fir avx2   |  7.353  |  15.514  |   18.936   |  24.624  |
+| image      | 102.809 | 185.787  |  266.163   | 356.038  |
+| resize     | 18.723  |  83.072  |  156.063   | 229.400  |
+| fir rust   | 12.518  |  65.821  |   92.371   | 122.981  |
+| fir sse4.1 |  9.529  |  21.008  |   27.444   |  35.534  |
+| fir avx2   |  7.622  |  15.755  |   19.369   |  25.184  |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -94,10 +96,25 @@ Pipeline:
 
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    | 77.209  | 128.704  |  166.905   | 210.503  |
-| resize   |  9.694  |  24.477  |   47.722   |  80.824  |
-| fir rust |  0.198  |  21.457  |   24.256   |  36.893  |
-| fir avx2 |    -    |  9.758   |   7.787    |  12.099  |
+| image    | 80.937  | 132.497  |  174.721   | 219.534  |
+| resize   | 10.107  |  25.514  |   49.871   |  84.692  |
+| fir rust |  0.208  |  23.255  |   26.471   |  37.642  |
+| fir avx2 |    -    |  9.927   |   8.054    |  12.298  |
+
+### Resize RGB16 image (U16x3) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+- Numbers in table is mean duration of image resizing in milliseconds.
+
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    | 98.962  | 180.516  |  255.045   | 335.265  |
+| resize   | 16.504  |  66.861  |  120.973   | 174.806  |
+| fir rust |  0.800  |  53.874  |   89.453   | 123.963  |
 
 ## Examples
 
@@ -128,7 +145,7 @@ fn resize_image_example() {
         img.to_rgba8().into_raw(),
         fr::PixelType::U8x4,
     )
-    .unwrap();
+        .unwrap();
 
     // Create MulDiv instance
     let alpha_mul_div = fr::MulDiv::default();
@@ -141,9 +158,9 @@ fn resize_image_example() {
     let dst_width = NonZeroU32::new(1024).unwrap();
     let dst_height = NonZeroU32::new(768).unwrap();
     let mut dst_image = fr::Image::new(
-      dst_width, 
-      dst_height, 
-      src_image.pixel_type(),
+        dst_width,
+        dst_height,
+        src_image.pixel_type(),
     );
 
     // Get mutable view of destination image data

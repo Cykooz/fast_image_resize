@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use crate::image_view::{ImageRows, ImageRowsMut, TypedImageView, TypedImageViewMut};
-use crate::pixels::{Pixel, PixelType, U8x3, U8x4, F32, I32, U8};
+use crate::pixels::{Pixel, PixelType, U16x3, U8x3, U8x4, F32, I32, U8};
 use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidBufferSizeError};
 
 #[derive(Debug)]
@@ -27,6 +27,7 @@ impl<'a> Image<'a> {
         let pixels_count = (width.get() * height.get()) as usize;
         let pixels = match pixel_type {
             PixelType::U8x3 => PixelsContainer::VecU8(vec![0; pixels_count * U8x3::size()]),
+            PixelType::U16x3 => PixelsContainer::VecU8(vec![0; pixels_count * U16x3::size()]),
             PixelType::U8x4 | PixelType::I32 | PixelType::F32 => {
                 PixelsContainer::VecU32(vec![0; pixels_count])
             }
@@ -166,6 +167,10 @@ impl<'a> Image<'a> {
                 let pixels = unsafe { buffer.align_to::<U8x4>().1 };
                 ImageRows::U8x4(pixels.chunks_exact(self.width.get() as usize).collect())
             }
+            PixelType::U16x3 => {
+                let pixels = unsafe { buffer.align_to::<U16x3>().1 };
+                ImageRows::U16x3(pixels.chunks_exact(self.width.get() as usize).collect())
+            }
             PixelType::I32 => {
                 let pixels = unsafe { buffer.align_to::<I32>().1 };
                 ImageRows::I32(pixels.chunks_exact(self.width.get() as usize).collect())
@@ -196,6 +201,10 @@ impl<'a> Image<'a> {
             PixelType::U8x4 => {
                 let pixels = unsafe { buffer.align_to_mut::<U8x4>().1 };
                 ImageRowsMut::U8x4(pixels.chunks_exact_mut(width.get() as usize).collect())
+            }
+            PixelType::U16x3 => {
+                let pixels = unsafe { buffer.align_to_mut::<U16x3>().1 };
+                ImageRowsMut::U16x3(pixels.chunks_exact_mut(width.get() as usize).collect())
             }
             PixelType::I32 => {
                 let pixels = unsafe { buffer.align_to_mut::<I32>().1 };

@@ -134,10 +134,10 @@ fn assert_images<'s, 'd, 'da>(
     MulDivImagesError,
 > {
     let src_image_u8x4 = src_image
-        .u32_image()
+        .u8x4_image()
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     let dst_image_u8x4 = dst_image
-        .u32_image()
+        .u8x4_image()
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     if src_image_u8x4.width() != dst_image_u8x4.width()
         || src_image_u8x4.height() != dst_image_u8x4.height()
@@ -152,6 +152,6 @@ fn assert_image<'a, 'b>(
     image: &'a mut ImageViewMut<'b>,
 ) -> Result<TypedImageViewMut<'a, 'b, U8x4>, MulDivImageError> {
     image
-        .u32_image()
+        .u8x4_image()
         .ok_or(MulDivImageError::UnsupportedPixelType)
 }

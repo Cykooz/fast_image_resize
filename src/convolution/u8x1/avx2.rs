@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 
-use crate::convolution::optimisations::CoefficientsI16Chunk;
-use crate::convolution::{optimisations, Bound, Coefficients};
+use crate::convolution::optimisations::{CoefficientsI16Chunk, NormalizerGuard16};
+use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
 use crate::simd_utils;
@@ -16,17 +16,15 @@ pub(crate) fn horiz_convolution(
     let (values, window_size, bounds_per_pixel) =
         (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-    let normalizer_guard = optimisations::NormalizerGuard::new(values);
-    let precision = normalizer_guard.precision();
-    let coefficients_chunks =
-        normalizer_guard.normalized_i16_chunks(window_size, &bounds_per_pixel);
+    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
+    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
     let dst_height = dst_image.height().get();
 
     let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, &normalizer_guard);
         }
     }
 
@@ -37,7 +35,7 @@ pub(crate) fn horiz_convolution(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
-                precision,
+                &normalizer_guard,
             );
         }
         yy += 1;
@@ -50,17 +48,16 @@ pub(crate) fn vert_convolution(
     mut dst_image: TypedImageViewMut<U8>,
     coeffs: Coefficients,
 ) {
-    let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
+    let (values, window_size, bounds_per_pixel) =
+        (coeffs.values, coeffs.window_size, coeffs.bounds);
 
-    let normalizer_guard = optimisations::NormalizerGuard::new(values);
-    let precision = normalizer_guard.precision();
-    let coeffs_i16 = normalizer_guard.normalized_i16();
-    let coeffs_chunks = coeffs_i16.chunks(window_size);
+    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
+    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
 
     let dst_rows = dst_image.iter_rows_mut();
-    for ((&bound, k), dst_row) in bounds.iter().zip(coeffs_chunks).zip(dst_rows) {
+    for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_8u(&src_image, dst_row, k, bound, precision);
+            vert_convolution_8u(&src_image, dst_row, coeffs_chunk, &normalizer_guard);
         }
     }
 }
@@ -77,13 +74,13 @@ unsafe fn horiz_convolution_8u4x(
     src_rows: FourRows<U8>,
     dst_rows: FourRowsMut<U8>,
     coefficients_chunks: &[CoefficientsI16Chunk],
-    precision: u8,
+    normalizer_guard: &NormalizerGuard16,
 ) {
     let s_rows = [src_rows.0, src_rows.1, src_rows.2, src_rows.3];
     let d_rows = [dst_rows.0, dst_rows.1, dst_rows.2, dst_rows.3];
     let zero = _mm_setzero_si128();
     // 8 components will be added, use only 1/8 of the error
-    let initial = _mm256_set1_epi32(1 << (precision - 4));
+    let initial = _mm256_set1_epi32(1 << (normalizer_guard.precision() - 4));
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
@@ -130,7 +127,7 @@ unsafe fn horiz_convolution_8u4x(
             x += 1;
         }
 
-        let result_u8x4 = result_i32x4.map(|v| optimisations::clip8(v, precision));
+        let result_u8x4 = result_i32x4.map(|v| normalizer_guard.clip(v));
         for i in 0..4 {
             d_rows[i].get_unchecked_mut(dst_x).0 = result_u8x4[i];
         }
@@ -148,11 +145,11 @@ unsafe fn horiz_convolution_8u(
     src_row: &[U8],
     dst_row: &mut [U8],
     coefficients_chunks: &[CoefficientsI16Chunk],
-    precision: u8,
+    normalizer_guard: &NormalizerGuard16,
 ) {
     let zero = _mm_setzero_si128();
     // 8 components will be added, use only 1/8 of the error
-    let initial = _mm256_set1_epi32(1 << (precision - 4));
+    let initial = _mm256_set1_epi32(1 << (normalizer_guard.precision() - 4));
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
@@ -194,7 +191,7 @@ unsafe fn horiz_convolution_8u(
             x += 1;
         }
 
-        dst_row.get_unchecked_mut(dst_x).0 = optimisations::clip8(result_i32, precision);
+        dst_row.get_unchecked_mut(dst_x).0 = normalizer_guard.clip(result_i32);
     }
 }
 
@@ -203,13 +200,14 @@ unsafe fn horiz_convolution_8u(
 unsafe fn vert_convolution_8u(
     src_img: &TypedImageView<U8>,
     dst_row: &mut [U8],
-    coeffs: &[i16],
-    bound: Bound,
-    precision: u8,
+    coeffs_chunk: CoefficientsI16Chunk,
+    normalizer_guard: &NormalizerGuard16,
 ) {
     let src_width = src_img.width().get() as usize;
-    let y_start = bound.start;
-    let y_size = bound.size;
+    let y_start = coeffs_chunk.start;
+    let coeffs = coeffs_chunk.values;
+    let max_y = y_start + coeffs.len() as u32;
+    let precision = normalizer_guard.precision();
 
     let initial = _mm_set1_epi32(1 << (precision - 1));
     let initial_256 = _mm256_set1_epi32(1 << (precision - 1));
@@ -225,7 +223,7 @@ unsafe fn vert_convolution_8u(
 
         let mut y: u32 = 0;
 
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, y_start + y_size) {
+        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
             // Load two coefficients at once
             let two_coeffs = simd_utils::ptr_i16_to_256set1_epi32(coeffs, y as usize);
             let row1 = simd_utils::loadu_si256(s_row1, x); // top line
@@ -246,8 +244,9 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        if let Some(s_row) = src_img.get_row(y_start + y) {
-            let one_coeff = _mm256_set1_epi32(coeffs[y as usize] as i32);
+        if let Some(&k) = coeffs.get(y as usize) {
+            let s_row = src_img.get_row(y_start + y).unwrap();
+            let one_coeff = _mm256_set1_epi32(k as i32);
 
             let row1 = simd_utils::loadu_si256(s_row, x); // top line
             let row2 = _mm256_setzero_si256(); // bottom line is empty
@@ -289,7 +288,7 @@ unsafe fn vert_convolution_8u(
         let mut sss1 = initial; // right row
         let mut y: u32 = 0;
 
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, y_start + y_size) {
+        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
             // Load two coefficients at once
             let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
@@ -305,8 +304,9 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        if let Some(s_row) = src_img.get_row(y_start + y) {
-            let one_coeff = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
+        if let Some(&k) = coeffs.get(y as usize) {
+            let s_row = src_img.get_row(y_start + y).unwrap();
+            let one_coeff = _mm_set1_epi32(k as i32);
 
             let row1 = simd_utils::loadl_epi64(s_row, x); // top line
             let row2 = _mm_setzero_si128(); // bottom line is empty
@@ -337,7 +337,7 @@ unsafe fn vert_convolution_8u(
     while x < src_width.saturating_sub(3) {
         let mut sss = initial;
         let mut y: u32 = 0;
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, y_start + y_size) {
+        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
             // Load two coefficients at once
             let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
@@ -351,9 +351,10 @@ unsafe fn vert_convolution_8u(
             y += 2;
         }
 
-        if let Some(s_row) = src_img.get_row(y_start + y) {
+        if let Some(&k) = coeffs.get(y as usize) {
+            let s_row = src_img.get_row(y_start + y).unwrap();
             let pix = simd_utils::mm_cvtepu8_epi32_from_u8(s_row, x);
-            let mmk = _mm_set1_epi32(*coeffs.get_unchecked(y as usize) as i32);
+            let mmk = _mm_set1_epi32(k as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }
 
@@ -375,11 +376,11 @@ unsafe fn vert_convolution_8u(
 
     for dst_pixel in dst_row.iter_mut().skip(x) {
         let mut ss0 = 1 << (precision - 1);
-        for (dy, &k) in coeffs.iter().take(y_size as usize).enumerate() {
+        for (dy, &k) in coeffs.iter().enumerate() {
             let src_pixel = src_img.get_pixel(x as u32, y_start + dy as u32);
             ss0 += src_pixel.0 as i32 * (k as i32);
         }
-        dst_pixel.0 = optimisations::clip8(ss0, precision);
+        dst_pixel.0 = normalizer_guard.clip(ss0);
         x += 1;
     }
 }

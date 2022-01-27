@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of new type of pixels `PixelType::U16x3`.
+- Breaking changes:
+  - Added variant `U16x3` into the enum `PixelType`.
+
 ## [0.6.0] - 2022-01-12
 
 - Added optimisation of multiplying and dividing image by alpha channel with helps

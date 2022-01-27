@@ -12,6 +12,7 @@ mod f32x1;
 mod filters;
 mod i32x1;
 mod optimisations;
+mod u16x3;
 mod u8x1;
 mod u8x3;
 mod u8x4;

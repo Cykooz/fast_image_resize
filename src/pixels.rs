@@ -5,6 +5,7 @@ use std::mem::size_of;
 pub enum PixelType {
     U8x3,
     U8x4,
+    U16x3,
     I32,
     F32,
     U8,
@@ -14,6 +15,7 @@ impl PixelType {
     pub(crate) fn size(&self) -> usize {
         match self {
             Self::U8x3 => 3,
+            Self::U16x3 => 6,
             Self::U8 => 1,
             _ => 4,
         }
@@ -24,6 +26,7 @@ impl PixelType {
         match self {
             Self::U8x3 => unsafe { buffer.align_to::<U8x3>().0.is_empty() },
             Self::U8x4 => unsafe { buffer.align_to::<U8x4>().0.is_empty() },
+            Self::U16x3 => unsafe { buffer.align_to::<U16x3>().0.is_empty() },
             Self::I32 => unsafe { buffer.align_to::<I32>().0.is_empty() },
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
             Self::U8 => true,
@@ -78,6 +81,12 @@ pixel_struct!(
     u32,
     PixelType::U8x4,
     "Four bytes per pixel (RGBA, RGBx, CMYK and other)"
+);
+pixel_struct!(
+    U16x3,
+    [u16; 3],
+    PixelType::U16x3,
+    "Three `u16` components per pixel (e.g. RGB)"
 );
 pixel_struct!(I32, i32, PixelType::I32, "One `i32` component per pixel");
 pixel_struct!(F32, f32, PixelType::F32, "One `f32` component per pixel");
