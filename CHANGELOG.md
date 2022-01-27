@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.7.0] - 2022-01-27
 
 - Added support of new type of pixels `PixelType::U16x3`.
 - Breaking changes:
