@@ -1,6 +1,5 @@
 use std::arch::x86_64::*;
 
-use crate::convolution::optimisations::{CoefficientsI16Chunk, NormalizerGuard16};
 use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
@@ -42,26 +41,6 @@ pub(crate) fn horiz_convolution(
     }
 }
 
-#[inline]
-pub(crate) fn vert_convolution(
-    src_image: TypedImageView<U8>,
-    mut dst_image: TypedImageViewMut<U8>,
-    coeffs: Coefficients,
-) {
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
-
-    let dst_rows = dst_image.iter_rows_mut();
-    for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
-        unsafe {
-            vert_convolution_8u(&src_image, dst_row, coeffs_chunk, &normalizer_guard);
-        }
-    }
-}
-
 /// For safety, it is necessary to ensure the following conditions:
 /// - length of all rows in src_rows must be equal
 /// - length of all rows in dst_rows must be equal
@@ -73,8 +52,8 @@ pub(crate) fn vert_convolution(
 unsafe fn horiz_convolution_8u4x(
     src_rows: FourRows<U8>,
     dst_rows: FourRowsMut<U8>,
-    coefficients_chunks: &[CoefficientsI16Chunk],
-    normalizer_guard: &NormalizerGuard16,
+    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    normalizer_guard: &optimisations::NormalizerGuard16,
 ) {
     let s_rows = [src_rows.0, src_rows.1, src_rows.2, src_rows.3];
     let d_rows = [dst_rows.0, dst_rows.1, dst_rows.2, dst_rows.3];
@@ -144,8 +123,8 @@ unsafe fn horiz_convolution_8u4x(
 unsafe fn horiz_convolution_8u(
     src_row: &[U8],
     dst_row: &mut [U8],
-    coefficients_chunks: &[CoefficientsI16Chunk],
-    normalizer_guard: &NormalizerGuard16,
+    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    normalizer_guard: &optimisations::NormalizerGuard16,
 ) {
     let zero = _mm_setzero_si128();
     // 8 components will be added, use only 1/8 of the error
@@ -192,196 +171,6 @@ unsafe fn horiz_convolution_8u(
         }
 
         dst_row.get_unchecked_mut(dst_x).0 = normalizer_guard.clip(result_i32);
-    }
-}
-
-#[inline]
-#[target_feature(enable = "avx2")]
-unsafe fn vert_convolution_8u(
-    src_img: &TypedImageView<U8>,
-    dst_row: &mut [U8],
-    coeffs_chunk: CoefficientsI16Chunk,
-    normalizer_guard: &NormalizerGuard16,
-) {
-    let src_width = src_img.width().get() as usize;
-    let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
-    let max_y = y_start + coeffs.len() as u32;
-    let precision = normalizer_guard.precision();
-
-    let initial = _mm_set1_epi32(1 << (precision - 1));
-    let initial_256 = _mm256_set1_epi32(1 << (precision - 1));
-    let zero_128 = _mm_setzero_si128();
-    let zero_256: __m256i = _mm256_setzero_si256();
-
-    let mut x: usize = 0;
-    while x < src_width.saturating_sub(31) {
-        let mut sss0 = initial_256;
-        let mut sss1 = initial_256;
-        let mut sss2 = initial_256;
-        let mut sss3 = initial_256;
-
-        let mut y: u32 = 0;
-
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            // Load two coefficients at once
-            let two_coeffs = simd_utils::ptr_i16_to_256set1_epi32(coeffs, y as usize);
-            let row1 = simd_utils::loadu_si256(s_row1, x); // top line
-            let row2 = simd_utils::loadu_si256(s_row2, x); // bottom line
-
-            let lo_pixels = _mm256_unpacklo_epi8(row1, row2);
-            let lo_lo = _mm256_unpacklo_epi8(lo_pixels, zero_256);
-            sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(lo_lo, two_coeffs));
-            let hi_lo = _mm256_unpackhi_epi8(lo_pixels, zero_256);
-            sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(hi_lo, two_coeffs));
-
-            let hi_pixels = _mm256_unpackhi_epi8(row1, row2);
-            let lo_hi = _mm256_unpacklo_epi8(hi_pixels, zero_256);
-            sss2 = _mm256_add_epi32(sss2, _mm256_madd_epi16(lo_hi, two_coeffs));
-            let hi_hi = _mm256_unpackhi_epi8(hi_pixels, zero_256);
-            sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(hi_hi, two_coeffs));
-
-            y += 2;
-        }
-
-        if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let one_coeff = _mm256_set1_epi32(k as i32);
-
-            let row1 = simd_utils::loadu_si256(s_row, x); // top line
-            let row2 = _mm256_setzero_si256(); // bottom line is empty
-
-            let lo_pixels = _mm256_unpacklo_epi8(row1, row2);
-            let lo_lo = _mm256_unpacklo_epi8(lo_pixels, zero_256);
-            sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(lo_lo, one_coeff));
-            let hi_lo = _mm256_unpackhi_epi8(lo_pixels, zero_256);
-            sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(hi_lo, one_coeff));
-
-            let hi_pixels = _mm256_unpackhi_epi8(row1, zero_256);
-            let lo_hi = _mm256_unpacklo_epi8(hi_pixels, zero_256);
-            sss2 = _mm256_add_epi32(sss2, _mm256_madd_epi16(lo_hi, one_coeff));
-            let hi_hi = _mm256_unpackhi_epi8(hi_pixels, zero_256);
-            sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(hi_hi, one_coeff));
-        }
-
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm256_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm256_srai_epi32::<$imm8>(sss1);
-                sss2 = _mm256_srai_epi32::<$imm8>(sss2);
-                sss3 = _mm256_srai_epi32::<$imm8>(sss3);
-            }};
-        }
-        constify_imm8!(precision, call);
-
-        sss0 = _mm256_packs_epi32(sss0, sss1);
-        sss2 = _mm256_packs_epi32(sss2, sss3);
-        sss0 = _mm256_packus_epi16(sss0, sss2);
-        let dst_ptr = dst_row.get_unchecked_mut(x..).as_mut_ptr() as *mut __m256i;
-        _mm256_storeu_si256(dst_ptr, sss0);
-
-        x += 32;
-    }
-
-    while x < src_width.saturating_sub(7) {
-        let mut sss0 = initial; // left row
-        let mut sss1 = initial; // right row
-        let mut y: u32 = 0;
-
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            // Load two coefficients at once
-            let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
-
-            let row1 = simd_utils::loadl_epi64(s_row1, x); // top line
-            let row2 = simd_utils::loadl_epi64(s_row2, x); // bottom line
-
-            let pixels = _mm_unpacklo_epi8(row1, row2);
-            let lo_pixels = _mm_unpacklo_epi8(pixels, zero_128);
-            sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(lo_pixels, two_coeffs));
-            let hi_pixels = _mm_unpackhi_epi8(pixels, zero_128);
-            sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(hi_pixels, two_coeffs));
-
-            y += 2;
-        }
-
-        if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let one_coeff = _mm_set1_epi32(k as i32);
-
-            let row1 = simd_utils::loadl_epi64(s_row, x); // top line
-            let row2 = _mm_setzero_si128(); // bottom line is empty
-
-            let pixels = _mm_unpacklo_epi8(row1, row2);
-            let lo_pixels = _mm_unpacklo_epi8(pixels, zero_128);
-            sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(lo_pixels, one_coeff));
-            let hi_pixels = _mm_unpackhi_epi8(pixels, zero_128);
-            sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(hi_pixels, one_coeff));
-        }
-
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm_srai_epi32::<$imm8>(sss1);
-            }};
-        }
-        constify_imm8!(precision, call);
-
-        sss0 = _mm_packs_epi32(sss0, sss1);
-        sss0 = _mm_packus_epi16(sss0, sss0);
-        let dst_ptr = dst_row.get_unchecked_mut(x..).as_mut_ptr() as *mut __m128i;
-        _mm_storel_epi64(dst_ptr, sss0);
-
-        x += 8;
-    }
-
-    while x < src_width.saturating_sub(3) {
-        let mut sss = initial;
-        let mut y: u32 = 0;
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            // Load two coefficients at once
-            let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
-
-            let row1 = simd_utils::mm_cvtsi32_si128_from_u8(s_row1, x); // top line
-            let row2 = simd_utils::mm_cvtsi32_si128_from_u8(s_row2, x); // bottom line
-
-            let pixels_u8 = _mm_unpacklo_epi8(row1, row2);
-            let pixels_i16 = _mm_unpacklo_epi8(pixels_u8, _mm_setzero_si128());
-            sss = _mm_add_epi32(sss, _mm_madd_epi16(pixels_i16, two_coeffs));
-
-            y += 2;
-        }
-
-        if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let pix = simd_utils::mm_cvtepu8_epi32_from_u8(s_row, x);
-            let mmk = _mm_set1_epi32(k as i32);
-            sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
-        }
-
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = _mm_srai_epi32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
-
-        sss = _mm_packs_epi32(sss, sss);
-        let u8x4: [u8; 4] = _mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)).to_le_bytes();
-        dst_row.get_unchecked_mut(x).0 = u8x4[0];
-        dst_row.get_unchecked_mut(x + 1).0 = u8x4[1];
-        dst_row.get_unchecked_mut(x + 2).0 = u8x4[2];
-        dst_row.get_unchecked_mut(x + 3).0 = u8x4[3];
-        x += 4;
-    }
-
-    for dst_pixel in dst_row.iter_mut().skip(x) {
-        let mut ss0 = 1 << (precision - 1);
-        for (dy, &k) in coeffs.iter().enumerate() {
-            let src_pixel = src_img.get_pixel(x as u32, y_start + dy as u32);
-            ss0 += src_pixel.0 as i32 * (k as i32);
-        }
-        dst_pixel.0 = normalizer_guard.clip(ss0);
-        x += 1;
     }
 }
 

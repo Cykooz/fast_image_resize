@@ -122,7 +122,7 @@ fn upscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtension
 fn downscale_u8() {
     type P = U8;
     let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(utils::image_checksum::<1>(&buffer), [2920317]);
+    assert_eq!(utils::image_checksum::<1>(&buffer), [2920348]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -132,7 +132,7 @@ fn downscale_u8() {
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(utils::image_checksum::<1>(&buffer), [2923520]);
+        assert_eq!(utils::image_checksum::<1>(&buffer), [2923557]);
     }
 }
 
@@ -140,7 +140,7 @@ fn downscale_u8() {
 fn upscale_u8() {
     type P = U8;
     let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(utils::image_checksum::<1>(&buffer), [1148750539]);
+    assert_eq!(utils::image_checksum::<1>(&buffer), [1148754010]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -150,7 +150,7 @@ fn upscale_u8() {
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(utils::image_checksum::<1>(&buffer), [1148808058]);
+        assert_eq!(utils::image_checksum::<1>(&buffer), [1148811406]);
     }
 }
 
@@ -214,11 +214,11 @@ fn downscale_u16x3() {
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    // #[cfg(target_arch = "x86_64")]
-    // {
-    //     cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-    //     cpu_extensions_vec.push(CpuExtensions::Avx2);
-    // }
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
@@ -239,11 +239,11 @@ fn upscale_u16x3() {
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    // #[cfg(target_arch = "x86_64")]
-    // {
-    //     cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-    //     cpu_extensions_vec.push(CpuExtensions::Avx2);
-    // }
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);

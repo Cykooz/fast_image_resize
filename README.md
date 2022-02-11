@@ -13,10 +13,11 @@ about resizing with respect to color space._
 Supported pixel formats and available optimisations:
 - `U8` - one `u8` component per pixel:
     - native Rust-code without forced SIMD
+    - SSE4.1 (partial)
     - AVX2
 - `U8x3` - three `u8` components per pixel (e.g. RGB):
     - native Rust-code without forced SIMD
-    - SSE4.1 (auto-vectorization)
+    - SSE4.1 (partial)
     - AVX2
 - `U8x4` - four `u8` components per pixel (RGBA, RGBx, CMYK and other):
     - native Rust-code without forced SIMD
@@ -24,6 +25,8 @@ Supported pixel formats and available optimisations:
     - AVX2
 - `U16x3` - three `u16` components per pixel (e.g. RGB):
     - native Rust-code without forced SIMD
+    - SSE4.1
+    - AVX2
 - `I32` - one `i32` component per pixel:
     - native Rust-code without forced SIMD
 - `F32` - one `f32` component per pixel:
@@ -34,14 +37,14 @@ Supported pixel formats and available optimisations:
 Environment:
 - CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
 - RAM: DDR4 3000 MHz
-- Ubuntu 20.04 (linux 5.11)
-- Rust 1.57.1
-- fast_image_resize = "0.6.0"
+- Ubuntu 20.04 (linux 5.13)
+- Rust 1.59.0
+- fast_image_resize = "0.8.0"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
 Other Rust libraries used to compare of resizing speed:
-- image = "0.23.14" (<https://crates.io/crates/image>)
+- image = "0.24.1" (<https://crates.io/crates/image>)
 - resize = "0.7.2" (<https://crates.io/crates/resize>)
 
 Resize algorithms:
@@ -61,11 +64,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 96.466  | 186.243  |  268.888   | 358.235  |
-| resize     | 15.812  |  68.793  |  125.291   | 181.471  |
-| fir rust   |  0.495  |  56.372  |   93.182   | 127.870  |
-| fir sse4.1 |    -    |  44.775  |   56.014   |  78.759  |
-| fir avx2   |    -    |  11.290  |   14.731   |  20.678  |
+| image      | 51.959  | 114.977  |  189.989   | 271.316  |
+| resize     | 15.317  |  65.768  |  119.557   | 173.124  |
+| fir rust   |  0.488  |  54.104  |   90.222   | 131.518  |
+| fir sse4.1 |    -    |  38.046  |   43.538   |  60.816  |
+| fir avx2   |    -    |  10.726  |   14.077   |  19.809  |
 
 ### Resize RGBA image (U8x4) 4928x3279 => 852x567
 
@@ -78,11 +81,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      | 102.809 | 185.787  |  266.163   | 356.038  |
-| resize     | 18.723  |  83.072  |  156.063   | 229.400  |
-| fir rust   | 12.518  |  65.821  |   92.371   | 122.981  |
-| fir sse4.1 |  9.529  |  21.008  |   27.444   |  35.534  |
-| fir avx2   |  7.622  |  15.755  |   19.369   |  25.184  |
+| image      | 52.430  | 109.720  |  181.220   | 261.242  |
+| resize     | 18.326  |  79.389  |  149.271   | 219.359  |
+| fir rust   | 12.123  |  62.975  |   88.053   | 117.095  |
+| fir sse4.1 |  9.125  |  20.154  |   26.302   |  34.136  |
+| fir avx2   |  7.401  |  15.160  |   18.672   |  23.940  |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -94,12 +97,13 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    | 80.937  | 132.497  |  174.721   | 219.534  |
-| resize   | 10.107  |  25.514  |   49.871   |  84.692  |
-| fir rust |  0.208  |  23.255  |   26.471   |  37.642  |
-| fir avx2 |    -    |  9.927   |   8.054    |  12.298  |
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      | 47.712  |  71.624  |  108.758   | 161.086  |
+| resize     |  9.353  |  24.461  |   47.598   |  80.996  |
+| fir rust   |  0.198  |  20.150  |   22.275   |  32.542  |
+| fir sse4.1 |    -    |  18.201  |   18.971   |  27.704  |
+| fir avx2   |    -    |  9.608   |   7.776    |  11.746  |
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
 
@@ -108,13 +112,16 @@ Pipeline:
 `src_image => resize => dst_image`
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into RGB16 image.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    | 98.962  | 180.516  |  255.045   | 335.265  |
-| resize   | 16.504  |  66.861  |  120.973   | 174.806  |
-| fir rust |  0.800  |  53.874  |   89.453   | 123.963  |
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      | 52.450  | 112.628  |  180.484   | 255.605  |
+| resize     | 16.983  |  67.382  |  121.378   | 174.913  |
+| fir rust   |  0.785  |  58.209  |   95.504   | 131.758  |
+| fir sse4.1 |    -    |  38.562  |   63.013   |  88.722  |
+| fir avx2   |    -    |  32.981  |   49.626   |  58.803  |
 
 ## Examples
 

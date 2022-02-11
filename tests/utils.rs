@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use image::io::Reader as ImageReader;
-use image::{ColorType, DynamicImage, GenericImageView};
+use image::{ColorType, DynamicImage};
 
 use fast_image_resize::pixels::*;
 use fast_image_resize::{CpuExtensions, Image, PixelType};
@@ -32,6 +32,7 @@ pub trait PixelExt: Pixel {
             PixelType::U16x3 => "u16x3",
             PixelType::I32 => "i32",
             PixelType::F32 => "f32",
+            _ => unreachable!(),
         }
     }
 

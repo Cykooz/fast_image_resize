@@ -70,11 +70,11 @@ pub fn bench_downscale_rgb16(bench: &mut Bench) {
         .flat_map(|&c| c.to_le_bytes())
         .collect();
     let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
-    // #[cfg(target_arch = "x86_64")]
-    // {
-    //     cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
-    //     cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
-    // }
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
+        cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
+    }
     for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
             let src_image_data = Image::from_vec_u8(

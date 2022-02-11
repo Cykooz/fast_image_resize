@@ -16,10 +16,12 @@ mod u16x3;
 mod u8x1;
 mod u8x3;
 mod u8x4;
+mod vertical_u16;
+mod vertical_u8;
 
 pub(crate) trait Convolution
 where
-    Self: Pixel + Sized,
+    Self: Pixel,
 {
     fn horiz_convolution(
         src_image: TypedImageView<Self>,

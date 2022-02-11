@@ -397,11 +397,6 @@ where
         self.crop_box
     }
 
-    #[inline]
-    pub(crate) fn get_pixel(&self, x: u32, y: u32) -> P {
-        self.rows[y as usize][x as usize]
-    }
-
     #[inline(always)]
     pub(crate) fn iter_4_rows<'s>(
         &'s self,

@@ -54,14 +54,14 @@ fn get_big_u16x3_source_image() -> Image<'static> {
 
 fn get_big_i32_image() -> Image<'static> {
     let img = utils::get_big_luma16_image();
-    let img_data: Vec<u32> = img
+    let img_data: Vec<u8> = img
         .as_raw()
         .iter()
-        .map(|&p| p as u32 * (i16::MAX as u32 + 1))
+        .flat_map(|&p| (p as u32 * (i16::MAX as u32 + 1)).to_le_bytes())
         .collect();
     let width = img.width();
     let height = img.height();
-    Image::from_vec_u32(
+    Image::from_vec_u8(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
         img_data,
@@ -294,10 +294,12 @@ pub fn main() {
         native_lanczos3_i32_bench(&mut bench);
         #[cfg(target_arch = "x86_64")]
         {
+            u8_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8 lanczos3 sse4.1");
             u8_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8 lanczos3 avx2");
 
             u8x3_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8x3 lanczos3 sse4.1");
             u8x3_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8x3 lanczos3 avx2");
+            u16x3_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u16x3 lanczos3 sse4.1");
             u16x3_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u16x3 lanczos3 avx2");
 
             u8x4_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8x4 lanczos3 sse4.1");

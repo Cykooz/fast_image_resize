@@ -1,4 +1,5 @@
 use super::{Coefficients, Convolution};
+use crate::convolution::vertical_u8::vert_convolution_u8;
 use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8x3;
 use crate::CpuExtensions;
@@ -34,14 +35,6 @@ impl Convolution for U8x3 {
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     ) {
-        match cpu_extensions {
-            #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => avx2::vert_convolution(src_image, dst_image, coeffs),
-            #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe {
-                sse4::vert_convolution(src_image, dst_image, coeffs)
-            },
-            _ => native::vert_convolution(src_image, dst_image, coeffs),
-        }
+        vert_convolution_u8(src_image, dst_image, coeffs, cpu_extensions);
     }
 }
