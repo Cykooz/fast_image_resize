@@ -2,13 +2,11 @@ use std::num::NonZeroU32;
 
 use crate::image_view::{ImageRows, ImageRowsMut, TypedImageView, TypedImageViewMut};
 use crate::pixels::{Pixel, PixelType, U16x3, U8x3, U8x4, F32, I32, U8};
-use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidBufferSizeError};
+use crate::{ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]
 enum PixelsContainer<'a> {
-    MutU32(&'a mut [u32]),
     MutU8(&'a mut [u8]),
-    VecU32(Vec<u32>),
     VecU8(Vec<u8>),
 }
 
@@ -28,9 +26,9 @@ impl<'a> Image<'a> {
         let pixels = match pixel_type {
             PixelType::U8x3 => PixelsContainer::VecU8(vec![0; pixels_count * U8x3::size()]),
             PixelType::U16x3 => PixelsContainer::VecU8(vec![0; pixels_count * U16x3::size()]),
-            PixelType::U8x4 | PixelType::I32 | PixelType::F32 => {
-                PixelsContainer::VecU32(vec![0; pixels_count])
-            }
+            PixelType::U8x4 => PixelsContainer::VecU8(vec![0; pixels_count * U8x4::size()]),
+            PixelType::I32 => PixelsContainer::VecU8(vec![0; pixels_count * I32::size()]),
+            PixelType::F32 => PixelsContainer::VecU8(vec![0; pixels_count * F32::size()]),
             PixelType::U8 => PixelsContainer::VecU8(vec![0; pixels_count]),
         };
         Self {
@@ -41,24 +39,6 @@ impl<'a> Image<'a> {
         }
     }
 
-    pub fn from_vec_u32(
-        width: NonZeroU32,
-        height: NonZeroU32,
-        buffer: Vec<u32>,
-        pixel_type: PixelType,
-    ) -> Result<Self, InvalidBufferSizeError> {
-        let size = (width.get() * height.get()) as usize;
-        if buffer.len() != size {
-            return Err(InvalidBufferSizeError);
-        }
-        Ok(Self {
-            width,
-            height,
-            pixels: PixelsContainer::VecU32(buffer),
-            pixel_type,
-        })
-    }
-
     pub fn from_vec_u8(
         width: NonZeroU32,
         height: NonZeroU32,
@@ -66,7 +46,7 @@ impl<'a> Image<'a> {
         pixel_type: PixelType,
     ) -> Result<Self, ImageBufferError> {
         let size = (width.get() * height.get()) as usize * pixel_type.size();
-        if buffer.len() != size {
+        if buffer.len() < size {
             return Err(ImageBufferError::InvalidBufferSize);
         }
         if !pixel_type.is_aligned(&buffer) {
@@ -80,24 +60,6 @@ impl<'a> Image<'a> {
         })
     }
 
-    pub fn from_slice_u32(
-        width: NonZeroU32,
-        height: NonZeroU32,
-        buffer: &'a mut [u32],
-        pixel_type: PixelType,
-    ) -> Result<Self, InvalidBufferSizeError> {
-        let size = (width.get() * height.get()) as usize;
-        if buffer.len() != size {
-            return Err(InvalidBufferSizeError);
-        }
-        Ok(Self {
-            width,
-            height,
-            pixels: PixelsContainer::MutU32(buffer),
-            pixel_type,
-        })
-    }
-
     pub fn from_slice_u8(
         width: NonZeroU32,
         height: NonZeroU32,
@@ -105,7 +67,7 @@ impl<'a> Image<'a> {
         pixel_type: PixelType,
     ) -> Result<Self, ImageBufferError> {
         let size = (width.get() * height.get()) as usize * pixel_type.size();
-        if buffer.len() != size {
+        if buffer.len() < size {
             return Err(ImageBufferError::InvalidBufferSize);
         }
         if !pixel_type.is_aligned(buffer) {
@@ -138,19 +100,16 @@ impl<'a> Image<'a> {
     #[inline(always)]
     pub fn buffer(&self) -> &[u8] {
         match &self.pixels {
-            PixelsContainer::MutU32(p) => unsafe { p.align_to::<u8>().1 },
             PixelsContainer::MutU8(p) => *p,
-            PixelsContainer::VecU32(v) => unsafe { v.align_to::<u8>().1 },
             PixelsContainer::VecU8(v) => v,
         }
     }
 
+    /// Mutable buffer with image pixels.
     #[inline(always)]
     fn buffer_mut(&mut self) -> &mut [u8] {
         match &mut self.pixels {
-            PixelsContainer::MutU32(p) => unsafe { p.align_to_mut::<u8>().1 },
             PixelsContainer::MutU8(p) => p,
-            PixelsContainer::VecU32(ref mut v) => unsafe { v.align_to_mut::<u8>().1 },
             PixelsContainer::VecU8(ref mut v) => v.as_mut_slice(),
         }
     }
@@ -158,30 +117,61 @@ impl<'a> Image<'a> {
     #[inline(always)]
     pub fn view(&self) -> ImageView {
         let buffer = self.buffer();
+        let rows_count = self.height.get() as usize;
         let rows = match self.pixel_type {
             PixelType::U8x3 => {
                 let pixels = unsafe { buffer.align_to::<U8x3>().1 };
-                ImageRows::U8x3(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::U8x3(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8x4 => {
                 let pixels = unsafe { buffer.align_to::<U8x4>().1 };
-                ImageRows::U8x4(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::U8x4(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U16x3 => {
                 let pixels = unsafe { buffer.align_to::<U16x3>().1 };
-                ImageRows::U16x3(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::U16x3(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::I32 => {
                 let pixels = unsafe { buffer.align_to::<I32>().1 };
-                ImageRows::I32(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::I32(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::F32 => {
                 let pixels = unsafe { buffer.align_to::<F32>().1 };
-                ImageRows::F32(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::F32(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8 => {
                 let pixels = unsafe { buffer.align_to::<U8>().1 };
-                ImageRows::U8(pixels.chunks_exact(self.width.get() as usize).collect())
+                ImageRows::U8(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
         };
         ImageView::new(self.width, self.height, rows).unwrap()
@@ -193,30 +183,61 @@ impl<'a> Image<'a> {
         let width = self.width;
         let height = self.height;
         let buffer = self.buffer_mut();
+        let rows_count = height.get() as usize;
         let rows = match pixel_type {
             PixelType::U8x3 => {
                 let pixels = unsafe { buffer.align_to_mut::<U8x3>().1 };
-                ImageRowsMut::U8x3(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8x3(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8x4 => {
                 let pixels = unsafe { buffer.align_to_mut::<U8x4>().1 };
-                ImageRowsMut::U8x4(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8x4(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U16x3 => {
                 let pixels = unsafe { buffer.align_to_mut::<U16x3>().1 };
-                ImageRowsMut::U16x3(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U16x3(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::I32 => {
                 let pixels = unsafe { buffer.align_to_mut::<I32>().1 };
-                ImageRowsMut::I32(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::I32(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::F32 => {
                 let pixels = unsafe { buffer.align_to_mut::<F32>().1 };
-                ImageRowsMut::F32(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::F32(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8 => {
                 let pixels = unsafe { buffer.align_to_mut::<U8>().1 };
-                ImageRowsMut::U8(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
         };
         ImageViewMut::new(width, height, rows).unwrap()

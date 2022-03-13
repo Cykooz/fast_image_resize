@@ -137,6 +137,28 @@ fn downscale_u8() {
 }
 
 #[test]
+fn downscale_u8_1() {
+    let src_vec = vec![1u8; 1280 * 720];
+    let src_image = Image::from_vec_u8(
+        NonZeroU32::new(1280).unwrap(),
+        NonZeroU32::new(720).unwrap(),
+        src_vec,
+        PixelType::U8,
+    )
+    .unwrap();
+    let mut dst_iamge = Image::new(
+        NonZeroU32::new(64).unwrap(),
+        NonZeroU32::new(64).unwrap(),
+        PixelType::U8,
+    );
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe { resizer.set_cpu_extensions(CpuExtensions::Avx2) };
+    resizer
+        .resize(&src_image.view(), &mut dst_iamge.view_mut())
+        .unwrap();
+}
+
+#[test]
 fn upscale_u8() {
     type P = U8;
     let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);

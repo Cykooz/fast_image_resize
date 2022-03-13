@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone, Copy)]
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum ImageRowsError {
     #[error("Count of rows don't match to image height")]
     InvalidRowsCount,
@@ -8,19 +8,15 @@ pub enum ImageRowsError {
     InvalidRowSize,
 }
 
-#[derive(Error, Debug, Clone, Copy)]
-#[error("Size of buffer don't match to image dimensions")]
-pub struct InvalidBufferSizeError;
-
-#[derive(Error, Debug, Clone, Copy)]
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum ImageBufferError {
-    #[error("Size of buffer don't match to image dimensions")]
+    #[error("Size of buffer is smaller than required.")]
     InvalidBufferSize,
     #[error("Alignment of buffer don't match to alignment of u32")]
     InvalidBufferAlignment,
 }
 
-#[derive(Error, Debug, Clone, Copy)]
+#[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum CropBoxError {
     #[error("Position of the crop box is out of the image boundaries")]
     PositionIsOutOfImageBoundaries,

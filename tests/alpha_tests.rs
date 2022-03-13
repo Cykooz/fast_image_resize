@@ -178,17 +178,17 @@ fn divide_alpha_native_test() {
 
 #[test]
 fn multiply_alpha_real_image_test() {
-    let mut pixels = vec![0u32; 256 * 256];
+    let mut pixels = vec![0u8; 256 * 256 * 4];
     let mut i: usize = 0;
     for alpha in 0..=255u8 {
         for color in 0..=255u8 {
-            let pixel = u32::from_le_bytes([color, color, color, alpha]);
-            pixels[i] = pixel;
-            i += 1;
+            let pixel = pixels.get_mut(i..i + 4).unwrap();
+            pixel.copy_from_slice(&[color, color, color, alpha]);
+            i += 4;
         }
     }
     let size = NonZeroU32::new(256).unwrap();
-    let src_image = Image::from_vec_u32(size, size, pixels, PixelType::U8x4).unwrap();
+    let src_image = Image::from_vec_u8(size, size, pixels, PixelType::U8x4).unwrap();
     let mut dst_image = Image::new(size, size, PixelType::U8x4);
 
     let mut alpha_mul_div: MulDiv = Default::default();
@@ -216,19 +216,18 @@ fn multiply_alpha_real_image_test() {
 
 #[test]
 fn divide_alpha_real_image_test() {
-    let mut pixels = vec![0u32; 256 * 256];
+    let mut pixels = vec![0u8; 256 * 256 * 4];
     let mut i: usize = 0;
     for alpha in 0..=255u8 {
         for color in 0..=255u8 {
             let multiplied_color = (color as f64 * (alpha as f64 / 255.)).round().min(255.) as u8;
-            let pixel =
-                u32::from_le_bytes([multiplied_color, multiplied_color, multiplied_color, alpha]);
-            pixels[i] = pixel;
-            i += 1;
+            let pixel = pixels.get_mut(i..i + 4).unwrap();
+            pixel.copy_from_slice(&[multiplied_color, multiplied_color, multiplied_color, alpha]);
+            i += 4;
         }
     }
     let size = NonZeroU32::new(256).unwrap();
-    let src_image = Image::from_vec_u32(size, size, pixels, PixelType::U8x4).unwrap();
+    let src_image = Image::from_vec_u8(size, size, pixels, PixelType::U8x4).unwrap();
     let mut dst_image = Image::new(size, size, PixelType::U8x4);
 
     let mut alpha_mul_div: MulDiv = Default::default();

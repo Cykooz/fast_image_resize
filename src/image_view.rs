@@ -137,33 +137,64 @@ impl<'a> ImageView<'a> {
         pixel_type: PixelType,
     ) -> Result<Self, ImageBufferError> {
         let size = (width.get() * height.get()) as usize * pixel_type.size();
-        if buffer.len() != size {
+        if buffer.len() < size {
             return Err(ImageBufferError::InvalidBufferSize);
         }
+        let rows_count = height.get() as usize;
         let rows = match pixel_type {
             PixelType::U8x3 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::U8x3(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::U8x3(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8x4 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::U8x4(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::U8x4(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U16x3 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::U16x3(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::U16x3(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::I32 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::I32(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::I32(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::F32 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::F32(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::F32(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8 => {
                 let pixels = align_buffer_to(buffer)?;
-                ImageRows::U8(pixels.chunks_exact(width.get() as usize).collect())
+                ImageRows::U8(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
         };
         Ok(Self {
@@ -486,33 +517,64 @@ impl<'a> ImageViewMut<'a> {
         pixel_type: PixelType,
     ) -> Result<Self, ImageBufferError> {
         let size = (width.get() * height.get()) as usize * pixel_type.size();
-        if buffer.len() != size {
+        if buffer.len() < size {
             return Err(ImageBufferError::InvalidBufferSize);
         }
+        let rows_count = height.get() as usize;
         let rows = match pixel_type {
             PixelType::U8x3 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::U8x3(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8x3(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8x4 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::U8x4(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8x4(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U16x3 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::U16x3(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U16x3(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::I32 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::I32(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::I32(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::F32 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::F32(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::F32(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
             PixelType::U8 => {
                 let pixels = align_buffer_to_mut(buffer)?;
-                ImageRowsMut::U8(pixels.chunks_exact_mut(width.get() as usize).collect())
+                ImageRowsMut::U8(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
             }
         };
         Ok(Self {

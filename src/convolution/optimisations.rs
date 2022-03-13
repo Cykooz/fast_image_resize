@@ -110,6 +110,7 @@ impl NormalizerGuard16 {
     pub unsafe fn clip(&self, v: i32) -> u8 {
         let index = (640 + (v >> self.precision)) as usize;
         // index must be in range [(640-512)..(640+511)]
+        debug_assert!((128..=1151).contains(&index));
         *CLIP8_LOOKUPS.get_unchecked(index)
     }
 }
