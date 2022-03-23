@@ -1,9 +1,9 @@
 ## [Unreleased] - ReleaseDate
 
-- Added optimisation of convolution U16x3 images with helps of ``SSE4.1`` and 
-  ``AVX2`` instructions.
-- Added partial optimisation of convolution U8 images with helps of ``SSE4.1``
-  instructions.
+- Added optimisation for convolution of U16x3 images with helps of ``SSE4.1``
+  and ``AVX2`` instructions.
+- Added partial optimisation for convolution of U8 images with helps of 
+  ``SSE4.1`` instructions.
 - Allowed to create an instance of `Image`, `ImageVew` and `ImageViewMut` 
   from a buffer larger than necessary 
   ([#5](https://github.com/Cykooz/fast_image_resize/issues/5)).

@@ -84,7 +84,7 @@ pub fn print_md_table(bench: &Bench) {
                 res_map.insert(crate_name.clone(), Vec::new());
             }
             if let Some(values) = res_map.get_mut(&crate_name) {
-                values.push(format!("{:.3}", value));
+                values.push(format!("{:.2}", value));
             }
         }
     }
