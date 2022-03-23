@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.8.0] - 2022-03-23
 
 - Added optimisation for convolution of U16x3 images with helps of ``SSE4.1``
   and ``AVX2`` instructions.
