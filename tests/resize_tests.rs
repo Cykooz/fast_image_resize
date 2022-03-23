@@ -127,6 +127,7 @@ fn downscale_u8() {
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
@@ -134,28 +135,6 @@ fn downscale_u8() {
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
         assert_eq!(utils::image_checksum::<1>(&buffer), [2923557]);
     }
-}
-
-#[test]
-fn downscale_u8_1() {
-    let src_vec = vec![1u8; 1280 * 720];
-    let src_image = Image::from_vec_u8(
-        NonZeroU32::new(1280).unwrap(),
-        NonZeroU32::new(720).unwrap(),
-        src_vec,
-        PixelType::U8,
-    )
-    .unwrap();
-    let mut dst_iamge = Image::new(
-        NonZeroU32::new(64).unwrap(),
-        NonZeroU32::new(64).unwrap(),
-        PixelType::U8,
-    );
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    unsafe { resizer.set_cpu_extensions(CpuExtensions::Avx2) };
-    resizer
-        .resize(&src_image.view(), &mut dst_iamge.view_mut())
-        .unwrap();
 }
 
 #[test]
