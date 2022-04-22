@@ -11,6 +11,7 @@ about resizing with respect to color space._
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
+
 - `U8` - one `u8` component per pixel:
     - native Rust-code without forced SIMD
     - SSE4.1 (partial)
@@ -35,6 +36,7 @@ Supported pixel formats and available optimisations:
 ## Benchmarks
 
 Environment:
+
 - CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
 - RAM: DDR4 3000 MHz
 - Ubuntu 20.04 (linux 5.13)
@@ -44,10 +46,12 @@ Environment:
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
 Other Rust libraries used to compare of resizing speed:
+
 - image = "0.24.1" (<https://crates.io/crates/image>)
 - resize = "0.7.2" (<https://crates.io/crates/resize>)
 
 Resize algorithms:
+
 - Nearest
 - Convolution with Bilinear filter
 - Convolution with CatmullRom filter
@@ -76,7 +80,8 @@ Pipeline:
 
 `src_image => multiply by alpha => resize => divide by alpha => dst_image`
 
-- Source image [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+- Source image 
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
@@ -125,7 +130,7 @@ Pipeline:
 
 ## Examples
 
-### Resize image
+### Resize RGBA8 image
 
 ```rust
 use std::io::BufWriter;
@@ -137,8 +142,7 @@ use image::{ColorType, GenericImageView};
 
 use fast_image_resize as fr;
 
-#[test]
-fn resize_image_example() {
+fn main() {
     // Read source image from file
     let img = ImageReader::open("./data/nasa-4928x3279.png")
         .unwrap()
@@ -151,8 +155,7 @@ fn resize_image_example() {
         height,
         img.to_rgba8().into_raw(),
         fr::PixelType::U8x4,
-    )
-        .unwrap();
+    ).unwrap();
 
     // Create MulDiv instance
     let alpha_mul_div = fr::MulDiv::default();
@@ -193,6 +196,66 @@ fn resize_image_example() {
             ColorType::Rgba8,
         )
         .unwrap();
+}
+```
+
+### Resize with cropping
+
+```rust
+use std::io::BufWriter;
+use std::num::NonZeroU32;
+
+use image::codecs::png::PngEncoder;
+use image::io::Reader as ImageReader;
+use image::{ColorType, GenericImageView};
+
+use fast_image_resize as fr;
+
+fn resize_image_with_cropping(
+    mut src_view: fr::ImageView,
+    dst_width: NonZeroU32,
+    dst_height: NonZeroU32
+) -> fr::Image {
+    // Set cropping parameters
+    src_view.set_crop_box_to_fit_dst_size(dst_width, dst_height, None);
+
+    // Create container for data of destination image
+    let mut dst_image = fr::Image::new(
+        dst_width,
+        dst_height,
+        src_view.pixel_type(),
+    );
+    // Get mutable view of destination image data
+    let mut dst_view = dst_image.view_mut();
+
+    // Create Resizer instance and resize source image
+    // into buffer of destination image
+    let mut resizer = fr::Resizer::new(
+        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3)
+    );
+    resizer.resize(&src_view, &mut dst_view).unwrap();
+
+    dst_image
+}
+
+fn main() {
+    let img = ImageReader::open("./data/nasa-4928x3279.png")
+        .unwrap()
+        .decode()
+        .unwrap();
+    let width = NonZeroU32::new(img.width()).unwrap();
+    let height = NonZeroU32::new(img.height()).unwrap();
+    let src_image = fr::Image::from_vec_u8(
+        width,
+        height,
+        img.to_rgb8().into_raw(),
+        fr::PixelType::U8x3,
+    ).unwrap();
+    resize_image_with_cropping(
+        src_image.view(),
+        NonZeroU32::new(1024).unwrap(),
+        NonZeroU32::new(768).unwrap(),
+    );
 }
 ```
 

@@ -12,9 +12,11 @@ const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
 // Multiplies by alpha
 
 fn get_src_image(width: NonZeroU32, height: NonZeroU32, pixel: u32) -> Image<'static> {
-    let buf_size = (width.get() * height.get()) as usize;
-    let buffer = vec![pixel; buf_size];
-    Image::from_vec_u32(width, height, buffer, PixelType::U8x4).unwrap()
+    let pixels_count = (width.get() * height.get()) as usize;
+    let buffer = (0..pixels_count)
+        .flat_map(|_| pixel.to_le_bytes())
+        .collect();
+    Image::from_vec_u8(width, height, buffer, PixelType::U8x4).unwrap()
 }
 
 #[cfg(target_arch = "x86_64")]

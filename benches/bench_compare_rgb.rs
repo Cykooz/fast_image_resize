@@ -41,7 +41,11 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
         let mut dst = vec![RGB::new(0, 0, 0); (new_width.get() * new_height.get()) as usize];
         bench.task(format!("resize - {}", alg_name), |task| {
             let filter = match alg_name {
-                "Nearest" => resize::Type::Point,
+                "Nearest" => {
+                    // resizer doesn't support "nearest" algorithm
+                    task.iter(|| {});
+                    return;
+                }
                 "Bilinear" => resize::Type::Triangle,
                 "CatmullRom" => resize::Type::Catrom,
                 "Lanczos3" => resize::Type::Lanczos3,

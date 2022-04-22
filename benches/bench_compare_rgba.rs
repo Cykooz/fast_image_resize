@@ -41,7 +41,11 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
         let mut dst = vec![RGBA::new(0, 0, 0, 0); (new_width.get() * new_height.get()) as usize];
         bench.task(format!("resize - {}", alg_name), |task| {
             let filter = match alg_name {
-                "Nearest" => resize::Type::Point,
+                "Nearest" => {
+                    // resizer doesn't support "nearest" algorithm
+                    task.iter(|| {});
+                    return;
+                }
                 "Bilinear" => resize::Type::Triangle,
                 "CatmullRom" => resize::Type::Catrom,
                 "Lanczos3" => resize::Type::Lanczos3,
@@ -104,14 +108,21 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
             }
 
             bench.task(format!("fir {} - {}", ext_name, alg_name), |task| {
-                task.iter(|| {
-                    mul_div
-                        .multiply_alpha(&src_view, &mut premultiplied_src_image.view_mut())
-                        .unwrap();
-                    fast_resizer
-                        .resize(&premultiplied_src_image.view(), &mut dst_view)
-                        .unwrap();
-                    mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
+                task.iter(|| match resize_alg {
+                    ResizeAlg::Nearest => {
+                        fast_resizer
+                            .resize(&premultiplied_src_image.view(), &mut dst_view)
+                            .unwrap();
+                    }
+                    _ => {
+                        mul_div
+                            .multiply_alpha(&src_view, &mut premultiplied_src_image.view_mut())
+                            .unwrap();
+                        fast_resizer
+                            .resize(&premultiplied_src_image.view(), &mut dst_view)
+                            .unwrap();
+                        mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
+                    }
                 })
             });
         }
