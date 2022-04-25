@@ -105,6 +105,14 @@ impl<'a> Image<'a> {
         }
     }
 
+    #[inline(always)]
+    pub fn into_vec(self) -> Vec<u8> {
+        match self.pixels {
+            PixelsContainer::MutU8(p) => p.into(),
+            PixelsContainer::VecU8(v) => v,
+        }
+    }
+
     /// Mutable buffer with image pixels.
     #[inline(always)]
     fn buffer_mut(&mut self) -> &mut [u8] {
