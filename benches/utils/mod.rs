@@ -3,7 +3,7 @@ use std::env;
 
 use glassbench::*;
 use image::io::Reader;
-use image::{GrayImage, ImageBuffer, Luma, Rgb, RgbImage, RgbaImage};
+use image::{GrayAlphaImage, GrayImage, ImageBuffer, Luma, Rgb, RgbImage, RgbaImage};
 
 pub type Rgb16Image = ImageBuffer<Rgb<u16>, Vec<u16>>;
 
@@ -52,6 +52,15 @@ pub fn get_big_luma8_image() -> GrayImage {
     img.to_luma8()
 }
 
+pub fn get_big_la_image() -> GrayAlphaImage {
+    let cur_dir = env::current_dir().unwrap();
+    let img = Reader::open(cur_dir.join("data/nasa-4928x3279-rgba.png"))
+        .unwrap()
+        .decode()
+        .unwrap();
+    img.to_luma_alpha8()
+}
+
 pub fn get_small_rgba_image() -> RgbaImage {
     let cur_dir = env::current_dir().unwrap();
     let img = Reader::open(cur_dir.join("data/nasa-852x567.png"))
@@ -84,7 +93,12 @@ pub fn print_md_table(bench: &Bench) {
                 res_map.insert(crate_name.clone(), Vec::new());
             }
             if let Some(values) = res_map.get_mut(&crate_name) {
-                values.push(format!("{:.2}", value));
+                let s_value = format!("{:.2}", value);
+                if s_value == "0.00" {
+                    values.push("-".to_string());
+                } else {
+                    values.push(s_value);
+                }
             }
         }
     }
@@ -131,4 +145,39 @@ fn print_header_underline(widths: &[usize]) {
         }
     }
     println!("|");
+}
+
+/// Generates a benchmark with a consistent id
+/// (using the benchmark file title), calling
+/// the benchmarking functions given in argument.
+///
+/// ```no-test
+/// bench_main!(
+///     "Sortings",
+///     bench_number_sorting,
+///     bench_alpha_sorting,
+/// );
+/// ```
+///
+/// This generates the whole main function.
+/// If you want to set the bench name yourself
+/// (not recommanded), or change the way the launch
+/// arguments are used, you can write the main
+/// yourself and call [create_bench] and [after_bench]
+/// instead of using this macro.
+#[macro_export]
+macro_rules! bench_main {
+    (
+        $title: literal,
+        $( $fun: path, )+
+    ) => {
+        pub fn main() {
+            // Pin process to #0 CPU core
+            let mut cpu_set = nix::sched::CpuSet::new();
+            cpu_set.set(0).unwrap();
+            nix::sched::sched_setaffinity(nix::unistd::Pid::from_raw(0), &cpu_set).unwrap();
+            glassbench!($title, $($fun,)+);
+            main();
+        }
+    }
 }

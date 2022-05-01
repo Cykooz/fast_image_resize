@@ -1,43 +1,7 @@
-use crate::image_view::{TypedImageView, TypedImageViewMut};
-use crate::pixels::U8x4;
-
-#[inline]
-pub(crate) fn divide_alpha_native(
-    src_image: TypedImageView<U8x4>,
-    mut dst_image: TypedImageViewMut<U8x4>,
-) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
-
-    for (src_row, dst_row) in src_rows.zip(dst_rows) {
-        divide_alpha_row_native(src_row, dst_row);
-    }
-}
-
-#[inline]
-pub(crate) fn divide_alpha_inplace_native(mut image: TypedImageViewMut<U8x4>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        divide_alpha_row_native(src_row, dst_row);
-    }
-}
-
 #[inline(always)]
-pub(crate) fn divide_alpha_row_native(src_row: &[U8x4], dst_row: &mut [U8x4]) {
-    src_row
-        .iter()
-        .zip(dst_row)
-        .for_each(|(src_pixel, dst_pixel)| {
-            let components: [u8; 4] = src_pixel.0.to_le_bytes();
-            let alpha = components[3];
-            let recip_alpha = RECIP_ALPHA[alpha as usize];
-            dst_pixel.0 = u32::from_le_bytes([
-                div_and_clip(components[0], recip_alpha),
-                div_and_clip(components[1], recip_alpha),
-                div_and_clip(components[2], recip_alpha),
-                alpha,
-            ]);
-        });
+pub(crate) fn mul_div_255(a: u8, b: u8) -> u8 {
+    let tmp = a as u32 * b as u32 + 128;
+    (((tmp >> 8) + tmp) >> 8) as u8
 }
 
 const fn recip_alpha_array(precision: u32) -> [u32; 256] {
@@ -54,11 +18,11 @@ const fn recip_alpha_array(precision: u32) -> [u32; 256] {
 const PRECISION: u32 = 8;
 
 #[inline(always)]
-fn div_and_clip(v: u8, recip_alpha: u32) -> u8 {
+pub(crate) fn div_and_clip(v: u8, recip_alpha: u32) -> u8 {
     ((v as u32 * recip_alpha) >> PRECISION).min(255) as u8
 }
 
-const RECIP_ALPHA: [u32; 256] = recip_alpha_array(PRECISION);
+pub(crate) const RECIP_ALPHA: [u32; 256] = recip_alpha_array(PRECISION);
 
 #[cfg(test)]
 mod tests {

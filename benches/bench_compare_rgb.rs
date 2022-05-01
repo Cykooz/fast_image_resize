@@ -112,4 +112,4 @@ pub fn bench_downscale_rgb(bench: &mut Bench) {
     utils::print_md_table(bench);
 }
 
-glassbench!("Compare resize of RGB image", bench_downscale_rgb,);
+bench_main!("Compare resize of RGB image", bench_downscale_rgb,);

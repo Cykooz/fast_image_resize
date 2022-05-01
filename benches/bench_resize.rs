@@ -279,6 +279,11 @@ fn u16x3_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: 
 }
 
 pub fn main() {
+    // Pin process to #0 CPU core
+    let mut cpu_set = nix::sched::CpuSet::new();
+    cpu_set.set(0).unwrap();
+    nix::sched::sched_setaffinity(nix::unistd::Pid::from_raw(0), &cpu_set).unwrap();
+
     use glassbench::*;
     let name = env!("CARGO_CRATE_NAME");
     let cmd = Command::read();

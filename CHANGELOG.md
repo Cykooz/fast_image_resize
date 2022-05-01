@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of new type of pixels ``PixelType::U8x2``.
+- Added into ``MulDiv`` support of images with pixel type ``U8x2``.
+- Added method ``Image::into_vec(self) -> Vec<u8>`` 
+  ([#7](https://github.com/Cykooz/fast_image_resize/pull/7)).
+
 ## [0.8.0] - 2022-03-23
 
 - Added optimisation for convolution of U16x3 images with helps of ``SSE4.1``

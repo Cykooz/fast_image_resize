@@ -2,16 +2,13 @@ use std::num::NonZeroU32;
 
 use glassbench::*;
 use image::imageops;
-use resize::px::RGBA;
-use resize::Pixel::RGBA8;
-use rgb::FromSlice;
 
 use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, PixelType, ResizeAlg, Resizer};
 
 mod utils;
 
-pub fn bench_downscale_rgba(bench: &mut Bench) {
-    let src_image = &utils::get_big_rgba_image();
+pub fn bench_downscale_la(bench: &mut Bench) {
+    let src_image = &utils::get_big_la_image();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
@@ -30,38 +27,6 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
         bench.task(format!("image - {}", alg_name), |task| {
             task.iter(|| {
                 imageops::resize(src_image, new_width.get(), new_height.get(), filter);
-            })
-        });
-    }
-
-    // resize crate
-    // https://crates.io/crates/resize
-    for alg_name in alg_names {
-        let resize_src_image = src_image.as_raw().as_rgba();
-        let mut dst = vec![RGBA::new(0, 0, 0, 0); (new_width.get() * new_height.get()) as usize];
-        bench.task(format!("resize - {}", alg_name), |task| {
-            let filter = match alg_name {
-                "Nearest" => {
-                    // resizer doesn't support "nearest" algorithm
-                    task.iter(|| {});
-                    return;
-                }
-                "Bilinear" => resize::Type::Triangle,
-                "CatmullRom" => resize::Type::Catrom,
-                "Lanczos3" => resize::Type::Lanczos3,
-                _ => return,
-            };
-            let mut resize = resize::new(
-                src_image.width() as usize,
-                src_image.height() as usize,
-                new_width.get() as usize,
-                new_height.get() as usize,
-                RGBA8,
-                filter,
-            )
-            .unwrap();
-            task.iter(|| {
-                resize.resize(resize_src_image, &mut dst).unwrap();
             })
         });
     }
@@ -86,16 +51,16 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
                 src_image.as_raw().clone(),
-                PixelType::U8x4,
+                PixelType::U8x2,
             )
             .unwrap();
             let src_view = src_image_data.view();
             let mut premultiplied_src_image = Image::new(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
-                PixelType::U8x4,
+                PixelType::U8x2,
             );
-            let mut dst_image = Image::new(new_width, new_height, PixelType::U8x4);
+            let mut dst_image = Image::new(new_width, new_height, PixelType::U8x2);
             let mut dst_view = dst_image.view_mut();
             let mut mul_div = MulDiv::default();
 
@@ -131,4 +96,4 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
     utils::print_md_table(bench);
 }
 
-bench_main!("Compare resize of RGBA image", bench_downscale_rgba,);
+bench_main!("Compare resize of LA image", bench_downscale_la,);

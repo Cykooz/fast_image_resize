@@ -83,6 +83,13 @@ impl Resizer {
             return Err(DifferentTypesOfPixelsError);
         }
         match src_image.pixel_type() {
+            PixelType::U8x2 => {
+                if let Some(src_rows) = src_image.u8x2_image() {
+                    if let Some(dst_rows) = dst_image.u8x2_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
             PixelType::U8x3 => {
                 if let Some(src_rows) = src_image.u8x3_image() {
                     if let Some(dst_rows) = dst_image.u8x3_image() {

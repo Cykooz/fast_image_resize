@@ -113,4 +113,4 @@ pub fn bench_downscale_u8(bench: &mut Bench) {
     utils::print_md_table(bench);
 }
 
-glassbench!("Compare resize of U8 image", bench_downscale_u8,);
+bench_main!("Compare resize of U8 image", bench_downscale_u8,);

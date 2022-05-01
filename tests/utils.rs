@@ -27,6 +27,7 @@ pub trait PixelExt: Pixel {
     fn pixel_type_str() -> &'static str {
         match Self::pixel_type() {
             PixelType::U8 => "u8",
+            PixelType::U8x2 => "u8x2",
             PixelType::U8x3 => "u8x3",
             PixelType::U8x4 => "u8x4",
             PixelType::U16x3 => "u16x3",
@@ -87,6 +88,12 @@ impl PixelExt for U8 {
     }
 }
 
+impl PixelExt for U8x2 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_luma_alpha8().into_raw()
+    }
+}
+
 impl PixelExt for U8x3 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_rgb8().into_raw()
@@ -138,6 +145,7 @@ pub fn save_result(image: &Image, name: &str) {
     std::fs::create_dir_all("./data/result").unwrap();
     let path = format!("./data/result/{}.png", name);
     let color_type = match image.pixel_type() {
+        PixelType::U8x2 => ColorType::La8,
         PixelType::U8x3 => ColorType::Rgb8,
         PixelType::U8x4 => ColorType::Rgba8,
         PixelType::U16x3 => ColorType::Rgb16,

@@ -16,6 +16,10 @@ Supported pixel formats and available optimisations:
     - native Rust-code without forced SIMD
     - SSE4.1 (partial)
     - AVX2
+- `U8x2` - two `u8` components per pixel (e.g. LA):
+    - native Rust-code without forced SIMD
+    - SSE4.1 (partial)
+    - AVX2 (partial)
 - `U8x3` - three `u8` components per pixel (e.g. RGB):
     - native Rust-code without forced SIMD
     - SSE4.1 (partial)
@@ -37,11 +41,11 @@ Supported pixel formats and available optimisations:
 
 Environment:
 
-- CPU: Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz
-- RAM: DDR4 3000 MHz
-- Ubuntu 20.04 (linux 5.13)
-- Rust 1.59.0
-- fast_image_resize = "0.8.0"
+- CPU: AMD Ryzen 9 5950X
+- RAM: DDR4 3800 MHz
+- Ubuntu 22.04 (linux 5.15.0)
+- Rust 1.60.0
+- fast_image_resize = "0.9.0"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
@@ -57,7 +61,7 @@ Resize algorithms:
 - Convolution with CatmullRom filter
 - Convolution with Lanczos3 filter
 
-### Resize RGB image (U8x3) 4928x3279 => 852x567
+### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -68,29 +72,29 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  53.21  |  116.37  |   191.14   |  271.65  |
-| resize     |  15.30  |  65.72   |   120.28   |  175.05  |
-| fir rust   |  0.49   |  54.24   |   90.68    |  131.56  |
-| fir sse4.1 |    -    |  37.70   |   43.88    |  61.05   |
-| fir avx2   |    -    |  10.92   |   14.15    |  19.81   |
+| image      |  20.53  |  77.41   |   135.87   |  184.40  |
+| resize     |    -    |  45.60   |   87.53    |  129.11  |
+| fir rust   |  0.26   |  37.42   |   63.68    |  92.93   |
+| fir sse4.1 |  0.26   |  25.76   |   39.52    |  52.82   |
+| fir avx2   |  0.26   |   6.89   |    8.69    |  12.64   |
 
-### Resize RGBA image (U8x4) 4928x3279 => 852x567
+### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
 
 `src_image => multiply by alpha => resize => divide by alpha => dst_image`
 
-- Source image 
+- Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  53.09  |  110.62  |   181.02   |  260.38  |
-| resize     |  18.28  |  79.18   |   148.75   |  218.27  |
-| fir rust   |  12.08  |  62.61   |   87.89    |  116.05  |
-| fir sse4.1 |  9.13   |  20.19   |   26.36    |  33.99   |
-| fir avx2   |  7.37   |  15.23   |   18.72    |  24.08   |
+| image      |  20.71  |  77.57   |   131.22   |  183.61  |
+| resize     |    -    |  53.38   |   101.44   |  150.50  |
+| fir rust   |  0.17   |  33.06   |   47.36    |  68.15   |
+| fir sse4.1 |  0.17   |  12.00   |   15.64    |  20.46   |
+| fir avx2   |  0.17   |   9.13   |   11.38    |  15.12   |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -104,11 +108,30 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  48.05  |  72.53   |   109.80   |  161.38  |
-| resize     |  9.34   |  24.47   |   47.70    |  80.72   |
-| fir rust   |  0.20   |  19.53   |   22.60    |  32.46   |
-| fir sse4.1 |    -    |  17.41   |   18.66    |  27.81   |
-| fir avx2   |    -    |   9.58   |    7.74    |  11.70   |
+| image      |  17.09  |  47.71   |   75.01    |  102.30  |
+| resize     |    -    |  16.23   |   32.66    |  55.36   |
+| fir rust   |  0.14   |  13.00   |   14.74    |  22.12   |
+| fir sse4.1 |  0.14   |  11.06   |   11.03    |  16.75   |
+| fir avx2   |  0.13   |   5.90   |    4.39    |   7.12   |
+
+### Resize grayscale image with alpha channel (U8x2) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+  has converted into grayscale image with alpha channel (two bytes per pixel).
+- Numbers in table is mean duration of image resizing in milliseconds.
+- The `resize` crate does not support this pixel format.
+
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      |  18.96  |  62.93   |   112.37   |  149.47  |
+| fir rust   |  0.17   |  23.41   |   27.85    |  39.30   |
+| fir sse4.1 |  0.17   |  19.56   |   20.62    |  28.77   |
+| fir avx2   |  0.17   |  19.41   |   20.55    |  28.24   |
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
 
@@ -122,11 +145,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  52.81  |  113.30  |   180.99   |  256.26  |
-| resize     |  17.05  |  68.81   |   121.87   |  175.41  |
-| fir rust   |  0.79   |  58.25   |   96.49    |  132.55  |
-| fir sse4.1 |    -    |  39.03   |   63.09    |  89.33   |
-| fir avx2   |    -    |  33.29   |   48.96    |  58.77   |
+| image      |  20.31  |  72.79   |   122.71   |  171.64  |
+| resize     |    -    |  47.23   |   90.10    |  132.22  |
+| fir rust   |  0.30   |  42.43   |   78.20    |  115.72  |
+| fir sse4.1 |  0.31   |  22.08   |   35.60    |  50.43   |
+| fir avx2   |  0.31   |  19.07   |   28.24    |  34.08   |
 
 ## Examples
 
@@ -138,7 +161,7 @@ use std::num::NonZeroU32;
 
 use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
-use image::{ColorType, GenericImageView};
+use image::{ColorType, ImageEncoder};
 
 use fast_image_resize as fr;
 
@@ -155,11 +178,13 @@ fn main() {
         height,
         img.to_rgba8().into_raw(),
         fr::PixelType::U8x4,
-    ).unwrap();
+    )
+        .unwrap();
 
     // Create MulDiv instance
     let alpha_mul_div = fr::MulDiv::default();
-    // Multiple RGB channels of source image by alpha channel
+    // Multiple RGB channels of source image by alpha channel 
+    // (not required for the Nearest algorithm) 
     alpha_mul_div
         .multiply_alpha_inplace(&mut src_image.view_mut())
         .unwrap();
@@ -179,7 +204,7 @@ fn main() {
     // Create Resizer instance and resize source image
     // into buffer of destination image
     let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3)
+        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
     );
     resizer.resize(&src_image.view(), &mut dst_view).unwrap();
 
@@ -189,7 +214,7 @@ fn main() {
     // Write destination image as PNG-file
     let mut result_buf = BufWriter::new(Vec::new());
     PngEncoder::new(&mut result_buf)
-        .encode(
+        .write_image(
             dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),

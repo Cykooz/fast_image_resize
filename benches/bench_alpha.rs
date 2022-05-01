@@ -2,8 +2,9 @@ use std::num::NonZeroU32;
 
 use glassbench::*;
 
+use fast_image_resize::MulDiv;
 use fast_image_resize::PixelType;
-use fast_image_resize::{CpuExtensions, Image, MulDiv};
+use fast_image_resize::{CpuExtensions, Image};
 
 const fn p(r: u8, g: u8, b: u8, a: u8) -> u32 {
     u32::from_le_bytes([r, g, b, a])
@@ -150,8 +151,12 @@ fn divides_alpha_native(bench: &mut Bench) {
 }
 
 pub fn main() {
-    use glassbench::*;
+    // Pin process to #0 CPU core
+    let mut cpu_set = nix::sched::CpuSet::new();
+    cpu_set.set(0).unwrap();
+    nix::sched::sched_setaffinity(nix::unistd::Pid::from_raw(0), &cpu_set).unwrap();
 
+    use glassbench::*;
     let name = env!("CARGO_CRATE_NAME");
     let cmd = Command::read();
     if cmd.include_bench(name) {

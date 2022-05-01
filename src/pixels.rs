@@ -5,6 +5,7 @@ use std::slice;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum PixelType {
+    U8x2,
     U8x3,
     U8x4,
     U16x3,
@@ -16,9 +17,10 @@ pub enum PixelType {
 impl PixelType {
     pub(crate) fn size(&self) -> usize {
         match self {
+            Self::U8 => 1,
+            Self::U8x2 => 2,
             Self::U8x3 => 3,
             Self::U16x3 => 6,
-            Self::U8 => 1,
             _ => 4,
         }
     }
@@ -26,12 +28,13 @@ impl PixelType {
     /// Returns `true` if given buffer is aligned by the alignment of pixel.
     pub(crate) fn is_aligned(&self, buffer: &[u8]) -> bool {
         match self {
+            Self::U8 => true,
+            Self::U8x2 => unsafe { buffer.align_to::<U8x2>().0.is_empty() },
             Self::U8x3 => unsafe { buffer.align_to::<U8x3>().0.is_empty() },
             Self::U8x4 => unsafe { buffer.align_to::<U8x4>().0.is_empty() },
             Self::U16x3 => unsafe { buffer.align_to::<U16x3>().0.is_empty() },
             Self::I32 => unsafe { buffer.align_to::<I32>().0.is_empty() },
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
-            Self::U8 => true,
         }
     }
 }
@@ -53,8 +56,9 @@ where
     ///
     /// Example:
     /// ```
-    /// # use fast_image_resize::pixels::{U8x3, U8, Pixel};
+    /// # use fast_image_resize::pixels::{U8x2, U8x3, U8, Pixel};
     /// assert_eq!(U8x3::size(), 3);
+    /// assert_eq!(U8x2::size(), 2);
     /// assert_eq!(U8::size(), 1);
     /// ```
     fn size() -> usize {
@@ -98,6 +102,14 @@ macro_rules! pixel_struct {
 }
 
 pixel_struct!(U8, u8, u8, 1, PixelType::U8, "One byte per pixel");
+pixel_struct!(
+    U8x2,
+    u16,
+    u8,
+    2,
+    PixelType::U8x2,
+    "Two bytes per pixel (e.g. LA)"
+);
 pixel_struct!(
     U8x3,
     [u8; 3],
