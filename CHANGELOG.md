@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.9.0] - 2022-05-01
 
 - Added support of new type of pixels ``PixelType::U8x2``.
 - Added into ``MulDiv`` support of images with pixel type ``U8x2``.
