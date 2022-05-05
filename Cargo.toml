@@ -24,7 +24,7 @@ image = "0.24.2"
 resize = "0.7.2"
 rgb = "0.8.32"
 png = "0.17.5"
-nix = "0.24.1"
+nix = { version = "0.24.1", default-features = false, features = ["sched"] }
 
 
 [[bench]]
