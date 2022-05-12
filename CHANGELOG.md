@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.9.1] - 2022-05-12
 
 - Added optimisation for processing ``U8x2`` images by ``MulDiv`` with 
   helps of ``SSE4.1`` and ``AVX2`` instructions.
