@@ -484,7 +484,7 @@ where
     ) -> impl Iterator<Item = FourRows<'b, P>> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
-        let rows = self.rows.get(start_y..max_y).unwrap_or_else(|| &[]);
+        let rows = self.rows.get(start_y..max_y).unwrap_or(&[]);
         rows.chunks_exact(4).map(|rows| match *rows {
             [r0, r1, r2, r3] => (r0, r1, r2, r3),
             _ => unreachable!(),
@@ -499,7 +499,7 @@ where
     ) -> impl Iterator<Item = TwoRows<'b, P>> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
-        let rows = self.rows.get(start_y..max_y).unwrap_or_else(|| &[]);
+        let rows = self.rows.get(start_y..max_y).unwrap_or(&[]);
         rows.chunks_exact(2).map(|rows| match *rows {
             [r0, r1] => (r0, r1),
             _ => unreachable!(),
@@ -509,7 +509,7 @@ where
     #[inline(always)]
     pub(crate) fn iter_rows<'s>(&'s self, start_y: u32) -> impl Iterator<Item = &'b [P]> + 's {
         let start_y = start_y as usize;
-        let rows = self.rows.get(start_y..).unwrap_or_else(|| &[]);
+        let rows = self.rows.get(start_y..).unwrap_or(&[]);
         rows.iter().copied()
     }
 

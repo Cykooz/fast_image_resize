@@ -19,7 +19,7 @@ Supported pixel formats and available optimisations:
 - `U8x2` - two `u8` components per pixel (e.g. LA):
     - native Rust-code without forced SIMD
     - SSE4.1 (partial)
-    - AVX2 (partial)
+    - AVX2
 - `U8x3` - three `u8` components per pixel (e.g. RGB):
     - native Rust-code without forced SIMD
     - SSE4.1 (partial)
@@ -45,7 +45,7 @@ Environment:
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.15.0)
 - Rust 1.60.0
-- fast_image_resize = "0.9.0"
+- fast_image_resize = "0.9.1"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
@@ -72,11 +72,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  20.53  |  77.41   |   135.87   |  184.40  |
-| resize     |    -    |  45.60   |   87.53    |  129.11  |
-| fir rust   |  0.26   |  37.42   |   63.68    |  92.93   |
-| fir sse4.1 |  0.26   |  25.76   |   39.52    |  52.82   |
-| fir avx2   |  0.26   |   6.89   |    8.69    |  12.64   |
+| image      |  20.31  |  77.37   |   136.35   |  183.63  |
+| resize     |    -    |  45.60   |   87.53    |  129.12  |
+| fir rust   |  0.26   |  42.40   |   78.29    |  115.52  |
+| fir sse4.1 |  0.26   |  26.11   |   39.54    |  53.26   |
+| fir avx2   |  0.26   |   6.93   |    8.74    |  12.62   |
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
@@ -90,11 +90,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  20.71  |  77.57   |   131.22   |  183.61  |
-| resize     |    -    |  53.38   |   101.44   |  150.50  |
-| fir rust   |  0.17   |  33.06   |   47.36    |  68.15   |
-| fir sse4.1 |  0.17   |  12.00   |   15.64    |  20.46   |
-| fir avx2   |  0.17   |   9.13   |   11.38    |  15.12   |
+| image      |  20.43  |  78.27   |   131.97   |  185.15  |
+| resize     |    -    |  53.60   |   102.31   |  152.19  |
+| fir rust   |  0.17   |  33.25   |   46.95    |  67.66   |
+| fir sse4.1 |  0.17   |  12.06   |   15.78    |  20.67   |
+| fir avx2   |  0.17   |   9.32   |   11.55    |  15.32   |
 
 ### Resize grayscale image (U8) 4928x3279 => 852x567
 
@@ -108,11 +108,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  17.09  |  47.71   |   75.01    |  102.30  |
-| resize     |    -    |  16.23   |   32.66    |  55.36   |
-| fir rust   |  0.14   |  13.00   |   14.74    |  22.12   |
-| fir sse4.1 |  0.14   |  11.06   |   11.03    |  16.75   |
-| fir avx2   |  0.13   |   5.90   |    4.39    |   7.12   |
+| image      |  16.95  |  47.55   |   74.95    |  102.03  |
+| resize     |    -    |  16.25   |   32.60    |  55.48   |
+| fir rust   |  0.14   |  13.00   |   14.72    |  21.98   |
+| fir sse4.1 |  0.14   |  11.02   |   11.07    |  16.60   |
+| fir avx2   |  0.14   |   6.06   |    4.40    |   7.37   |
 
 ### Resize grayscale image with alpha channel (U8x2) 4928x3279 => 852x567
 
@@ -128,10 +128,10 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  18.96  |  62.93   |   112.37   |  149.47  |
-| fir rust   |  0.17   |  23.41   |   27.85    |  39.30   |
-| fir sse4.1 |  0.17   |  19.56   |   20.62    |  28.77   |
-| fir avx2   |  0.17   |  19.41   |   20.55    |  28.24   |
+| image      |  18.84  |  63.52   |   109.12   |  147.87  |
+| fir rust   |  0.15   |  23.03   |   28.14    |  39.05   |
+| fir sse4.1 |  0.15   |  18.68   |   20.35    |  27.82   |
+| fir avx2   |  0.15   |  10.31   |   11.68    |  14.19   |
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
 
@@ -145,11 +145,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  20.31  |  72.79   |   122.71   |  171.64  |
-| resize     |    -    |  47.23   |   90.10    |  132.22  |
-| fir rust   |  0.30   |  42.43   |   78.20    |  115.72  |
-| fir sse4.1 |  0.31   |  22.08   |   35.60    |  50.43   |
-| fir avx2   |  0.31   |  19.07   |   28.24    |  34.08   |
+| image      |  20.11  |  73.28   |   124.70   |  173.92  |
+| resize     |    -    |  47.19   |   89.87    |  132.28  |
+| fir rust   |  0.31   |  39.41   |   69.07    |  96.50   |
+| fir sse4.1 |  0.31   |  22.21   |   35.84    |  50.60   |
+| fir avx2   |  0.31   |  19.19   |   28.58    |  34.11   |
 
 ## Examples
 

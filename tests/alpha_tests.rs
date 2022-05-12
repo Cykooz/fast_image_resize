@@ -98,7 +98,12 @@ where
     }
 
     let dst_buffer = dst_image.buffer();
-    assert!(dst_buffer.iter().zip(res_buffer).all(|(&d, &r)| d == r));
+    assert!(
+        dst_buffer.iter().zip(res_buffer).all(|(&d, &r)| d == r),
+        "failed test: src={:?}, expected_result={:?}",
+        src_pixel,
+        result_pixel
+    );
 
     // Inplace
     let rows: Vec<&mut [P]> = src_pixels
@@ -120,7 +125,12 @@ where
     }
 
     let src_buffer = unsafe { src_pixels.align_to::<u8>().1 };
-    assert!(src_buffer.iter().zip(res_buffer).all(|(&s, &r)| s == r));
+    assert!(
+        src_buffer.iter().zip(res_buffer).all(|(&s, &r)| s == r),
+        "failed inplace test: src={:?}, expected_result={:?}",
+        src_pixel,
+        result_pixel
+    );
 }
 
 #[cfg(test)]

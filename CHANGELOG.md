@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+- Added optimisation for processing ``U8x2`` images by ``MulDiv`` with 
+  helps of ``SSE4.1`` and ``AVX2`` instructions.
+- Added optimisation for convolution of ``U16x2`` images with helps of 
+  ``AVX2`` instructions.
+
 ## [0.9.0] - 2022-05-01
 
 - Added support of new type of pixels ``PixelType::U8x2``.

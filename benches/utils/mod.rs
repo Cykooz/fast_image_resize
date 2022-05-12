@@ -34,6 +34,15 @@ pub fn get_big_rgba_image() -> RgbaImage {
     img.to_rgba8()
 }
 
+pub fn get_big_luma_alpha8_image() -> GrayAlphaImage {
+    let cur_dir = env::current_dir().unwrap();
+    let img = Reader::open(cur_dir.join("data/nasa-4928x3279-rgba.png"))
+        .unwrap()
+        .decode()
+        .unwrap();
+    img.to_luma_alpha8()
+}
+
 pub fn get_big_luma16_image() -> ImageBuffer<Luma<u16>, Vec<u16>> {
     let cur_dir = env::current_dir().unwrap();
     let img = Reader::open(cur_dir.join("data/nasa-4928x3279.png"))

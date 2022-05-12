@@ -26,6 +26,19 @@ fn get_big_source_image() -> Image<'static> {
     .unwrap()
 }
 
+fn get_big_u8x2_source_image() -> Image<'static> {
+    let img = utils::get_big_luma_alpha8_image();
+    let width = img.width();
+    let height = img.height();
+    Image::from_vec_u8(
+        NonZeroU32::new(width).unwrap(),
+        NonZeroU32::new(height).unwrap(),
+        img.into_raw(),
+        PixelType::U8x2,
+    )
+    .unwrap()
+}
+
 fn get_big_u8x3_source_image() -> Image<'static> {
     let img = utils::get_big_rgb_image();
     let width = img.width();
@@ -278,6 +291,26 @@ fn u16x3_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: 
     });
 }
 
+fn u8x2_lanczos3_bench(bench: &mut Bench, cpu_extensions: CpuExtensions, name: &str) {
+    let image = get_big_u8x2_source_image();
+    let mut res_image = Image::new(
+        NonZeroU32::new(NEW_WIDTH).unwrap(),
+        NonZeroU32::new(NEW_HEIGHT).unwrap(),
+        image.pixel_type(),
+    );
+    let src_image = image.view();
+    let mut dst_image = res_image.view_mut();
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(cpu_extensions);
+    }
+    bench.task(name, |task| {
+        task.iter(|| {
+            resizer.resize(&src_image, &mut dst_image).unwrap();
+        })
+    });
+}
+
 pub fn main() {
     // Pin process to #0 CPU core
     let mut cpu_set = nix::sched::CpuSet::new();
@@ -301,6 +334,8 @@ pub fn main() {
         {
             u8_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8 lanczos3 sse4.1");
             u8_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8 lanczos3 avx2");
+
+            u8x2_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8x2 lanczos3 avx2");
 
             u8x3_lanczos3_bench(&mut bench, CpuExtensions::Sse4_1, "u8x3 lanczos3 sse4.1");
             u8x3_lanczos3_bench(&mut bench, CpuExtensions::Avx2, "u8x3 lanczos3 avx2");

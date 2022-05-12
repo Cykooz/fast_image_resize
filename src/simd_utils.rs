@@ -1,5 +1,6 @@
 use std::arch::x86_64::*;
 use std::intrinsics::transmute;
+use std::ptr;
 
 use crate::pixels::{U8x3, U8x4};
 
@@ -11,6 +12,18 @@ pub unsafe fn loadu_si128<T>(buf: &[T], index: usize) -> __m128i {
 #[inline(always)]
 pub unsafe fn loadu_si256<T>(buf: &[T], index: usize) -> __m256i {
     _mm256_loadu_si256(buf.get_unchecked(index..).as_ptr() as *const __m256i)
+}
+
+#[inline(always)]
+pub unsafe fn loadl_epi16<T>(buf: &[T], index: usize) -> __m128i {
+    let mem_addr = buf.get_unchecked(index..).as_ptr() as *const i16;
+    _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, ptr::read_unaligned(mem_addr))
+}
+
+#[inline(always)]
+pub unsafe fn loadl_epi32<T>(buf: &[T], index: usize) -> __m128i {
+    let mem_addr = buf.get_unchecked(index..).as_ptr() as *const i32;
+    _mm_set_epi32(0, 0, 0, ptr::read_unaligned(mem_addr))
 }
 
 #[inline(always)]
@@ -51,4 +64,9 @@ pub unsafe fn ptr_i16_to_set1_epi32(buf: &[i16], index: usize) -> __m128i {
 #[inline(always)]
 pub unsafe fn ptr_i16_to_256set1_epi32(buf: &[i16], index: usize) -> __m256i {
     _mm256_set1_epi32(*(buf.get_unchecked(index..).as_ptr() as *const i32))
+}
+
+#[inline(always)]
+pub unsafe fn ptr_i16_to_256set1_epi64x(buf: &[i16], index: usize) -> __m256i {
+    _mm256_set1_epi64x(*(buf.get_unchecked(index..).as_ptr() as *const i64))
 }

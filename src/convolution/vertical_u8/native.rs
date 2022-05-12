@@ -1,4 +1,3 @@
-use crate::convolution::optimisations::NormalizerGuard16;
 use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
@@ -79,7 +78,7 @@ pub(crate) fn vert_convolution<T>(
 #[inline(always)]
 fn convolution_by_u8<T>(
     src_image: &TypedImageView<T>,
-    normalizer_guard: &NormalizerGuard16,
+    normalizer_guard: &optimisations::NormalizerGuard16,
     initial: i32,
     dst_components: &mut [u8],
     mut x_src: usize,

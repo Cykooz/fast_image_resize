@@ -11,21 +11,17 @@ impl Convolution for F32 {
         dst_image: TypedImageViewMut<Self>,
         offset: u32,
         coeffs: Coefficients,
-        cpu_extensions: CpuExtensions,
+        _cpu_extensions: CpuExtensions,
     ) {
-        match cpu_extensions {
-            _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
-        }
+        native::horiz_convolution(src_image, dst_image, offset, coeffs);
     }
 
     fn vert_convolution(
         src_image: TypedImageView<Self>,
         dst_image: TypedImageViewMut<Self>,
         coeffs: Coefficients,
-        cpu_extensions: CpuExtensions,
+        _cpu_extensions: CpuExtensions,
     ) {
-        match cpu_extensions {
-            _ => native::vert_convolution(src_image, dst_image, coeffs),
-        }
+        native::vert_convolution(src_image, dst_image, coeffs);
     }
 }

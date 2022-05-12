@@ -1,4 +1,5 @@
 //! Contains types of pixels.
+use std::fmt::Debug;
 use std::mem::size_of;
 use std::slice;
 
@@ -42,7 +43,7 @@ impl PixelType {
 /// Additional information about pixel type.
 pub trait Pixel
 where
-    Self: Copy + Sized,
+    Self: Copy + Sized + Debug,
 {
     /// Type of pixel components
     type Component;

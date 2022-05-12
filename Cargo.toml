@@ -14,8 +14,8 @@ exclude = ["/data"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-traits = "0.2.14"
-thiserror = "1.0.30"
+num-traits = "0.2.15"
+thiserror = "1.0.31"
 
 
 [dev-dependencies]

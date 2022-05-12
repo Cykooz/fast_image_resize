@@ -1,6 +1,5 @@
 use std::arch::x86_64::*;
 
-use crate::convolution::optimisations::{CoefficientsI16Chunk, NormalizerGuard16};
 use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
@@ -30,8 +29,8 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u8>>(
 pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: Pixel<Component = u8>>(
     src_img: &TypedImageView<T>,
     dst_row: &mut [T],
-    coeffs_chunk: CoefficientsI16Chunk,
-    normalizer_guard: &NormalizerGuard16,
+    coeffs_chunk: optimisations::CoefficientsI16Chunk,
+    normalizer_guard: &optimisations::NormalizerGuard16,
 ) {
     let mut xx: usize = 0;
     let src_width = src_img.width().get() as usize * T::components_count();
