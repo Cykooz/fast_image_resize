@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.9.2] - 2022-05-19
 
 - Added optimisation for convolution of `U8x2` images with helps of `SSE4.1`.
 

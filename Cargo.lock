@@ -386,7 +386,7 @@ dependencies = [
 
 [[package]]
 name = "fast_image_resize"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "glassbench",
  "image",
