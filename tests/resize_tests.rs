@@ -164,7 +164,7 @@ fn downscale_u8x2() {
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
-        // cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
@@ -186,7 +186,7 @@ fn upscale_u8x2() {
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
-        // cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {

@@ -1,23 +1,27 @@
+## [Unreleased] - ReleaseDate
+
+- Added optimisation for convolution of `U8x2` images with helps of `SSE4.1`.
+
 ## [0.9.1] - 2022-05-12
 
-- Added optimisation for processing ``U8x2`` images by ``MulDiv`` with 
-  helps of ``SSE4.1`` and ``AVX2`` instructions.
-- Added optimisation for convolution of ``U16x2`` images with helps of 
-  ``AVX2`` instructions.
+- Added optimisation for processing `U8x2` images by `MulDiv` with 
+  helps of `SSE4.1` and `AVX2` instructions.
+- Added optimisation for convolution of `U16x2` images with helps of 
+  `AVX2` instructions.
 
 ## [0.9.0] - 2022-05-01
 
-- Added support of new type of pixels ``PixelType::U8x2``.
-- Added into ``MulDiv`` support of images with pixel type ``U8x2``.
-- Added method ``Image::into_vec(self) -> Vec<u8>`` 
+- Added support of new type of pixels `PixelType::U8x2`.
+- Added into `MulDiv` support of images with pixel type `U8x2`.
+- Added method `Image::into_vec(self) -> Vec<u8>` 
   ([#7](https://github.com/Cykooz/fast_image_resize/pull/7)).
 
 ## [0.8.0] - 2022-03-23
 
-- Added optimisation for convolution of U16x3 images with helps of ``SSE4.1``
-  and ``AVX2`` instructions.
+- Added optimisation for convolution of U16x3 images with helps of `SSE4.1`
+  and `AVX2` instructions.
 - Added partial optimisation for convolution of U8 images with helps of 
-  ``SSE4.1`` instructions.
+  `SSE4.1` instructions.
 - Allowed to create an instance of `Image`, `ImageVew` and `ImageViewMut` 
   from a buffer larger than necessary 
   ([#5](https://github.com/Cykooz/fast_image_resize/issues/5)).
@@ -34,17 +38,17 @@
 ## [0.6.0] - 2022-01-12
 
 - Added optimisation of multiplying and dividing image by alpha channel with helps
-  of ``SSE4.1`` instructions.
+  of `SSE4.1` instructions.
 - Improved performance of dividing image by alpha channel without forced 
   SIMD instructions.
 - Breaking changes:
-  - Deleted variant `SSE2` from enum ``CpuExtensions``.
+  - Deleted variant `SSE2` from enum `CpuExtensions`.
 
 ## [0.5.3] - 2021-12-14
 
-- Added optimisation of convolution U8x3 images with helps of ``AVX2`` instructions.
-- Fixed error in code for convolution U8x4 images with helps of ``SSE4.1`` instructions.
-- Fixed error in code for convolution U8 images with helps of ``AVX2`` instructions.
+- Added optimisation of convolution U8x3 images with helps of `AVX2` instructions.
+- Fixed error in code for convolution U8x4 images with helps of `SSE4.1` instructions.
+- Fixed error in code for convolution U8 images with helps of `AVX2` instructions.
 
 ## [0.5.2] - 2021-11-26
 
@@ -70,16 +74,16 @@
 
 ## [0.4.1] - 2021-11-13
 
-- Added optimisation of convolution grayscale images (U8) with helps of ``AVX2`` instructions.
+- Added optimisation of convolution grayscale images (U8) with helps of `AVX2` instructions.
 
 ## [0.4.0] - 2021-10-23
 
 - Added support of new type of pixels `PixelType::U8` (without forced SIMD).
 - Breaking changes:
-  - ``ImageData`` renamed into ``Image``.
-  - ``SrcImageView`` and ``DstImageView`` replaced by ``ImageView``
-    and ``ImageViewMut``.
-  - Method ``Resizer.resize()`` now returns ``Result<(), DifferentTypesOfPixelsError>``.
+  - `ImageData` renamed into `Image`.
+  - `SrcImageView` and `DstImageView` replaced by `ImageView`
+    and `ImageViewMut`.
+  - Method `Resizer.resize()` now returns `Result<(), DifferentTypesOfPixelsError>`.
 
 ## [0.3.1] - 2021-10-09
 

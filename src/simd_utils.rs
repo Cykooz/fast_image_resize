@@ -67,6 +67,11 @@ pub unsafe fn ptr_i16_to_256set1_epi32(buf: &[i16], index: usize) -> __m256i {
 }
 
 #[inline(always)]
+pub unsafe fn ptr_i16_to_set1_epi64x(buf: &[i16], index: usize) -> __m128i {
+    _mm_set1_epi64x(*(buf.get_unchecked(index..).as_ptr() as *const i64))
+}
+
+#[inline(always)]
 pub unsafe fn ptr_i16_to_256set1_epi64x(buf: &[i16], index: usize) -> __m256i {
     _mm256_set1_epi64x(*(buf.get_unchecked(index..).as_ptr() as *const i64))
 }
