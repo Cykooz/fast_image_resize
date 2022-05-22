@@ -58,12 +58,17 @@ harness = false
 
 
 [[bench]]
-name = "bench_compare_u8"
+name = "bench_compare_l"
 harness = false
 
 
 [[bench]]
 name = "bench_compare_la"
+harness = false
+
+
+[[bench]]
+name = "bench_compare_l16"
 harness = false
 
 

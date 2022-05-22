@@ -30,6 +30,7 @@ pub trait PixelExt: Pixel {
             PixelType::U8x2 => "u8x2",
             PixelType::U8x3 => "u8x3",
             PixelType::U8x4 => "u8x4",
+            PixelType::U16 => "u16",
             PixelType::U16x3 => "u16x3",
             PixelType::I32 => "i32",
             PixelType::F32 => "f32",
@@ -106,6 +107,23 @@ impl PixelExt for U8x4 {
     }
 }
 
+impl PixelExt for U16 {
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        // img.to_luma16()
+        //     .as_raw()
+        //     .iter()
+        //     .enumerate()
+        //     .flat_map(|(i, &c)| ((i & 0xffff) as u16).to_le_bytes())
+        //     .collect()
+
+        img.to_luma16()
+            .as_raw()
+            .iter()
+            .flat_map(|&c| c.to_le_bytes())
+            .collect()
+    }
+}
+
 impl PixelExt for U16x3 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_rgb8()
@@ -148,6 +166,7 @@ pub fn save_result(image: &Image, name: &str) {
         PixelType::U8x2 => ColorType::La8,
         PixelType::U8x3 => ColorType::Rgb8,
         PixelType::U8x4 => ColorType::Rgba8,
+        PixelType::U16 => ColorType::L16,
         PixelType::U16x3 => ColorType::Rgb16,
         PixelType::U8 => ColorType::L8,
         _ => panic!("Unsupported type of pixels"),

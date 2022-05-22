@@ -11,7 +11,7 @@ use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer
 
 mod utils;
 
-pub fn bench_downscale_u8(bench: &mut Bench) {
+pub fn bench_downscale_l(bench: &mut Bench) {
     let src_image = utils::get_big_luma8_image();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
@@ -113,4 +113,4 @@ pub fn bench_downscale_u8(bench: &mut Bench) {
     utils::print_md_table(bench);
 }
 
-bench_main!("Compare resize of U8 image", bench_downscale_u8,);
+bench_main!("Compare resize of U8 image", bench_downscale_l,);

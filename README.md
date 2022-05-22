@@ -28,6 +28,10 @@ Supported pixel formats and available optimisations:
     - native Rust-code without forced SIMD
     - SSE4.1
     - AVX2
+- `U16` - one `u16` components per pixel (e.g. L16):
+    - native Rust-code without forced SIMD
+    - SSE4.1
+    - AVX2
 - `U16x3` - three `u16` components per pixel (e.g. RGB):
     - native Rust-code without forced SIMD
     - SSE4.1
@@ -45,7 +49,7 @@ Environment:
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.15.0)
 - Rust 1.61.0
-- fast_image_resize = "0.9.2"
+- fast_image_resize = "0.10.0"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
@@ -150,6 +154,24 @@ Pipeline:
 | fir rust   |  0.31   |  39.56   |   65.65    |  92.90   |
 | fir sse4.1 |  0.31   |  22.14   |   35.69    |  50.40   |
 | fir avx2   |  0.31   |  19.12   |   28.25    |  33.86   |
+
+### Resize grayscale image with 16 bits per pixel (U16) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into grayscale image with two bytes per pixel.
+- Numbers in table is mean duration of image resizing in milliseconds.
+
+|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|------------|:-------:|:--------:|:----------:|:--------:|
+| image      |  15.18  |  44.51   |   70.23    |  96.64   |
+| resize     |    -    |  15.41   |   30.13    |  52.52   |
+| fir rust   |  0.16   |  16.96   |   25.51    |  34.87   |
+| fir sse4.1 |  0.16   |   7.36   |   11.96    |  17.40   |
+| fir avx2   |  0.16   |  15.33   |   10.47    |  16.89   |
 
 ## Examples
 

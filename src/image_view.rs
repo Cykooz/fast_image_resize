@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 use std::slice;
 
 use crate::errors::{CropBoxError, ImageBufferError, ImageRowsError};
-use crate::pixels::{Pixel, PixelType, U16x3, U8x2, U8x3, U8x4, F32, I32, U8};
+use crate::pixels::{Pixel, PixelType, U16x3, U8x2, U8x3, U8x4, F32, I32, U16, U8};
 
 pub(crate) type RowMut<'a, 'b, T> = &'a mut &'b mut [T];
 pub(crate) type TwoRows<'a, T> = (&'a [T], &'a [T]);
@@ -31,6 +31,7 @@ pub enum ImageRows<'a> {
     U8x2(Vec<&'a [U8x2]>),
     U8x3(Vec<&'a [U8x3]>),
     U8x4(Vec<&'a [U8x4]>),
+    U16(Vec<&'a [U16]>),
     U16x3(Vec<&'a [U16x3]>),
     I32(Vec<&'a [I32]>),
     F32(Vec<&'a [F32]>),
@@ -47,6 +48,7 @@ impl<'a> ImageRows<'a> {
             ImageRows::U8x2(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::U8x3(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::U8x4(rows) => check_rows_count_and_size(width, height, rows),
+            ImageRows::U16(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::U16x3(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::I32(rows) => check_rows_count_and_size(width, height, rows),
             ImageRows::F32(rows) => check_rows_count_and_size(width, height, rows),
@@ -59,6 +61,7 @@ impl<'a> ImageRows<'a> {
             Self::U8x2(_) => PixelType::U8x2,
             Self::U8x3(_) => PixelType::U8x3,
             Self::U8x4(_) => PixelType::U8x4,
+            Self::U16(_) => PixelType::U16,
             Self::U16x3(_) => PixelType::U16x3,
             Self::I32(_) => PixelType::I32,
             Self::F32(_) => PixelType::F32,
@@ -91,6 +94,7 @@ pub enum ImageRowsMut<'a> {
     U8x2(Vec<&'a mut [U8x2]>),
     U8x3(Vec<&'a mut [U8x3]>),
     U8x4(Vec<&'a mut [U8x4]>),
+    U16(Vec<&'a mut [U16]>),
     U16x3(Vec<&'a mut [U16x3]>),
     I32(Vec<&'a mut [I32]>),
     F32(Vec<&'a mut [F32]>),
@@ -107,6 +111,7 @@ impl<'a> ImageRowsMut<'a> {
             Self::U8x2(rows) => check_rows_count_and_size(width, height, rows),
             Self::U8x3(rows) => check_rows_count_and_size(width, height, rows),
             Self::U8x4(rows) => check_rows_count_and_size(width, height, rows),
+            Self::U16(rows) => check_rows_count_and_size(width, height, rows),
             Self::U16x3(rows) => check_rows_count_and_size(width, height, rows),
             Self::I32(rows) => check_rows_count_and_size(width, height, rows),
             Self::F32(rows) => check_rows_count_and_size(width, height, rows),
@@ -119,6 +124,7 @@ impl<'a> ImageRowsMut<'a> {
             Self::U8x2(_) => PixelType::U8x2,
             Self::U8x3(_) => PixelType::U8x3,
             Self::U8x4(_) => PixelType::U8x4,
+            Self::U16(_) => PixelType::U16,
             Self::U16x3(_) => PixelType::U16x3,
             Self::I32(_) => PixelType::I32,
             Self::F32(_) => PixelType::F32,
@@ -189,6 +195,15 @@ impl<'a> ImageView<'a> {
             PixelType::U8x4 => {
                 let pixels = align_buffer_to(buffer)?;
                 ImageRows::U8x4(
+                    pixels
+                        .chunks_exact(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
+            PixelType::U16 => {
+                let pixels = align_buffer_to(buffer)?;
+                ImageRows::U16(
                     pixels
                         .chunks_exact(width.get() as usize)
                         .take(rows_count)
@@ -368,6 +383,19 @@ impl<'a> ImageView<'a> {
 
     pub(crate) fn u8x4_image(&self) -> Option<TypedImageView<U8x4>> {
         if let ImageRows::U8x4(ref rows) = self.rows {
+            Some(TypedImageView {
+                width: self.width,
+                height: self.height,
+                crop_box: self.crop_box,
+                rows,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn u16_image(&self) -> Option<TypedImageView<U16>> {
+        if let ImageRows::U16(ref rows) = self.rows {
             Some(TypedImageView {
                 width: self.width,
                 height: self.height,
@@ -597,6 +625,15 @@ impl<'a> ImageViewMut<'a> {
                         .collect(),
                 )
             }
+            PixelType::U16 => {
+                let pixels = align_buffer_to_mut(buffer)?;
+                ImageRowsMut::U16(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
             PixelType::U16x3 => {
                 let pixels = align_buffer_to_mut(buffer)?;
                 ImageRowsMut::U16x3(
@@ -682,6 +719,18 @@ impl<'a> ImageViewMut<'a> {
 
     pub(crate) fn u8x4_image<'s>(&'s mut self) -> Option<TypedImageViewMut<'s, 'a, U8x4>> {
         if let ImageRowsMut::U8x4(rows) = &mut self.rows {
+            Some(TypedImageViewMut {
+                width: self.width,
+                height: self.height,
+                rows,
+            })
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn u16_image<'s>(&'s mut self) -> Option<TypedImageViewMut<'s, 'a, U16>> {
+        if let ImageRowsMut::U16(rows) = &mut self.rows {
             Some(TypedImageViewMut {
                 width: self.width,
                 height: self.height,

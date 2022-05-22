@@ -9,6 +9,7 @@ pub enum PixelType {
     U8x2,
     U8x3,
     U8x4,
+    U16,
     U16x3,
     I32,
     F32,
@@ -21,6 +22,7 @@ impl PixelType {
             Self::U8 => 1,
             Self::U8x2 => 2,
             Self::U8x3 => 3,
+            Self::U16 => 2,
             Self::U16x3 => 6,
             _ => 4,
         }
@@ -33,6 +35,7 @@ impl PixelType {
             Self::U8x2 => unsafe { buffer.align_to::<U8x2>().0.is_empty() },
             Self::U8x3 => unsafe { buffer.align_to::<U8x3>().0.is_empty() },
             Self::U8x4 => unsafe { buffer.align_to::<U8x4>().0.is_empty() },
+            Self::U16 => unsafe { buffer.align_to::<U16>().0.is_empty() },
             Self::U16x3 => unsafe { buffer.align_to::<U16x3>().0.is_empty() },
             Self::I32 => unsafe { buffer.align_to::<I32>().0.is_empty() },
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
@@ -126,6 +129,14 @@ pixel_struct!(
     4,
     PixelType::U8x4,
     "Four bytes per pixel (RGBA, RGBx, CMYK and other)"
+);
+pixel_struct!(
+    U16,
+    u16,
+    u16,
+    1,
+    PixelType::U16,
+    "One `u16` component per pixel (e.g. L16)"
 );
 pixel_struct!(
     U16x3,
