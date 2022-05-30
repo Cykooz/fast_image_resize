@@ -6,12 +6,14 @@ use resize::px::RGBA;
 use resize::Pixel::RGBA8;
 use rgb::FromSlice;
 
-use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, PixelType, ResizeAlg, Resizer};
+use fast_image_resize::pixels::U8x4;
+use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, ResizeAlg, Resizer};
+use testing::PixelExt;
 
 mod utils;
 
 pub fn bench_downscale_rgba(bench: &mut Bench) {
-    let src_image = &utils::get_big_rgba_image();
+    let src_image = U8x4::load_big_image().to_rgba8();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
@@ -29,7 +31,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
         };
         bench.task(format!("image - {}", alg_name), |task| {
             task.iter(|| {
-                imageops::resize(src_image, new_width.get(), new_height.get(), filter);
+                imageops::resize(&src_image, new_width.get(), new_height.get(), filter);
             })
         });
     }
@@ -67,6 +69,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
     }
 
     // fast_image_resize crate;
+    let src_image_data = U8x4::load_big_src_image();
     let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
     #[cfg(target_arch = "x86_64")]
     {
@@ -82,20 +85,13 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };
-            let src_image_data = Image::from_vec_u8(
-                NonZeroU32::new(src_image.width()).unwrap(),
-                NonZeroU32::new(src_image.height()).unwrap(),
-                src_image.as_raw().clone(),
-                PixelType::U8x4,
-            )
-            .unwrap();
             let src_view = src_image_data.view();
             let mut premultiplied_src_image = Image::new(
                 NonZeroU32::new(src_image.width()).unwrap(),
                 NonZeroU32::new(src_image.height()).unwrap(),
-                PixelType::U8x4,
+                src_view.pixel_type(),
             );
-            let mut dst_image = Image::new(new_width, new_height, PixelType::U8x4);
+            let mut dst_image = Image::new(new_width, new_height, src_view.pixel_type());
             let mut dst_view = dst_image.view_mut();
             let mut mul_div = MulDiv::default();
 

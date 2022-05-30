@@ -6,13 +6,15 @@ use resize::Pixel::Gray16;
 use rgb::alt::Gray;
 use rgb::FromSlice;
 
+use fast_image_resize::pixels::U16;
 use fast_image_resize::Image;
-use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
+use fast_image_resize::{CpuExtensions, FilterType, ResizeAlg, Resizer};
+use testing::PixelExt;
 
 mod utils;
 
 pub fn bench_downscale_l16(bench: &mut Bench) {
-    let src_image = utils::get_big_luma16_image();
+    let src_image = U16::load_big_image().to_luma16();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
@@ -76,19 +78,9 @@ pub fn bench_downscale_l16(bench: &mut Bench) {
     }
     for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
-            let src_image_data = Image::from_vec_u8(
-                NonZeroU32::new(src_image.width()).unwrap(),
-                NonZeroU32::new(src_image.height()).unwrap(),
-                src_image
-                    .as_raw()
-                    .iter()
-                    .flat_map(|&c| c.to_le_bytes())
-                    .collect(),
-                PixelType::U16,
-            )
-            .unwrap();
+            let src_image_data = U16::load_big_src_image();
             let src_view = src_image_data.view();
-            let mut dst_image = Image::new(new_width, new_height, src_image_data.pixel_type());
+            let mut dst_image = Image::new(new_width, new_height, src_view.pixel_type());
             let mut dst_view = dst_image.view_mut();
 
             let resize_alg = match alg_name {

@@ -2,16 +2,18 @@ use std::num::NonZeroU32;
 
 use glassbench::*;
 use image::imageops;
-use resize::Pixel::{RGB16, RGB8};
+use resize::Pixel::RGB16;
 use rgb::{FromSlice, RGB};
 
+use fast_image_resize::pixels::U16x3;
 use fast_image_resize::Image;
-use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
+use fast_image_resize::{CpuExtensions, FilterType, ResizeAlg, Resizer};
+use testing::PixelExt;
 
 mod utils;
 
 pub fn bench_downscale_rgb16(bench: &mut Bench) {
-    let src_image = utils::get_big_rgb16_image();
+    let src_image = U16x3::load_big_image().to_rgb16();
     let new_width = NonZeroU32::new(852).unwrap();
     let new_height = NonZeroU32::new(567).unwrap();
 
@@ -68,11 +70,7 @@ pub fn bench_downscale_rgb16(bench: &mut Bench) {
     }
 
     // fast_image_resize crate;
-    let src_buffer: Vec<u8> = src_image
-        .as_raw()
-        .iter()
-        .flat_map(|&c| c.to_le_bytes())
-        .collect();
+    let src_image_data = U16x3::load_big_src_image();
     let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
     #[cfg(target_arch = "x86_64")]
     {
@@ -81,15 +79,8 @@ pub fn bench_downscale_rgb16(bench: &mut Bench) {
     }
     for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
-            let src_image_data = Image::from_vec_u8(
-                NonZeroU32::new(src_image.width()).unwrap(),
-                NonZeroU32::new(src_image.height()).unwrap(),
-                src_buffer.clone(),
-                PixelType::U16x3,
-            )
-            .unwrap();
             let src_view = src_image_data.view();
-            let mut dst_image = Image::new(new_width, new_height, src_image_data.pixel_type());
+            let mut dst_image = Image::new(new_width, new_height, src_view.pixel_type());
             let mut dst_view = dst_image.view_mut();
 
             let resize_alg = match alg_name {

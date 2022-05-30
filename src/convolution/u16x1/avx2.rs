@@ -106,113 +106,106 @@ unsafe fn horiz_convolution_four_rows(
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
-        let mut ll_sum = [_mm256_set1_epi64x(0); 4];
+        let mut ll_sum = [_mm256_set1_epi64x(0); 2];
 
         let mut coeffs = coeffs_chunk.values;
 
-        let coeffs_by_16 = coeffs.chunks_exact(16);
-        coeffs = coeffs_by_16.remainder();
-
-        for k in coeffs_by_16 {
-            let coeff0189_i64x4 =
-                _mm256_set_epi64x(k[9] as i64, k[8] as i64, k[1] as i64, k[0] as i64);
-            let coeff23ab_i64x2 =
-                _mm256_set_epi64x(k[11] as i64, k[10] as i64, k[3] as i64, k[2] as i64);
-            let coeff45cd_i64x2 =
-                _mm256_set_epi64x(k[13] as i64, k[12] as i64, k[5] as i64, k[4] as i64);
-            let coeff67ef_i64x2 =
-                _mm256_set_epi64x(k[15] as i64, k[14] as i64, k[7] as i64, k[6] as i64);
-
-            for i in 0..4 {
-                let mut sum = ll_sum[i];
-                let source = simd_utils::loadu_si256(s_rows[i], x);
-
-                let l0l1_i64x4 = _mm256_shuffle_epi8(source, l0l1_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l0l1_i64x4, coeff0189_i64x4));
-
-                let l2l3_i64x4 = _mm256_shuffle_epi8(source, l2l3_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l2l3_i64x4, coeff23ab_i64x2));
-
-                let l4l5_i64x4 = _mm256_shuffle_epi8(source, l4l5_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l4l5_i64x4, coeff45cd_i64x2));
-
-                let l6l7_i64x4 = _mm256_shuffle_epi8(source, l6l7_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l6l7_i64x4, coeff67ef_i64x2));
-
-                ll_sum[i] = sum;
-            }
-            x += 16;
-        }
-
         let coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();
-
         for k in coeffs_by_8 {
-            let coeff0145_i64x4 =
-                _mm256_set_epi64x(k[5] as i64, k[4] as i64, k[1] as i64, k[0] as i64);
-            let coeff2367_i64x2 =
-                _mm256_set_epi64x(k[7] as i64, k[6] as i64, k[3] as i64, k[2] as i64);
+            let coeff01_i64x4 =
+                _mm256_set_epi64x(k[1] as i64, k[0] as i64, k[1] as i64, k[0] as i64);
+            let coeff23_i64x4 =
+                _mm256_set_epi64x(k[3] as i64, k[2] as i64, k[3] as i64, k[2] as i64);
+            let coeff45_i64x4 =
+                _mm256_set_epi64x(k[5] as i64, k[4] as i64, k[5] as i64, k[4] as i64);
+            let coeff67_i64x4 =
+                _mm256_set_epi64x(k[7] as i64, k[6] as i64, k[7] as i64, k[6] as i64);
 
-            for i in 0..4 {
-                let mut sum = ll_sum[i];
+            for (i, sum) in ll_sum.iter_mut().enumerate() {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadl_epi64(s_rows[i], x + 4),
-                    simd_utils::loadl_epi64(s_rows[i], x),
+                    simd_utils::loadu_si128(s_rows[i * 2 + 1], x),
+                    simd_utils::loadu_si128(s_rows[i * 2], x),
                 );
 
                 let l0l1_i64x4 = _mm256_shuffle_epi8(source, l0l1_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l0l1_i64x4, coeff0145_i64x4));
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l0l1_i64x4, coeff01_i64x4));
 
                 let l2l3_i64x4 = _mm256_shuffle_epi8(source, l2l3_shuffle);
-                sum = _mm256_add_epi64(sum, _mm256_mul_epi32(l2l3_i64x4, coeff2367_i64x2));
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l2l3_i64x4, coeff23_i64x4));
 
-                ll_sum[i] = sum;
+                let l4l5_i64x4 = _mm256_shuffle_epi8(source, l4l5_shuffle);
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l4l5_i64x4, coeff45_i64x4));
+
+                let l6l7_i64x4 = _mm256_shuffle_epi8(source, l6l7_shuffle);
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l6l7_i64x4, coeff67_i64x4));
             }
             x += 8;
         }
 
         let coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();
-
         for k in coeffs_by_4 {
-            let coeff0123_i64x4 =
-                _mm256_set_epi64x(k[3] as i64, k[2] as i64, k[1] as i64, k[0] as i64);
+            let coeff01_i64x4 =
+                _mm256_set_epi64x(k[1] as i64, k[0] as i64, k[1] as i64, k[0] as i64);
+            let coeff23_i64x4 =
+                _mm256_set_epi64x(k[3] as i64, k[2] as i64, k[3] as i64, k[2] as i64);
 
-            for i in 0..4 {
+            for (i, sum) in ll_sum.iter_mut().enumerate() {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadl_epi32(s_rows[i], x + 2),
-                    simd_utils::loadl_epi32(s_rows[i], x),
+                    simd_utils::loadl_epi64(s_rows[i * 2 + 1], x),
+                    simd_utils::loadl_epi64(s_rows[i * 2], x),
                 );
 
                 let l0l1_i64x4 = _mm256_shuffle_epi8(source, l0l1_shuffle);
-                ll_sum[i] =
-                    _mm256_add_epi64(ll_sum[i], _mm256_mul_epi32(l0l1_i64x4, coeff0123_i64x4));
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l0l1_i64x4, coeff01_i64x4));
+
+                let l2l3_i64x4 = _mm256_shuffle_epi8(source, l2l3_shuffle);
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l2l3_i64x4, coeff23_i64x4));
             }
             x += 4;
         }
 
-        if !coeffs.is_empty() {
-            let mut coeffs_x3: [i64; 4] = [0; 4];
-            for (d_coeff, &s_coeff) in coeffs_x3.iter_mut().zip(coeffs) {
-                *d_coeff = s_coeff as i64;
-            }
-            let coeff0123_i64x4 = simd_utils::loadu_si256(&coeffs_x3, 0);
+        let coeffs_by_2 = coeffs.chunks_exact(2);
+        coeffs = coeffs_by_2.remainder();
+        for k in coeffs_by_2 {
+            let coeff01_i64x4 =
+                _mm256_set_epi64x(k[1] as i64, k[0] as i64, k[1] as i64, k[0] as i64);
 
-            for i in 0..4 {
-                let mut pixels: [i64; 4] = [0; 4];
-                let src_row = s_rows[i];
-                for (i, pixel) in pixels.iter_mut().take(coeffs.len()).enumerate() {
-                    *pixel = (*src_row.get_unchecked(x + i)).0 as i64;
-                }
-                let source = simd_utils::loadu_si256(&pixels, 0);
-                ll_sum[i] = _mm256_add_epi64(ll_sum[i], _mm256_mul_epi32(source, coeff0123_i64x4));
+            for (i, sum) in ll_sum.iter_mut().enumerate() {
+                let source = _mm256_set_m128i(
+                    simd_utils::loadl_epi32(s_rows[i * 2 + 1], x),
+                    simd_utils::loadl_epi32(s_rows[i * 2], x),
+                );
+
+                let l0l1_i64x4 = _mm256_shuffle_epi8(source, l0l1_shuffle);
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(l0l1_i64x4, coeff01_i64x4));
+            }
+            x += 2;
+        }
+
+        for &k in coeffs {
+            let coeff0_i64x4 = _mm256_set1_epi64x(k as i64);
+
+            for (i, sum) in ll_sum.iter_mut().enumerate() {
+                let source = _mm256_set_epi64x(
+                    0,
+                    s_rows[i * 2 + 1].get_unchecked(x).0 as i64,
+                    0,
+                    s_rows[i * 2].get_unchecked(x).0 as i64,
+                );
+                *sum = _mm256_add_epi64(*sum, _mm256_mul_epi32(source, coeff0_i64x4));
             }
         }
 
-        for i in 0..4 {
-            _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll_sum[i]);
-            let dst_pixel = d_rows[i].get_unchecked_mut(dst_x);
-            dst_pixel.0 = normalizer_guard.clip(ll_buf.iter().sum::<i64>() + half_error);
+        // ll_sum.into_iter().enumerate() executes slowly than ll_sum.iter().enumerate()
+        for (i, &ll) in ll_sum.iter().enumerate() {
+            _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll);
+            let dst_pixel = d_rows[i * 2].get_unchecked_mut(dst_x);
+            dst_pixel.0 = normalizer_guard.clip(ll_buf[0] + ll_buf[1] + half_error);
+
+            let dst_pixel = d_rows[i * 2 + 1].get_unchecked_mut(dst_x);
+            dst_pixel.0 = normalizer_guard.clip(ll_buf[2] + ll_buf[3] + half_error);
         }
     }
 }
@@ -277,15 +270,14 @@ unsafe fn horiz_convolution_one_row(
 
         let coeffs_by_16 = coeffs.chunks_exact(16);
         coeffs = coeffs_by_16.remainder();
-
         for k in coeffs_by_16 {
             let coeff0189_i64x4 =
                 _mm256_set_epi64x(k[9] as i64, k[8] as i64, k[1] as i64, k[0] as i64);
-            let coeff23ab_i64x2 =
+            let coeff23ab_i64x4 =
                 _mm256_set_epi64x(k[11] as i64, k[10] as i64, k[3] as i64, k[2] as i64);
-            let coeff45cd_i64x2 =
+            let coeff45cd_i64x4 =
                 _mm256_set_epi64x(k[13] as i64, k[12] as i64, k[5] as i64, k[4] as i64);
-            let coeff67ef_i64x2 =
+            let coeff67ef_i64x4 =
                 _mm256_set_epi64x(k[15] as i64, k[14] as i64, k[7] as i64, k[6] as i64);
 
             let source = simd_utils::loadu_si256(src_row, x);
@@ -294,24 +286,23 @@ unsafe fn horiz_convolution_one_row(
             ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l0l1_i64x4, coeff0189_i64x4));
 
             let l2l3_i64x4 = _mm256_shuffle_epi8(source, l2l3_shuffle);
-            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l2l3_i64x4, coeff23ab_i64x2));
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l2l3_i64x4, coeff23ab_i64x4));
 
             let l4l5_i64x4 = _mm256_shuffle_epi8(source, l4l5_shuffle);
-            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l4l5_i64x4, coeff45cd_i64x2));
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l4l5_i64x4, coeff45cd_i64x4));
 
             let l6l7_i64x4 = _mm256_shuffle_epi8(source, l6l7_shuffle);
-            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l6l7_i64x4, coeff67ef_i64x2));
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l6l7_i64x4, coeff67ef_i64x4));
 
             x += 16;
         }
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();
-
         for k in coeffs_by_8 {
             let coeff0145_i64x4 =
                 _mm256_set_epi64x(k[5] as i64, k[4] as i64, k[1] as i64, k[0] as i64);
-            let coeff2367_i64x2 =
+            let coeff2367_i64x4 =
                 _mm256_set_epi64x(k[7] as i64, k[6] as i64, k[3] as i64, k[2] as i64);
 
             let source = _mm256_set_m128i(
@@ -323,14 +314,13 @@ unsafe fn horiz_convolution_one_row(
             ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l0l1_i64x4, coeff0145_i64x4));
 
             let l2l3_i64x4 = _mm256_shuffle_epi8(source, l2l3_shuffle);
-            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l2l3_i64x4, coeff2367_i64x2));
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l2l3_i64x4, coeff2367_i64x4));
 
             x += 8;
         }
 
         let coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();
-
         for k in coeffs_by_4 {
             let coeff0123_i64x4 =
                 _mm256_set_epi64x(k[3] as i64, k[2] as i64, k[1] as i64, k[0] as i64);
@@ -346,20 +336,20 @@ unsafe fn horiz_convolution_one_row(
             x += 4;
         }
 
-        if !coeffs.is_empty() {
-            let mut coeffs_x4: [i64; 4] = [0; 4];
-            for (d_coeff, &s_coeff) in coeffs_x4.iter_mut().zip(coeffs) {
-                *d_coeff = s_coeff as i64;
-            }
-            let coeff0123_i64x4 = simd_utils::loadu_si256(&coeffs_x4, 0);
+        let coeffs_by_2 = coeffs.chunks_exact(2);
+        coeffs = coeffs_by_2.remainder();
+        for k in coeffs_by_2 {
+            let coeff01_i64x4 = _mm256_set_epi64x(0, 0, k[1] as i64, k[0] as i64);
+            let source = _mm256_set_m128i(_mm_setzero_si128(), simd_utils::loadl_epi32(src_row, x));
+            let l0l1_i64x4 = _mm256_shuffle_epi8(source, l0l1_shuffle);
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(l0l1_i64x4, coeff01_i64x4));
+            x += 2;
+        }
 
-            let mut pixels: [i64; 4] = [0; 4];
-            for pixel in pixels.iter_mut().take(coeffs.len()) {
-                *pixel = (*src_row.get_unchecked(x)).0 as i64;
-                x += 1;
-            }
-            let source = simd_utils::loadu_si256(&pixels, 0);
-            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(source, coeff0123_i64x4));
+        for &k in coeffs {
+            let coeff0_i64x4 = _mm256_set1_epi64x(k as i64);
+            let source = _mm256_set_epi64x(0, 0, 0, src_row.get_unchecked(x).0 as i64);
+            ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(source, coeff0_i64x4));
         }
 
         _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll_sum);

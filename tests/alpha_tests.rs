@@ -4,9 +4,6 @@ use fast_image_resize::pixels::{Pixel, U8x2, U8x4};
 use fast_image_resize::{
     CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
 };
-use utils::{cpu_ext_into_str, image_checksum};
-
-mod utils;
 
 trait IntoImageRows
 where
@@ -339,10 +336,13 @@ fn multiply_alpha_real_image_test() {
             .multiply_alpha(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
-        let name = format!("multiple_alpha-{}", cpu_ext_into_str(cpu_extensions));
-        utils::save_result(&dst_image, &name);
+        let name = format!(
+            "multiple_alpha-{}",
+            testing::cpu_ext_into_str(cpu_extensions)
+        );
+        testing::save_result(&dst_image, &name);
 
-        let checksum = image_checksum::<4>(dst_image.buffer());
+        let checksum = testing::image_checksum::<4>(dst_image.buffer());
         assert_eq!(checksum, [4177920, 4177920, 4177920, 8355840]);
     }
 }
@@ -379,10 +379,10 @@ fn divide_alpha_real_image_test() {
             .divide_alpha(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
-        let name = format!("divide_alpha-{}", cpu_ext_into_str(cpu_extensions));
-        utils::save_result(&dst_image, &name);
+        let name = format!("divide_alpha-{}", testing::cpu_ext_into_str(cpu_extensions));
+        testing::save_result(&dst_image, &name);
 
-        let checksum = image_checksum::<4>(dst_image.buffer());
+        let checksum = testing::image_checksum::<4>(dst_image.buffer());
         assert_eq!(checksum, [8292504, 8292504, 8292504, 8355840]);
     }
 }

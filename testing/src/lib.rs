@@ -38,11 +38,15 @@ pub trait PixelExt: Pixel {
         }
     }
 
-    fn load_big_src_image() -> Image<'static> {
-        let img = ImageReader::open("./data/nasa-4928x3279.png")
+    fn load_big_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4928x3279.png")
             .unwrap()
             .decode()
-            .unwrap();
+            .unwrap()
+    }
+
+    fn load_big_src_image() -> Image<'static> {
+        let img = Self::load_big_image();
         Image::from_vec_u8(
             NonZeroU32::new(img.width()).unwrap(),
             NonZeroU32::new(img.height()).unwrap(),
@@ -50,27 +54,17 @@ pub trait PixelExt: Pixel {
             Self::pixel_type(),
         )
         .unwrap()
+    }
+
+    fn load_small_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-852x567.png")
+            .unwrap()
+            .decode()
+            .unwrap()
     }
 
     fn load_small_src_image() -> Image<'static> {
-        let img = ImageReader::open("./data/nasa-852x567.png")
-            .unwrap()
-            .decode()
-            .unwrap();
-        Image::from_vec_u8(
-            NonZeroU32::new(img.width()).unwrap(),
-            NonZeroU32::new(img.height()).unwrap(),
-            Self::img_into_bytes(img),
-            Self::pixel_type(),
-        )
-        .unwrap()
-    }
-
-    fn load_small_rgba_image() -> Image<'static> {
-        let img = ImageReader::open("./data/nasa-852x567-rgba.png")
-            .unwrap()
-            .decode()
-            .unwrap();
+        let img = Self::load_small_image();
         Image::from_vec_u8(
             NonZeroU32::new(img.width()).unwrap(),
             NonZeroU32::new(img.height()).unwrap(),
@@ -102,6 +96,20 @@ impl PixelExt for U8x3 {
 }
 
 impl PixelExt for U8x4 {
+    fn load_big_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4928x3279-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn load_small_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-852x567-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_rgba8().into_raw()
     }
@@ -163,12 +171,12 @@ pub fn save_result(image: &Image, name: &str) {
     std::fs::create_dir_all("./data/result").unwrap();
     let path = format!("./data/result/{}.png", name);
     let color_type = match image.pixel_type() {
+        PixelType::U8 => ColorType::L8,
         PixelType::U8x2 => ColorType::La8,
         PixelType::U8x3 => ColorType::Rgb8,
         PixelType::U8x4 => ColorType::Rgba8,
         PixelType::U16 => ColorType::L16,
         PixelType::U16x3 => ColorType::Rgb16,
-        PixelType::U8 => ColorType::L8,
         _ => panic!("Unsupported type of pixels"),
     };
     image::save_buffer(

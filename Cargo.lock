@@ -395,6 +395,7 @@ dependencies = [
  "png",
  "resize",
  "rgb",
+ "testing",
  "thiserror",
 ]
 
@@ -695,9 +696,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e7e15d7610cce1d9752e137625f14e61a28cd45929b6e12e47b50fe154ee2e"
+checksum = "9702761c3935f8cc2f101793272e202c72b99da8f4224a19ddcf1279a6450bbf"
 dependencies = [
  "cc",
  "libc",
@@ -867,9 +868,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.11.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b10983b38c53aebdf33f542c6275b0f58a238129d00c4ae0e6fb59738d783ca"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
 
 [[package]]
 name = "open"
@@ -1194,6 +1195,14 @@ dependencies = [
  "minimad",
  "thiserror",
  "unicode-width",
+]
+
+[[package]]
+name = "testing"
+version = "0.1.0"
+dependencies = [
+ "fast_image_resize",
+ "image",
 ]
 
 [[package]]

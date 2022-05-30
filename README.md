@@ -12,34 +12,16 @@ about resizing with respect to color space._
 
 Supported pixel formats and available optimisations:
 
-- `U8` - one `u8` component per pixel:
-    - native Rust-code without forced SIMD
-    - SSE4.1 (partial)
-    - AVX2
-- `U8x2` - two `u8` components per pixel (e.g. LA):
-    - native Rust-code without forced SIMD
-    - SSE4.1
-    - AVX2
-- `U8x3` - three `u8` components per pixel (e.g. RGB):
-    - native Rust-code without forced SIMD
-    - SSE4.1 (partial)
-    - AVX2
-- `U8x4` - four `u8` components per pixel (RGBA, RGBx, CMYK and other):
-    - native Rust-code without forced SIMD
-    - SSE4.1
-    - AVX2
-- `U16` - one `u16` components per pixel (e.g. L16):
-    - native Rust-code without forced SIMD
-    - SSE4.1
-    - AVX2
-- `U16x3` - three `u16` components per pixel (e.g. RGB):
-    - native Rust-code without forced SIMD
-    - SSE4.1
-    - AVX2
-- `I32` - one `i32` component per pixel:
-    - native Rust-code without forced SIMD
-- `F32` - one `f32` component per pixel:
-    - native Rust-code without forced SIMD
+| Format | Description                                                | Native Rust | SSE4.1  | AVX2 |
+|:------:|:-----------------------------------------------------------|:-----------:|:-------:|:----:|
+|   U8   | One `u8` component per pixel (e.g. L)                      |      +      | partial |  +   |
+|  U8x2  | Two `u8` components per pixel (e.g. LA)                    |      +      |    +    |  +   |
+|  U8x3  | Three `u8` components per pixel (e.g. RGB)                 |      +      | partial |  +   |
+|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)     |      +      |    +    |  +   |
+|  U16   | One `u16` components per pixel (e.g. L16)                  |      +      |    +    |  +   |
+| U16x3  | Three `u16` components per pixel (e.g. RGB16)              |      +      |    +    |  +   |
+|  I32   | One `i32` component per pixel                              |      +      |    -    |  -   |
+|  F32   | One `f32` component per pixel                              |      +      |    -    |  -   |
 
 ## Benchmarks
 
@@ -49,13 +31,13 @@ Environment:
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.15.0)
 - Rust 1.61.0
-- fast_image_resize = "0.10.0"
+- fast_image_resize = "0.9.3"
 - glassbench = "0.3.1"
 - `rustflags = ["-C", "llvm-args=-x86-branches-within-32B-boundaries"]`
 
 Other Rust libraries used to compare of resizing speed:
 
-- image = "0.24.1" (<https://crates.io/crates/image>)
+- image = "0.24.2" (<https://crates.io/crates/image>)
 - resize = "0.7.2" (<https://crates.io/crates/resize>)
 
 Resize algorithms:
