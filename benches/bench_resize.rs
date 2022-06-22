@@ -100,6 +100,7 @@ pub fn main() {
             PixelType::U8x3,
             PixelType::U8x4,
             PixelType::U16,
+            PixelType::U16x2,
             PixelType::U16x3,
             PixelType::I32,
         ];
@@ -117,6 +118,7 @@ pub fn main() {
                     PixelType::U8x3 => U8x3::load_big_src_image(),
                     PixelType::U8x4 => U8x4::load_big_src_image(),
                     PixelType::U16 => U16::load_big_src_image(),
+                    PixelType::U16x2 => U16x2::load_big_src_image(),
                     PixelType::U16x3 => U16x3::load_big_src_image(),
                     PixelType::I32 => I32::load_big_src_image(),
                     _ => unreachable!(),

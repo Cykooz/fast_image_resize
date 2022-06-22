@@ -1,3 +1,8 @@
+## [Unreleased] - ReleaseDate
+
+- Added support of new type of pixels `PixelType::U16x2`
+  (e.g. luma with alpha channel).
+
 ## [0.9.3] - 2022-05-31
 
 - Added support of new type of pixels `PixelType::U16`.

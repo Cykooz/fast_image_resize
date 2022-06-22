@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use crate::image_view::{ImageRows, ImageRowsMut, TypedImageView, TypedImageViewMut};
-use crate::pixels::{Pixel, PixelType, U16x3, U8x2, U8x3, U8x4, F32, I32, U16, U8};
+use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U8x2, U8x3, U8x4, F32, I32, U16, U8};
 use crate::{ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]
@@ -23,16 +23,7 @@ impl<'a> Image<'a> {
     /// Create empty image with given dimensions and pixel type.
     pub fn new(width: NonZeroU32, height: NonZeroU32, pixel_type: PixelType) -> Self {
         let pixels_count = (width.get() * height.get()) as usize;
-        let pixels = match pixel_type {
-            PixelType::U8x2 => PixelsContainer::VecU8(vec![0; pixels_count * U8x2::size()]),
-            PixelType::U8x3 => PixelsContainer::VecU8(vec![0; pixels_count * U8x3::size()]),
-            PixelType::U16 => PixelsContainer::VecU8(vec![0; pixels_count * U16::size()]),
-            PixelType::U16x3 => PixelsContainer::VecU8(vec![0; pixels_count * U16x3::size()]),
-            PixelType::U8x4 => PixelsContainer::VecU8(vec![0; pixels_count * U8x4::size()]),
-            PixelType::I32 => PixelsContainer::VecU8(vec![0; pixels_count * I32::size()]),
-            PixelType::F32 => PixelsContainer::VecU8(vec![0; pixels_count * F32::size()]),
-            PixelType::U8 => PixelsContainer::VecU8(vec![0; pixels_count]),
-        };
+        let pixels = PixelsContainer::VecU8(vec![0; pixels_count * pixel_type.size()]);
         Self {
             width,
             height,
@@ -165,6 +156,15 @@ impl<'a> Image<'a> {
                         .collect(),
                 )
             }
+            PixelType::U16x2 => {
+                let pixels = unsafe { buffer.align_to::<U16x2>().1 };
+                ImageRows::U16x2(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
             PixelType::U16x3 => {
                 let pixels = unsafe { buffer.align_to::<U16x3>().1 };
                 ImageRows::U16x3(
@@ -243,6 +243,15 @@ impl<'a> Image<'a> {
             PixelType::U16 => {
                 let pixels = unsafe { buffer.align_to_mut::<U16>().1 };
                 ImageRowsMut::U16(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
+            PixelType::U16x2 => {
+                let pixels = unsafe { buffer.align_to_mut::<U16x2>().1 };
+                ImageRowsMut::U16x2(
                     pixels
                         .chunks_exact_mut(width.get() as usize)
                         .take(rows_count)

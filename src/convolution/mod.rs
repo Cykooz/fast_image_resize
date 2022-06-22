@@ -13,6 +13,7 @@ mod filters;
 mod i32x1;
 mod optimisations;
 mod u16x1;
+mod u16x2;
 mod u16x3;
 mod u8x1;
 mod u8x2;

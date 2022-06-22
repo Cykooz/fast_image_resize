@@ -25,10 +25,10 @@ thiserror = "1.0.31"
 
 
 [dev-dependencies]
-glassbench = "0.3.1"
+glassbench = "0.3.3"
 image = "0.24.2"
-resize = "0.7.2"
-rgb = "0.8.32"
+resize = "0.7.3"
+rgb = "0.8.33"
 png = "0.17.5"
 nix = { version = "0.24.1", default-features = false, features = ["sched"] }
 testing = {path= "testing" }
@@ -74,6 +74,11 @@ name = "bench_compare_l16"
 harness = false
 
 
+[[bench]]
+name = "bench_compare_la16"
+harness = false
+
+
 [profile.dev.package.'*']
 opt-level = 3
 
@@ -83,6 +88,10 @@ opt-level = 3
 lto = true
 opt-level = 3
 codegen-units = 1
+
+
+[profile.test]
+opt-level = 3
 
 
 [package.metadata.release]

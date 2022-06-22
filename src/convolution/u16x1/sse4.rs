@@ -109,17 +109,17 @@ unsafe fn horiz_convolution_four_rows(
                 let mut sum = ll_sum[i];
                 let source = simd_utils::loadu_si128(s_rows[i], x);
 
-                let l0l1_i64x4 = _mm_shuffle_epi8(source, l0l1_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l0l1_i64x4, coeff01_i64x2));
+                let l0l1_i64x2 = _mm_shuffle_epi8(source, l0l1_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l0l1_i64x2, coeff01_i64x2));
 
-                let l2l3_i64x4 = _mm_shuffle_epi8(source, l2l3_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l2l3_i64x4, coeff23_i64x2));
+                let l2l3_i64x2 = _mm_shuffle_epi8(source, l2l3_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l2l3_i64x2, coeff23_i64x2));
 
-                let l4l5_i64x4 = _mm_shuffle_epi8(source, l4l5_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l4l5_i64x4, coeff45_i64x2));
+                let l4l5_i64x2 = _mm_shuffle_epi8(source, l4l5_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l4l5_i64x2, coeff45_i64x2));
 
-                let l6l7_i64x4 = _mm_shuffle_epi8(source, l6l7_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l6l7_i64x4, coeff67_i64x2));
+                let l6l7_i64x2 = _mm_shuffle_epi8(source, l6l7_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l6l7_i64x2, coeff67_i64x2));
 
                 ll_sum[i] = sum;
             }
@@ -137,11 +137,11 @@ unsafe fn horiz_convolution_four_rows(
                 let mut sum = ll_sum[i];
                 let source = simd_utils::loadl_epi64(s_rows[i], x);
 
-                let l0l1_i64x4 = _mm_shuffle_epi8(source, l0l1_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l0l1_i64x4, coeff01_i64x2));
+                let l0l1_i64x2 = _mm_shuffle_epi8(source, l0l1_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l0l1_i64x2, coeff01_i64x2));
 
-                let l2l3_i64x4 = _mm_shuffle_epi8(source, l2l3_shuffle);
-                sum = _mm_add_epi64(sum, _mm_mul_epi32(l2l3_i64x4, coeff23_i64x2));
+                let l2l3_i64x2 = _mm_shuffle_epi8(source, l2l3_shuffle);
+                sum = _mm_add_epi64(sum, _mm_mul_epi32(l2l3_i64x2, coeff23_i64x2));
 
                 ll_sum[i] = sum;
             }

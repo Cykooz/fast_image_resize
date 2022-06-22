@@ -6,6 +6,8 @@ use fast_image_resize::MulDiv;
 use fast_image_resize::PixelType;
 use fast_image_resize::{CpuExtensions, Image};
 
+mod utils;
+
 // Multiplies by alpha
 
 fn get_src_image(
@@ -27,6 +29,7 @@ fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: Cp
     let pixel: &[u8] = match pixel_type {
         PixelType::U8x4 => &[255, 128, 0, 128],
         PixelType::U8x2 => &[255, 128],
+        PixelType::U16x2 => &[255, 255, 0, 128],
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -56,6 +59,7 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
     let pixel: &[u8] = match pixel_type {
         PixelType::U8x4 => &[128, 64, 0, 128],
         PixelType::U8x2 => &[128, 128],
+        PixelType::U16x2 => &[0, 128, 0, 128],
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -79,40 +83,26 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
     );
 }
 
-pub fn main() {
-    // Pin process to #0 CPU core
-    let mut cpu_set = nix::sched::CpuSet::new();
-    cpu_set.set(0).unwrap();
-    nix::sched::sched_setaffinity(nix::unistd::Pid::from_raw(0), &cpu_set).unwrap();
-
-    use glassbench::*;
-    let name = env!("CARGO_CRATE_NAME");
-    let cmd = Command::read();
-    if cmd.include_bench(name) {
-        let mut bench = create_bench(name, "Alpha", &cmd);
-        #[cfg(target_arch = "x86_64")]
-        {
-            multiplies_alpha(&mut bench, PixelType::U8x4, CpuExtensions::Avx2);
-            multiplies_alpha(&mut bench, PixelType::U8x4, CpuExtensions::Sse4_1);
-            multiplies_alpha(&mut bench, PixelType::U8x2, CpuExtensions::Avx2);
-            multiplies_alpha(&mut bench, PixelType::U8x2, CpuExtensions::Sse4_1);
+fn bench_alpha(bench: &mut Bench) {
+    let pixel_types = [PixelType::U8x4, PixelType::U8x2, PixelType::U16x2];
+    let mut cpu_extensions = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions.push(CpuExtensions::Sse4_1);
+        cpu_extensions.push(CpuExtensions::Avx2);
+    }
+    for pixel_type in pixel_types {
+        for &extensions in cpu_extensions.iter() {
+            println!("Mul {:?} {:?}", pixel_type, extensions);
+            multiplies_alpha(bench, pixel_type, extensions);
         }
-        multiplies_alpha(&mut bench, PixelType::U8x4, CpuExtensions::None);
-        multiplies_alpha(&mut bench, PixelType::U8x2, CpuExtensions::None);
-
-        #[cfg(target_arch = "x86_64")]
-        {
-            divides_alpha(&mut bench, PixelType::U8x4, CpuExtensions::Avx2);
-            divides_alpha(&mut bench, PixelType::U8x4, CpuExtensions::Sse4_1);
-            divides_alpha(&mut bench, PixelType::U8x2, CpuExtensions::Avx2);
-            divides_alpha(&mut bench, PixelType::U8x2, CpuExtensions::Sse4_1);
+    }
+    for pixel_type in pixel_types {
+        for &extensions in cpu_extensions.iter() {
+            println!("Div {:?} {:?}", pixel_type, extensions);
+            divides_alpha(bench, pixel_type, extensions);
         }
-        divides_alpha(&mut bench, PixelType::U8x4, CpuExtensions::None);
-        divides_alpha(&mut bench, PixelType::U8x2, CpuExtensions::None);
-        if let Err(e) = after_bench(&mut bench, &cmd) {
-            eprintln!("{:?}", e);
-        }
-    } else {
-        println!("skipping bench {:?}", &name);
     }
 }
+
+bench_main!("Bench Alpha", bench_alpha,);

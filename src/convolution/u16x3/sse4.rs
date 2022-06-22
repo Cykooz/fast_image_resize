@@ -6,9 +6,6 @@ use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut
 use crate::pixels::U16x3;
 use crate::simd_utils;
 
-// This code is based on C-implementation from Pillow-SIMD package for Python
-// https://github.com/uploadcare/pillow-simd
-
 #[inline]
 pub(crate) fn horiz_convolution(
     src_image: TypedImageView<U16x3>,

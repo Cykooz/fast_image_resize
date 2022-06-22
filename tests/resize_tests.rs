@@ -157,7 +157,7 @@ fn upscale_u8() {
 fn downscale_u8x2() {
     type P = U8x2;
     let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_checksum::<2>(&buffer), [2920348, 11054250]);
+    assert_eq!(testing::image_checksum::<2>(&buffer), [2920348, 6121802]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -168,7 +168,7 @@ fn downscale_u8x2() {
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(testing::image_checksum::<2>(&buffer), [2923557, 11054250]);
+        assert_eq!(testing::image_checksum::<2>(&buffer), [2923557, 6122818]);
     }
 }
 
@@ -178,7 +178,7 @@ fn upscale_u8x2() {
     let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
     assert_eq!(
         testing::image_checksum::<2>(&buffer),
-        [1148754010, 4269569040]
+        [1146218632, 2364895380]
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -192,7 +192,7 @@ fn upscale_u8x2() {
             upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
         assert_eq!(
             testing::image_checksum::<2>(&buffer),
-            [1148811406, 4269569040]
+            [1146283728, 2364890194]
         );
     }
 }
@@ -346,6 +346,56 @@ fn upscale_u16() {
             [295246940755],
             "Error in checksum for {:?}",
             cpu_extensions
+        );
+    }
+}
+
+#[test]
+fn downscale_u16x2() {
+    type P = U16x2;
+    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    assert_eq!(
+        testing::image_u16_checksum::<2>(&buffer),
+        [750529436, 1573303114]
+    );
+
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    for cpu_extensions in cpu_extensions_vec {
+        let buffer =
+            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
+        assert_eq!(
+            testing::image_u16_checksum::<2>(&buffer),
+            [751401243, 1573563971]
+        );
+    }
+}
+
+#[test]
+fn upscale_u16x2() {
+    type P = U16x2;
+    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
+    assert_eq!(
+        testing::image_u16_checksum::<2>(&buffer),
+        [294578188424, 607778112660]
+    );
+
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    for cpu_extensions in cpu_extensions_vec {
+        let buffer =
+            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
+        assert_eq!(
+            testing::image_u16_checksum::<2>(&buffer),
+            [294597368766, 607776760273]
         );
     }
 }

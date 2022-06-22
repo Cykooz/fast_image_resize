@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use fast_image_resize::pixels::{Pixel, U8x2, U8x4};
+use fast_image_resize::pixels::{Pixel, U16x2, U8x2, U8x4};
 use fast_image_resize::{
     CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
 };
@@ -34,6 +34,16 @@ impl IntoImageRows for U8x4 {
     }
 }
 
+impl IntoImageRows for U16x2 {
+    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
+        ImageRows::U16x2(rows)
+    }
+
+    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
+        ImageRowsMut::U16x2(rows)
+    }
+}
+
 const fn p2(l: u8, a: u8) -> U8x2 {
     U8x2(u16::from_le_bytes([l, a]))
 }
@@ -61,10 +71,7 @@ where
     let res_pixels: Vec<P> = vec![result_pixel; src_size];
     let res_buffer = unsafe { res_pixels.align_to::<u8>().1 };
 
-    let rows: Vec<&[P]> = src_pixels
-        .chunks_exact(width as usize)
-        .map(|r| r.as_ref())
-        .collect();
+    let rows: Vec<&[P]> = src_pixels.chunks_exact(width as usize).collect();
 
     let src_image_view = ImageView::new(
         NonZeroU32::new(width).unwrap(),
@@ -103,10 +110,7 @@ where
     );
 
     // Inplace
-    let rows: Vec<&mut [P]> = src_pixels
-        .chunks_exact_mut(width as usize)
-        .map(|r| r.as_mut())
-        .collect();
+    let rows: Vec<&mut [P]> = src_pixels.chunks_exact_mut(width as usize).collect();
     let mut image_view = ImageViewMut::new(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
@@ -216,6 +220,58 @@ mod multiply_alpha_u8x2 {
     }
 }
 
+#[cfg(test)]
+mod multiply_alpha_u16x2 {
+    use super::*;
+    use fast_image_resize::pixels::U16x2;
+
+    const SRC_PIXELS: [U16x2; 9] = [
+        U16x2([0xffff, 0x8000]),
+        U16x2([0x8000, 0x8000]),
+        U16x2([0, 0x8000]),
+        U16x2([0xffff, 0xffff]),
+        U16x2([0x8000, 0xffff]),
+        U16x2([0, 0xffff]),
+        U16x2([0xffff, 0]),
+        U16x2([0x8000, 0]),
+        U16x2([0, 0]),
+    ];
+    const RES_PIXELS: [U16x2; 9] = [
+        U16x2([0x8000, 0x8000]),
+        U16x2([0x4000, 0x8000]),
+        U16x2([0, 0x8000]),
+        U16x2([0xffff, 0xffff]),
+        U16x2([0x8000, 0xffff]),
+        U16x2([0, 0xffff]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+    ];
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn avx2_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn sse4_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
+        }
+    }
+
+    #[test]
+    fn native_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
+        }
+    }
+}
+
 // Divides by alpha
 
 #[cfg(test)]
@@ -294,6 +350,69 @@ mod divide_alpha_u8x2 {
     #[test]
     fn sse4_test() {
         for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
+        }
+    }
+
+    #[test]
+    fn native_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
+        }
+    }
+}
+
+#[cfg(test)]
+mod divide_alpha_u16x2 {
+    use super::*;
+
+    const OPER: Oper = Oper::Div;
+    const SRC_PIXELS: [U16x2; 9] = [
+        U16x2([0x8000, 0x8000]),
+        U16x2([0x4000, 0x8000]),
+        U16x2([0, 0x8000]),
+        U16x2([0xffff, 0xffff]),
+        U16x2([0x8000, 0xffff]),
+        U16x2([0, 0xffff]),
+        U16x2([0xffff, 0]),
+        U16x2([0x8000, 0]),
+        U16x2([0, 0]),
+    ];
+    const RES_PIXELS: [U16x2; 9] = [
+        U16x2([0xffff, 0x8000]),
+        U16x2([0x7fff, 0x8000]),
+        U16x2([0, 0x8000]),
+        U16x2([0xffff, 0xffff]),
+        U16x2([0x8000, 0xffff]),
+        U16x2([0, 0xffff]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+    ];
+    const SIMD_RES_PIXELS: [U16x2; 9] = [
+        U16x2([0xffff, 0x8000]),
+        U16x2([0x8000, 0x8000]),
+        U16x2([0, 0x8000]),
+        U16x2([0xffff, 0xffff]),
+        U16x2([0x8000, 0xffff]),
+        U16x2([0, 0xffff]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+        U16x2([0, 0]),
+    ];
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn avx2_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn sse4_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
             mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
         }
     }
