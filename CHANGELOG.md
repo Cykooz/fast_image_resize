@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.9.5] - 2022-06-22
 
 - Fixed README.md
 
