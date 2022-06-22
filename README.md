@@ -16,16 +16,17 @@ about resizing with respect to color space._
 
 Supported pixel formats and available optimisations:
 
-| Format | Description                                                | Native Rust | SSE4.1  | AVX2 |
-|:------:|:-----------------------------------------------------------|:-----------:|:-------:|:----:|
-|   U8   | One `u8` component per pixel (e.g. L)                      |      +      | partial |  +   |
-|  U8x2  | Two `u8` components per pixel (e.g. LA)                    |      +      |    +    |  +   |
-|  U8x3  | Three `u8` components per pixel (e.g. RGB)                 |      +      | partial |  +   |
-|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)     |      +      |    +    |  +   |
-|  U16   | One `u16` components per pixel (e.g. L16)                  |      +      |    +    |  +   |
-| U16x3  | Three `u16` components per pixel (e.g. RGB16)              |      +      |    +    |  +   |
-|  I32   | One `i32` component per pixel                              |      +      |    -    |  -   |
-|  F32   | One `f32` component per pixel                              |      +      |    -    |  -   |
+| Format | Description                                            | Native Rust | SSE4.1  | AVX2 |
+|:------:|:-------------------------------------------------------|:-----------:|:-------:|:----:|
+|   U8   | One `u8` component per pixel (e.g. L)                  |      +      | partial |  +   |
+|  U8x2  | Two `u8` components per pixel (e.g. LA)                |      +      |    +    |  +   |
+|  U8x3  | Three `u8` components per pixel (e.g. RGB)             |      +      | partial |  +   |
+|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK) |      +      |    +    |  +   |
+|  U16   | One `u16` components per pixel (e.g. L16)              |      +      |    +    |  +   |
+| U16x2  | Two `u16` components per pixel (e.g. LA16)             |      +      |    +    |  +   |
+| U16x3  | Three `u16` components per pixel (e.g. RGB16)          |      +      |    +    |  +   |
+|  I32   | One `i32` component per pixel                          |      +      |    -    |  -   |
+|  F32   | One `f32` component per pixel                          |      +      |    -    |  -   |
 
 ## Some benchmarks
 

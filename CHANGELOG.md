@@ -1,3 +1,7 @@
+## [Unreleased] - ReleaseDate
+
+- Fixed README.md
+
 ## [0.9.4] - 2022-06-22
 
 - Added support of new type of pixels `PixelType::U16x2`
