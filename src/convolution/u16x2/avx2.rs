@@ -248,7 +248,7 @@ unsafe fn horiz_convolution_one_row(
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
-        let mut ll_sum = _mm256_set1_epi64x(0);
+        let mut ll_sum = _mm256_setzero_si256();
         let mut coeffs = coeffs_chunk.values;
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
@@ -331,6 +331,6 @@ unsafe fn horiz_convolution_one_row(
         dst_pixel.0 = [
             normalizer_guard.clip(ll_buf[0] + ll_buf[2] + half_error),
             normalizer_guard.clip(ll_buf[1] + ll_buf[3] + half_error),
-        ]
+        ];
     }
 }

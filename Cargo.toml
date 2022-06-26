@@ -60,6 +60,11 @@ harness = false
 
 
 [[bench]]
+name = "bench_compare_rgba16"
+harness = false
+
+
+[[bench]]
 name = "bench_compare_l"
 harness = false
 

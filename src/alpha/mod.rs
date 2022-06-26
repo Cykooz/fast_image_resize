@@ -7,6 +7,7 @@ use crate::CpuExtensions;
 mod common;
 pub(crate) mod errors;
 mod u16x2;
+mod u16x4;
 mod u8x2;
 mod u8x4;
 

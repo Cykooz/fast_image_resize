@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use crate::image_view::{ImageRows, ImageRowsMut, TypedImageView, TypedImageViewMut};
-use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U8x2, U8x3, U8x4, F32, I32, U16, U8};
+use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32, U16, U8};
 use crate::{ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]
@@ -174,6 +174,15 @@ impl<'a> Image<'a> {
                         .collect(),
                 )
             }
+            PixelType::U16x4 => {
+                let pixels = unsafe { buffer.align_to::<U16x4>().1 };
+                ImageRows::U16x4(
+                    pixels
+                        .chunks_exact(self.width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
             PixelType::I32 => {
                 let pixels = unsafe { buffer.align_to::<I32>().1 };
                 ImageRows::I32(
@@ -261,6 +270,15 @@ impl<'a> Image<'a> {
             PixelType::U16x3 => {
                 let pixels = unsafe { buffer.align_to_mut::<U16x3>().1 };
                 ImageRowsMut::U16x3(
+                    pixels
+                        .chunks_exact_mut(width.get() as usize)
+                        .take(rows_count)
+                        .collect(),
+                )
+            }
+            PixelType::U16x4 => {
+                let pixels = unsafe { buffer.align_to_mut::<U16x4>().1 };
+                ImageRowsMut::U16x4(
                     pixels
                         .chunks_exact_mut(width.get() as usize)
                         .take(rows_count)

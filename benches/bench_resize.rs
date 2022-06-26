@@ -102,6 +102,7 @@ pub fn main() {
             PixelType::U16,
             PixelType::U16x2,
             PixelType::U16x3,
+            PixelType::U16x4,
             PixelType::I32,
         ];
         let mut cpu_extensions = vec![CpuExtensions::None];
@@ -120,6 +121,7 @@ pub fn main() {
                     PixelType::U16 => U16::load_big_src_image(),
                     PixelType::U16x2 => U16x2::load_big_src_image(),
                     PixelType::U16x3 => U16x3::load_big_src_image(),
+                    PixelType::U16x4 => U16x4::load_big_src_image(),
                     PixelType::I32 => I32::load_big_src_image(),
                     _ => unreachable!(),
                 };

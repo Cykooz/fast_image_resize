@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use fast_image_resize::pixels::{Pixel, U16x2, U8x2, U8x4};
+use fast_image_resize::pixels::{Pixel, U16x2, U16x4, U8x2, U8x4};
 use fast_image_resize::{
     CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
 };
@@ -41,6 +41,16 @@ impl IntoImageRows for U16x2 {
 
     fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
         ImageRowsMut::U16x2(rows)
+    }
+}
+
+impl IntoImageRows for U16x4 {
+    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
+        ImageRows::U16x4(rows)
+    }
+
+    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
+        ImageRowsMut::U16x4(rows)
     }
 }
 
@@ -272,6 +282,46 @@ mod multiply_alpha_u16x2 {
     }
 }
 
+#[cfg(test)]
+mod multiply_alpha_u16x4 {
+    use super::*;
+    use fast_image_resize::pixels::U16x4;
+
+    const SRC_PIXELS: [U16x4; 3] = [
+        U16x4([0xffff, 0x8000, 0, 0x8000]),
+        U16x4([0xffff, 0x8000, 0, 0xffff]),
+        U16x4([0xffff, 0x8000, 0, 0]),
+    ];
+    const RES_PIXELS: [U16x4; 3] = [
+        U16x4([0x8000, 0x4000, 0, 0x8000]),
+        U16x4([0xffff, 0x8000, 0, 0xffff]),
+        U16x4([0, 0, 0, 0]),
+    ];
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn avx2_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn sse4_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
+        }
+    }
+
+    #[test]
+    fn native_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
+        }
+    }
+}
+
 // Divides by alpha
 
 #[cfg(test)]
@@ -399,6 +449,51 @@ mod divide_alpha_u16x2 {
         U16x2([0, 0]),
         U16x2([0, 0]),
         U16x2([0, 0]),
+    ];
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn avx2_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
+        }
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn sse4_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
+        }
+    }
+
+    #[test]
+    fn native_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
+        }
+    }
+}
+
+#[cfg(test)]
+mod divide_alpha_u16x4 {
+    use super::*;
+
+    const OPER: Oper = Oper::Div;
+    const SRC_PIXELS: [U16x4; 3] = [
+        U16x4([0x8000, 0x4000, 0, 0x8000]),
+        U16x4([0xffff, 0x8000, 0, 0xffff]),
+        U16x4([0xffff, 0x8000, 0, 0]),
+    ];
+    const RES_PIXELS: [U16x4; 3] = [
+        U16x4([0xffff, 0x7fff, 0, 0x8000]),
+        U16x4([0xffff, 0x8000, 0, 0xffff]),
+        U16x4([0, 0, 0, 0]),
+    ];
+    const SIMD_RES_PIXELS: [U16x4; 3] = [
+        U16x4([0xffff, 0x8000, 0, 0x8000]),
+        U16x4([0xffff, 0x8000, 0, 0xffff]),
+        U16x4([0, 0, 0, 0]),
     ];
 
     #[cfg(target_arch = "x86_64")]

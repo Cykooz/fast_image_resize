@@ -33,6 +33,7 @@ pub trait PixelExt: Pixel {
             PixelType::U16 => "u16",
             PixelType::U16x2 => "u16x2",
             PixelType::U16x3 => "u16x3",
+            PixelType::U16x4 => "u16x4",
             PixelType::I32 => "i32",
             PixelType::F32 => "f32",
             _ => unreachable!(),
@@ -181,6 +182,30 @@ impl PixelExt for U16x3 {
     }
 }
 
+impl PixelExt for U16x4 {
+    fn load_big_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4928x3279-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn load_small_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-852x567-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
+        img.to_rgba16()
+            .as_raw()
+            .iter()
+            .flat_map(|&c| c.to_le_bytes())
+            .collect()
+    }
+}
+
 impl PixelExt for I32 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_luma16()
@@ -217,6 +242,7 @@ pub fn save_result(image: &Image, name: &str) {
         PixelType::U16 => ColorType::L16,
         PixelType::U16x2 => ColorType::La16,
         PixelType::U16x3 => ColorType::Rgb16,
+        PixelType::U16x4 => ColorType::Rgba16,
         _ => panic!("Unsupported type of pixels"),
     };
     image::save_buffer(

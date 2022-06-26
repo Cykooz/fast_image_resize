@@ -149,9 +149,6 @@ unsafe fn horiz_convolution_four_rows(
             x += 2;
         }
 
-        let coeffs_by_2 = coeffs.chunks_exact(2);
-        coeffs = coeffs_by_2.remainder();
-
         if let Some(&k) = coeffs.get(0) {
             let coeff0_i64x2 = _mm_set1_epi64x(k as i64);
             for i in 0..4 {
@@ -167,7 +164,7 @@ unsafe fn horiz_convolution_four_rows(
             dst_pixel.0 = [
                 normalizer_guard.clip(ll_buf[0]),
                 normalizer_guard.clip(ll_buf[1]),
-            ]
+            ];
         }
     }
 }
@@ -275,6 +272,6 @@ unsafe fn horiz_convolution_one_row(
         dst_pixel.0 = [
             normalizer_guard.clip(ll_buf[0]),
             normalizer_guard.clip(ll_buf[1]),
-        ]
+        ];
     }
 }

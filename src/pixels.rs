@@ -12,6 +12,7 @@ pub enum PixelType {
     U16,
     U16x2,
     U16x3,
+    U16x4,
     I32,
     F32,
     U8,
@@ -26,6 +27,7 @@ impl PixelType {
             Self::U16 => 2,
             Self::U16x2 => 4,
             Self::U16x3 => 6,
+            Self::U16x4 => 8,
             _ => 4,
         }
     }
@@ -40,6 +42,7 @@ impl PixelType {
             Self::U16 => unsafe { buffer.align_to::<U16>().0.is_empty() },
             Self::U16x2 => unsafe { buffer.align_to::<U16x2>().0.is_empty() },
             Self::U16x3 => unsafe { buffer.align_to::<U16x3>().0.is_empty() },
+            Self::U16x4 => unsafe { buffer.align_to::<U16x4>().0.is_empty() },
             Self::I32 => unsafe { buffer.align_to::<I32>().0.is_empty() },
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
         }
@@ -108,14 +111,14 @@ macro_rules! pixel_struct {
     };
 }
 
-pixel_struct!(U8, u8, u8, 1, PixelType::U8, "One byte per pixel");
+pixel_struct!(U8, u8, u8, 1, PixelType::U8, "One byte per pixel (e.g. L8)");
 pixel_struct!(
     U8x2,
     u16,
     u8,
     2,
     PixelType::U8x2,
-    "Two bytes per pixel (e.g. LA)"
+    "Two bytes per pixel (e.g. LA8)"
 );
 pixel_struct!(
     U8x3,
@@ -123,7 +126,7 @@ pixel_struct!(
     u8,
     3,
     PixelType::U8x3,
-    "Three bytes per pixel (e.g. RGB)"
+    "Three bytes per pixel (e.g. RGB8)"
 );
 pixel_struct!(
     U8x4,
@@ -131,7 +134,7 @@ pixel_struct!(
     u8,
     4,
     PixelType::U8x4,
-    "Four bytes per pixel (RGBA, RGBx, CMYK and other)"
+    "Four bytes per pixel (RGBA8, RGBx8, CMYK8 and other)"
 );
 pixel_struct!(
     U16,
@@ -147,7 +150,7 @@ pixel_struct!(
     u16,
     2,
     PixelType::U16x2,
-    "Two `u16` components per pixel (e.g. LA)"
+    "Two `u16` components per pixel (e.g. LA16)"
 );
 pixel_struct!(
     U16x3,
@@ -155,7 +158,15 @@ pixel_struct!(
     u16,
     3,
     PixelType::U16x3,
-    "Three `u16` components per pixel (e.g. RGB)"
+    "Three `u16` components per pixel (e.g. RGB16)"
+);
+pixel_struct!(
+    U16x4,
+    [u16; 4],
+    u16,
+    4,
+    PixelType::U16x4,
+    "Four `u16` components per pixel (e.g. RGBA16)"
 );
 pixel_struct!(
     I32,

@@ -30,6 +30,7 @@ fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: Cp
         PixelType::U8x4 => &[255, 128, 0, 128],
         PixelType::U8x2 => &[255, 128],
         PixelType::U16x2 => &[255, 255, 0, 128],
+        PixelType::U16x4 => &[0, 255, 0, 128, 0, 0, 0, 128],
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -60,6 +61,7 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
         PixelType::U8x4 => &[128, 64, 0, 128],
         PixelType::U8x2 => &[128, 128],
         PixelType::U16x2 => &[0, 128, 0, 128],
+        PixelType::U16x4 => &[0, 128, 0, 64, 0, 0, 0, 128],
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -84,7 +86,12 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
 }
 
 fn bench_alpha(bench: &mut Bench) {
-    let pixel_types = [PixelType::U8x4, PixelType::U8x2, PixelType::U16x2];
+    let pixel_types = [
+        PixelType::U8x4,
+        PixelType::U8x2,
+        PixelType::U16x2,
+        PixelType::U16x4,
+    ];
     let mut cpu_extensions = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {

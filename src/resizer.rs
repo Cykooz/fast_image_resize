@@ -125,6 +125,13 @@ impl Resizer {
                     }
                 }
             }
+            PixelType::U16x4 => {
+                if let Some(src_rows) = src_image.u16x4_image() {
+                    if let Some(dst_rows) = dst_image.u16x4_image() {
+                        self.resize_inner(src_rows, dst_rows);
+                    }
+                }
+            }
             PixelType::I32 => {
                 if let Some(src_rows) = src_image.i32_image() {
                     if let Some(dst_rows) = dst_image.i32_image() {
