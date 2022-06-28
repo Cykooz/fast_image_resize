@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [0.9.6] - 2022-06-28
 
 - Added support of new type of pixels `PixelType::U16x4`.
 - Fixed benchmarks for resizing images with alpha channel using 
