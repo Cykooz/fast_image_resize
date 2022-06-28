@@ -1,6 +1,10 @@
 ## [Unreleased] - ReleaseDate
 
 - Added support of new type of pixels `PixelType::U16x4`.
+- Fixed benchmarks for resizing images with alpha channel using 
+  the `resizer` crate.
+- Removed `image` crate from benchmarks for resizing images with alpha.
+- Added method `Image::copy(&self) -> Image<'static>`.
 
 ## [0.9.5] - 2022-06-22
 

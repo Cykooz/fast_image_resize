@@ -16,17 +16,18 @@ about resizing with respect to color space._
 
 Supported pixel formats and available optimisations:
 
-| Format | Description                                            | Native Rust | SSE4.1  | AVX2 |
-|:------:|:-------------------------------------------------------|:-----------:|:-------:|:----:|
-|   U8   | One `u8` component per pixel (e.g. L)                  |      +      | partial |  +   |
-|  U8x2  | Two `u8` components per pixel (e.g. LA)                |      +      |    +    |  +   |
-|  U8x3  | Three `u8` components per pixel (e.g. RGB)             |      +      | partial |  +   |
-|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK) |      +      |    +    |  +   |
-|  U16   | One `u16` components per pixel (e.g. L16)              |      +      |    +    |  +   |
-| U16x2  | Two `u16` components per pixel (e.g. LA16)             |      +      |    +    |  +   |
-| U16x3  | Three `u16` components per pixel (e.g. RGB16)          |      +      |    +    |  +   |
-|  I32   | One `i32` component per pixel                          |      +      |    -    |  -   |
-|  F32   | One `f32` component per pixel                          |      +      |    -    |  -   |
+| Format | Description                                                   | Native Rust | SSE4.1  | AVX2 |
+|:------:|:--------------------------------------------------------------|:-----------:|:-------:|:----:|
+|   U8   | One `u8` component per pixel (e.g. L)                         |      +      | partial |  +   |
+|  U8x2  | Two `u8` components per pixel (e.g. LA)                       |      +      |    +    |  +   |
+|  U8x3  | Three `u8` components per pixel (e.g. RGB)                    |      +      | partial |  +   |
+|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)        |      +      |    +    |  +   |
+|  U16   | One `u16` components per pixel (e.g. L16)                     |      +      |    +    |  +   |
+| U16x2  | Two `u16` components per pixel (e.g. LA16)                    |      +      |    +    |  +   |
+| U16x3  | Three `u16` components per pixel (e.g. RGB16)                 |      +      |    +    |  +   |
+| U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |      +      |    +    |  +   |
+|  I32   | One `i32` component per pixel                                 |      +      |    -    |  -   |
+|  F32   | One `f32` component per pixel                                 |      +      |    -    |  -   |
 
 ## Some benchmarks
 
@@ -48,11 +49,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.44  |  83.01   |   153.17   |  208.82  |
-| resize     |    -    |  52.13   |   103.37   |  154.10  |
-| fir rust   |  0.28   |  43.00   |   79.52    |  117.41  |
-| fir sse4.1 |  0.28   |  27.79   |   42.97    |  58.16   |
-| fir avx2   |  0.28   |   7.30   |    9.50    |  13.59   |
+| image      |  19.24  |  82.52   |   152.17   |  207.63  |
+| resize     |    -    |  52.19   |   103.40   |  154.15  |
+| fir rust   |  0.28   |  40.88   |   69.39    |  101.53  |
+| fir sse4.1 |  0.28   |  28.21   |   43.03    |  59.46   |
+| fir avx2   |  0.28   |   7.33   |    9.47    |  13.59   |
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
@@ -63,16 +64,16 @@ Pipeline:
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.73  |  82.34   |   141.74   |  198.86  |
-| resize     |    -    |  49.91   |   100.27   |  148.99  |
-| fir rust   |  0.18   |  36.84   |   52.31    |  74.99   |
-| fir sse4.1 |  0.18   |  13.21   |   17.26    |  22.42   |
-| fir avx2   |  0.18   |   9.47   |   12.03    |  16.08   |
+| resize     |    -    |  61.93   |   122.10   |  182.55  |
+| fir rust   |  0.18   |  36.57   |   52.28    |  74.14   |
+| fir sse4.1 |  0.18   |  13.14   |   17.21    |  22.44   |
+| fir avx2   |  0.18   |   9.69   |   11.99    |  16.23   |
 
-## Resize L8 (luma) image (U8) 4928x3279 => 852x567
+### Resize L8 (luma) image (U8) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -84,11 +85,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  15.21  |  44.78   |   71.92    |  100.91  |
-| resize     |    -    |  17.53   |   36.20    |  61.10   |
-| fir rust   |  0.15   |  14.08   |   16.38    |  23.73   |
-| fir sse4.1 |  0.16   |  11.92   |   12.28    |  17.79   |
-| fir avx2   |  0.16   |   6.48   |    4.77    |   7.85   |
+| image      |  15.86  |  47.17   |   74.46    |  102.53  |
+| resize     |    -    |  17.30   |   35.92    |  61.52   |
+| fir rust   |  0.15   |  14.10   |   16.20    |  24.12   |
+| fir sse4.1 |  0.15   |  11.93   |   12.13    |  18.20   |
+| fir avx2   |  0.15   |   6.30   |    4.71    |   7.62   |
 
 ## Examples
 

@@ -10,6 +10,15 @@ enum PixelsContainer<'a> {
     VecU8(Vec<u8>),
 }
 
+impl<'a> PixelsContainer<'a> {
+    fn as_vec(&self) -> Vec<u8> {
+        match self {
+            Self::MutU8(slice) => slice.to_vec(),
+            Self::VecU8(vec) => vec.clone(),
+        }
+    }
+}
+
 /// Simple image container.
 #[derive(Debug)]
 pub struct Image<'a> {
@@ -72,6 +81,16 @@ impl<'a> Image<'a> {
             pixels: PixelsContainer::MutU8(buffer),
             pixel_type,
         })
+    }
+
+    /// Creates a copy of the image.
+    pub fn copy(&self) -> Image<'static> {
+        Image {
+            width: self.width,
+            height: self.height,
+            pixels: PixelsContainer::VecU8(self.pixels.as_vec()),
+            pixel_type: self.pixel_type,
+        }
     }
 
     #[inline(always)]

@@ -1,9 +1,8 @@
 use std::num::NonZeroU32;
 
 use glassbench::*;
-use image::imageops;
 use resize::px::RGBA;
-use resize::Pixel::RGBA8;
+use resize::Pixel::RGBA8P;
 use rgb::FromSlice;
 
 use fast_image_resize::pixels::U8x4;
@@ -18,23 +17,6 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
     let new_height = NonZeroU32::new(567).unwrap();
 
     let alg_names = ["Nearest", "Bilinear", "CatmullRom", "Lanczos3"];
-
-    // image crate
-    // https://crates.io/crates/image
-    for alg_name in alg_names {
-        let filter = match alg_name {
-            "Nearest" => imageops::Nearest,
-            "Bilinear" => imageops::Triangle,
-            "CatmullRom" => imageops::CatmullRom,
-            "Lanczos3" => imageops::Lanczos3,
-            _ => continue,
-        };
-        bench.task(format!("image - {}", alg_name), |task| {
-            task.iter(|| {
-                imageops::resize(&src_image, new_width.get(), new_height.get(), filter);
-            })
-        });
-    }
 
     // resize crate
     // https://crates.io/crates/resize
@@ -58,7 +40,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
                 src_image.height() as usize,
                 new_width.get() as usize,
                 new_height.get() as usize,
-                RGBA8,
+                RGBA8P,
                 filter,
             )
             .unwrap();
@@ -106,9 +88,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
             bench.task(format!("fir {} - {}", ext_name, alg_name), |task| {
                 task.iter(|| match resize_alg {
                     ResizeAlg::Nearest => {
-                        fast_resizer
-                            .resize(&premultiplied_src_image.view(), &mut dst_view)
-                            .unwrap();
+                        fast_resizer.resize(&src_view, &mut dst_view).unwrap();
                     }
                     _ => {
                         mul_div

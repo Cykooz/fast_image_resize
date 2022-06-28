@@ -476,6 +476,32 @@ fn downscale_u16x4() {
 }
 
 #[test]
+fn resizer_u16x4() {
+    use resize::px::RGBA;
+    use resize::Pixel::RGBA16P;
+    use rgb::FromSlice;
+
+    let src_image = U16x4::load_big_image().to_rgba16();
+    let new_width = NonZeroU32::new(852).unwrap();
+    let new_height = NonZeroU32::new(567).unwrap();
+
+    let resize_src_image = src_image.as_raw().as_rgba();
+    let mut dst =
+        vec![RGBA::new(0u16, 0u16, 0u16, 0u16); (new_width.get() * new_height.get()) as usize];
+    let filter = resize::Type::Triangle;
+    let mut resize = resize::new(
+        src_image.width() as usize,
+        src_image.height() as usize,
+        new_width.get() as usize,
+        new_height.get() as usize,
+        RGBA16P,
+        filter,
+    )
+    .unwrap();
+    resize.resize(resize_src_image, &mut dst).unwrap();
+}
+
+#[test]
 fn upscale_u16x4() {
     type P = U16x4;
     let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
