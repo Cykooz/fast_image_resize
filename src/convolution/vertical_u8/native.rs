@@ -14,10 +14,9 @@ pub(crate) fn vert_convolution<T>(
     debug_assert_eq!(src_image.width(), dst_image.width());
     debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
 
-    let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
-    let precision = normalizer_guard.precision();
+    let normalizer = optimisations::Normalizer16::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
+    let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
 
     let dst_rows = dst_image.iter_rows_mut();
@@ -32,7 +31,7 @@ pub(crate) fn vert_convolution<T>(
         if !head.is_empty() {
             x_src = convolution_by_u8(
                 &src_image,
-                &normalizer_guard,
+                &normalizer,
                 initial,
                 head,
                 x_src,
@@ -57,14 +56,14 @@ pub(crate) fn vert_convolution<T>(
                     *s += c as i32 * (k as i32);
                 }
             }
-            *dst_chunk = u32::from_le_bytes(ss.map(|v| unsafe { normalizer_guard.clip(v) }));
+            *dst_chunk = u32::from_le_bytes(ss.map(|v| unsafe { normalizer.clip(v) }));
             x_src += 4;
         }
 
         if !tail.is_empty() {
             convolution_by_u8(
                 &src_image,
-                &normalizer_guard,
+                &normalizer,
                 initial,
                 tail,
                 x_src,
@@ -78,7 +77,7 @@ pub(crate) fn vert_convolution<T>(
 #[inline(always)]
 fn convolution_by_u8<T>(
     src_image: &TypedImageView<T>,
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
     initial: i32,
     dst_components: &mut [u8],
     mut x_src: usize,
@@ -96,7 +95,7 @@ where
             let src_component = unsafe { *src_ptr.add(x_src as usize) };
             ss += src_component as i32 * (k as i32);
         }
-        *dst_component = unsafe { normalizer_guard.clip(ss) };
+        *dst_component = unsafe { normalizer.clip(ss) };
         x_src += 1
     }
     x_src

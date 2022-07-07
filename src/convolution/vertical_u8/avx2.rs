@@ -13,16 +13,13 @@ pub(crate) fn vert_convolution<T>(
 ) where
     T: Pixel<Component = u8>,
 {
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+    let normalizer = optimisations::Normalizer16::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u8(&src_image, dst_row, coeffs_chunk, &normalizer_guard);
+            vert_convolution_into_one_row_u8(&src_image, dst_row, coeffs_chunk, &normalizer);
         }
     }
 }
@@ -33,7 +30,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
     src_img: &TypedImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) where
     T: Pixel<Component = u8>,
 {
@@ -41,7 +38,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
-    let precision = normalizer_guard.precision();
+    let precision = normalizer.precision();
 
     let initial = _mm_set1_epi32(1 << (precision - 1));
     let initial_256 = _mm256_set1_epi32(1 << (precision - 1));
@@ -234,7 +231,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
                     ss0 += src_component as i32 * (k as i32);
                 }
             }
-            *dst_pixel = normalizer_guard.clip(ss0);
+            *dst_pixel = normalizer.clip(ss0);
             x_in_bytes += 1;
         }
     }

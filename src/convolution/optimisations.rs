@@ -1,6 +1,5 @@
-use std::slice;
-
 use super::Bound;
+use crate::convolution::Coefficients;
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
@@ -28,25 +27,27 @@ const CLIP8_LOOKUPS: [u8; 1280] = get_clip_table();
 // two extra bits for overflow and i32 type.
 const PRECISION_BITS: u8 = 32 - 8 - 2;
 // We use i16 type to store coefficients.
-const MAX_COEFS_PRECISION: u8 = 16 - 1;
+const MAX_COEFFS_PRECISION: u8 = 16 - 1;
 
-/// Converts `Vec<f64>` into `&[i16]` without additional memory allocations.
-/// The memory buffer from `Vec<f64>` uses as `[i16]` .
-pub struct NormalizerGuard16 {
-    values: Vec<f64>,
+/// Converts `Vec<f64>` into `Vec<i16>`.
+pub(crate) struct Normalizer16 {
+    values: Vec<i16>,
     precision: u8,
+    window_size: usize,
+    bounds: Vec<Bound>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct CoefficientsI16Chunk<'a> {
+pub(crate) struct CoefficientsI16Chunk<'a> {
     pub start: u32,
     pub values: &'a [i16],
 }
 
-impl NormalizerGuard16 {
+impl Normalizer16 {
     #[inline]
-    pub fn new(mut values: Vec<f64>) -> Self {
-        let max_weight = values
+    pub fn new(coefficients: Coefficients) -> Self {
+        let max_weight = coefficients
+            .values
             .iter()
             .max_by(|&x, &y| x.partial_cmp(y).unwrap())
             .unwrap_or(&0.0)
@@ -57,36 +58,32 @@ impl NormalizerGuard16 {
             precision = cur_precision;
             let next_value: i32 = (max_weight * (1 << (precision + 1)) as f64).round() as i32;
             // The next value will be outside the range, so just stop
-            if next_value >= (1 << MAX_COEFS_PRECISION) {
+            if next_value >= (1 << MAX_COEFFS_PRECISION) {
                 break;
             }
         }
         debug_assert!(precision >= 4); // required for some SIMD optimisations
 
-        let len = values.len();
-        let ptr = values.as_mut_ptr();
-        // Size of `[i16]` always will be not greater than `[f64]` with same number of items
-        let values_i16 = unsafe { slice::from_raw_parts_mut(ptr as *mut i16, len) };
+        let mut values_i16 = Vec::with_capacity(coefficients.values.len());
 
         let scale = (1 << precision) as f64;
-        for (&src, dst) in values.iter().zip(values_i16.iter_mut()) {
-            *dst = (src * scale).round() as i16;
+        for src in coefficients.values.iter().copied() {
+            values_i16.push((src * scale).round() as i16);
         }
-        Self { values, precision }
+        Self {
+            values: values_i16,
+            precision,
+            window_size: coefficients.window_size,
+            bounds: coefficients.bounds,
+        }
     }
 
     #[inline]
-    pub fn normalized_chunks(
-        &self,
-        window_size: usize,
-        bounds: &[Bound],
-    ) -> Vec<CoefficientsI16Chunk> {
-        let len = self.values.len();
-        let ptr = self.values.as_ptr();
-        let mut cooefs = unsafe { slice::from_raw_parts(ptr as *const i16, len) };
-        let mut res = Vec::with_capacity(bounds.len());
-        for bound in bounds {
-            let (left, right) = cooefs.split_at(window_size);
+    pub fn normalized_chunks(&self) -> Vec<CoefficientsI16Chunk> {
+        let mut cooefs = self.values.as_slice();
+        let mut res = Vec::with_capacity(self.bounds.len());
+        for bound in self.bounds.iter() {
+            let (left, right) = cooefs.split_at(self.window_size);
             cooefs = right;
             let size = bound.size as usize;
             res.push(CoefficientsI16Chunk {
@@ -121,25 +118,27 @@ impl NormalizerGuard16 {
 // two extra bits for overflow and i64 type.
 const PRECISION16_BITS: u8 = 64 - 16 - 2;
 // We use i32 type to store coefficients.
-const MAX_COEFS_PRECISION16: u8 = 32 - 1;
+const MAX_COEFFS_PRECISION16: u8 = 32 - 1;
 
 #[derive(Debug, Clone, Copy)]
-pub struct CoefficientsI32Chunk<'a> {
+pub(crate) struct CoefficientsI32Chunk<'a> {
     pub start: u32,
     pub values: &'a [i32],
 }
 
-/// Converts `Vec<f64>` into `&[i32]` without additional memory allocations.
-/// The memory buffer from `Vec<f64>` uses as `[i32]` .
-pub struct NormalizerGuard32 {
-    values: Vec<f64>,
+/// Converts `Vec<f64>` into `Vec<i32>`.
+pub(crate) struct Normalizer32 {
+    values: Vec<i32>,
     precision: u8,
+    window_size: usize,
+    bounds: Vec<Bound>,
 }
 
-impl NormalizerGuard32 {
+impl Normalizer32 {
     #[inline]
-    pub fn new(mut values: Vec<f64>) -> Self {
-        let max_weight = values
+    pub fn new(coefficients: Coefficients) -> Self {
+        let max_weight = coefficients
+            .values
             .iter()
             .max_by(|&x, &y| x.partial_cmp(y).unwrap())
             .unwrap_or(&0.0)
@@ -150,36 +149,32 @@ impl NormalizerGuard32 {
             precision = cur_precision;
             let next_value: i64 = (max_weight * (1i64 << (precision + 1)) as f64).round() as i64;
             // The next value will be outside the range, so just stop
-            if next_value >= (1i64 << MAX_COEFS_PRECISION16) {
+            if next_value >= (1i64 << MAX_COEFFS_PRECISION16) {
                 break;
             }
         }
         debug_assert!(precision >= 4); // required for some SIMD optimisations
 
-        let len = values.len();
-        let ptr = values.as_mut_ptr();
-        // Size of `[i32]` always will be not greater than `[f64]` with same number of items
-        let values_i32 = unsafe { slice::from_raw_parts_mut(ptr as *mut i32, len) };
+        let mut values_i32 = Vec::with_capacity(coefficients.values.len());
 
         let scale = (1i64 << precision) as f64;
-        for (&src, dst) in values.iter().zip(values_i32.iter_mut()) {
-            *dst = (src * scale).round() as i32;
+        for src in coefficients.values.iter().copied() {
+            values_i32.push((src * scale).round() as i32);
         }
-        Self { values, precision }
+        Self {
+            values: values_i32,
+            precision,
+            window_size: coefficients.window_size,
+            bounds: coefficients.bounds,
+        }
     }
 
     #[inline]
-    pub fn normalized_chunks(
-        &self,
-        window_size: usize,
-        bounds: &[Bound],
-    ) -> Vec<CoefficientsI32Chunk> {
-        let len = self.values.len();
-        let ptr = self.values.as_ptr();
-        let mut cooefs = unsafe { slice::from_raw_parts(ptr as *const i32, len) };
-        let mut res = Vec::with_capacity(bounds.len());
-        for bound in bounds {
-            let (left, right) = cooefs.split_at(window_size);
+    pub fn normalized_chunks(&self) -> Vec<CoefficientsI32Chunk> {
+        let mut cooefs = self.values.as_slice();
+        let mut res = Vec::with_capacity(self.bounds.len());
+        for bound in self.bounds.iter() {
+            let (left, right) = cooefs.split_at(self.window_size);
             cooefs = right;
             let size = bound.size as usize;
             res.push(CoefficientsI32Chunk {
@@ -205,12 +200,20 @@ impl NormalizerGuard32 {
 mod tests {
     use super::*;
 
+    fn get_coefficients(value: f64) -> Coefficients {
+        Coefficients {
+            values: vec![value],
+            window_size: 0,
+            bounds: vec![],
+        }
+    }
+
     #[test]
     fn test_minimal_precision() {
         // required for some SIMD optimisations
-        assert!(NormalizerGuard16::new(vec![0.0]).precision() >= 4);
-        assert!(NormalizerGuard16::new(vec![2.0]).precision() >= 4);
-        assert!(NormalizerGuard32::new(vec![0.0]).precision() >= 4);
-        assert!(NormalizerGuard32::new(vec![2.0]).precision() >= 4);
+        assert!(Normalizer16::new(get_coefficients(0.0)).precision() >= 4);
+        assert!(Normalizer16::new(get_coefficients(2.0)).precision() >= 4);
+        assert!(Normalizer32::new(get_coefficients(0.0)).precision() >= 4);
+        assert!(Normalizer32::new(get_coefficients(2.0)).precision() >= 4);
     }
 }

@@ -12,17 +12,13 @@ pub(crate) fn vert_convolution<T>(
 ) where
     T: Pixel<Component = u16>,
 {
-    // native::vert_convolution(src_image, dst_image, coeffs);
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard32::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+    let normalizer = optimisations::Normalizer32::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(&src_image, dst_row, coeffs_chunk, &normalizer_guard);
+            vert_convolution_into_one_row_u16(&src_image, dst_row, coeffs_chunk, &normalizer);
         }
     }
 }
@@ -32,7 +28,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
     src_img: &TypedImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: optimisations::CoefficientsI32Chunk,
-    normalizer_guard: &optimisations::NormalizerGuard32,
+    normalizer: &optimisations::Normalizer32,
 ) where
     T: Pixel<Component = u16>,
 {
@@ -86,7 +82,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         ),
     ];
 
-    let precision = normalizer_guard.precision();
+    let precision = normalizer.precision();
     let initial = _mm256_set1_epi64x(1 << (precision - 1));
     let mut comp_buf = [0i64; 4];
 
@@ -108,13 +104,13 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         for i in 0..4 {
             _mm256_storeu_si256((&mut comp_buf).as_mut_ptr() as *mut __m256i, sum[i]);
             let component = dst_components.get_unchecked_mut(xx + i * 2);
-            *component = normalizer_guard.clip(comp_buf[0]);
+            *component = normalizer.clip(comp_buf[0]);
             let component = dst_components.get_unchecked_mut(xx + i * 2 + 1);
-            *component = normalizer_guard.clip(comp_buf[1]);
+            *component = normalizer.clip(comp_buf[1]);
             let component = dst_components.get_unchecked_mut(xx + i * 2 + 8);
-            *component = normalizer_guard.clip(comp_buf[2]);
+            *component = normalizer.clip(comp_buf[2]);
             let component = dst_components.get_unchecked_mut(xx + i * 2 + 9);
-            *component = normalizer_guard.clip(comp_buf[3]);
+            *component = normalizer.clip(comp_buf[3]);
         }
 
         xx += 16;
@@ -141,13 +137,13 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         for i in 0..4 {
             _mm256_storeu_si256((&mut comp_buf).as_mut_ptr() as *mut __m256i, sum[i]);
             let component = buf.get_unchecked_mut(i * 2);
-            *component = normalizer_guard.clip(comp_buf[0]);
+            *component = normalizer.clip(comp_buf[0]);
             let component = buf.get_unchecked_mut(i * 2 + 1);
-            *component = normalizer_guard.clip(comp_buf[1]);
+            *component = normalizer.clip(comp_buf[1]);
             let component = buf.get_unchecked_mut(i * 2 + 8);
-            *component = normalizer_guard.clip(comp_buf[2]);
+            *component = normalizer.clip(comp_buf[2]);
             let component = buf.get_unchecked_mut(i * 2 + 9);
-            *component = normalizer_guard.clip(comp_buf[3]);
+            *component = normalizer.clip(comp_buf[3]);
         }
         for (i, v) in dst_components
             .get_unchecked_mut(xx..)

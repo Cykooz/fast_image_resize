@@ -12,23 +12,15 @@ pub(crate) fn horiz_convolution(
     offset: u32,
     coeffs: Coefficients,
 ) {
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+    let normalizer = optimisations::Normalizer16::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_image.height().get();
 
     let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows(
-                src_rows,
-                dst_rows,
-                &coefficients_chunks,
-                &normalizer_guard,
-            );
+            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, &normalizer);
         }
     }
 
@@ -39,7 +31,7 @@ pub(crate) fn horiz_convolution(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
-                &normalizer_guard,
+                &normalizer,
             );
         }
         yy += 1;
@@ -58,13 +50,13 @@ unsafe fn horiz_convolution_four_rows(
     src_rows: FourRows<U8x2>,
     dst_rows: FourRowsMut<U8x2>,
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) {
     let (s_row0, s_row1, s_row2, s_row3) = src_rows;
     let s_rows = [s_row0, s_row1, s_row2, s_row3];
     let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
     let d_rows = [d_row0, d_row1, d_row2, d_row3];
-    let precision = normalizer_guard.precision();
+    let precision = normalizer.precision();
     let initial = _mm_set1_epi32(1 << (precision - 2));
 
     /*
@@ -151,7 +143,7 @@ unsafe fn horiz_convolution_four_rows(
         }
 
         for i in 0..4 {
-            set_dst_pixel(sss[i], d_rows[i], dst_x, normalizer_guard);
+            set_dst_pixel(sss[i], d_rows[i], dst_x, normalizer);
         }
     }
 }
@@ -162,14 +154,14 @@ unsafe fn set_dst_pixel(
     raw: __m128i,
     d_row: &mut &mut [U8x2],
     dst_x: usize,
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) {
     let l32x2 = _mm_extract_epi64::<0>(raw);
     let a32x2 = _mm_extract_epi64::<1>(raw);
     let l32 = ((l32x2 >> 32) as i32).saturating_add((l32x2 & 0xffffffff) as i32);
     let a32 = ((a32x2 >> 32) as i32).saturating_add((a32x2 & 0xffffffff) as i32);
-    let l8 = normalizer_guard.clip(l32);
-    let a8 = normalizer_guard.clip(a32);
+    let l8 = normalizer.clip(l32);
+    let a8 = normalizer.clip(a32);
     d_row.get_unchecked_mut(dst_x).0 = u16::from_le_bytes([l8, a8]);
 }
 
@@ -184,9 +176,9 @@ unsafe fn horiz_convolution_one_row(
     src_row: &[U8x2],
     dst_row: &mut [U8x2],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) {
-    let precision = normalizer_guard.precision();
+    let precision = normalizer.precision();
     /*
        |L  A | |L  A | |L  A | |L  A | |L  A | |L  A | |L  A | |L  A |
        |00 01| |02 03| |04 05| |06 07| |08 09| |10 11| |12 13| |14 15|
@@ -325,8 +317,8 @@ unsafe fn horiz_convolution_one_row(
 
         let a32 = ((lo >> 32) as i32).saturating_add((hi >> 32) as i32);
         let l32 = ((lo & 0xffffffff) as i32).saturating_add((hi & 0xffffffff) as i32);
-        let a8 = normalizer_guard.clip(a32);
-        let l8 = normalizer_guard.clip(l32);
+        let a8 = normalizer.clip(a32);
+        let l8 = normalizer.clip(l32);
         dst_row.get_unchecked_mut(dst_x).0 = u16::from_le_bytes([l8, a8]);
     }
 }

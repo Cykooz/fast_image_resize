@@ -12,10 +12,9 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
     debug_assert_eq!(src_image.width(), dst_image.width());
     debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
 
-    let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
-    let normalizer_guard = optimisations::NormalizerGuard32::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
-    let precision = normalizer_guard.precision();
+    let normalizer = optimisations::Normalizer32::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
+    let precision = normalizer.precision();
     let initial: i64 = 1 << (precision - 1);
 
     let dst_rows = dst_image.iter_rows_mut();
@@ -27,7 +26,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
 
         convolution_by_u16(
             &src_image,
-            &normalizer_guard,
+            &normalizer,
             initial,
             dst_components,
             0,
@@ -40,7 +39,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
 #[inline(always)]
 pub(crate) fn convolution_by_u16<T: Pixel<Component = u16>>(
     src_image: &TypedImageView<T>,
-    normalizer_guard: &optimisations::NormalizerGuard32,
+    normalizer: &optimisations::Normalizer32,
     initial: i64,
     dst_components: &mut [u16],
     mut x_src: usize,
@@ -55,7 +54,7 @@ pub(crate) fn convolution_by_u16<T: Pixel<Component = u16>>(
             let src_component = unsafe { *src_ptr.add(x_src as usize) };
             ss += src_component as i64 * (k as i64);
         }
-        *dst_component = normalizer_guard.clip(ss);
+        *dst_component = normalizer.clip(ss);
         x_src += 1
     }
     x_src

@@ -12,18 +12,15 @@ pub(crate) fn horiz_convolution(
     offset: u32,
     coeffs: Coefficients,
 ) {
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+    let normalizer = optimisations::Normalizer16::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_image.height().get();
 
     let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, &normalizer_guard);
+            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, &normalizer);
         }
     }
 
@@ -34,7 +31,7 @@ pub(crate) fn horiz_convolution(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
-                &normalizer_guard,
+                &normalizer,
             );
         }
         yy += 1;
@@ -53,13 +50,13 @@ unsafe fn horiz_convolution_8u4x(
     src_rows: FourRows<U8>,
     dst_rows: FourRowsMut<U8>,
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) {
     let s_rows = [src_rows.0, src_rows.1, src_rows.2, src_rows.3];
     let d_rows = [dst_rows.0, dst_rows.1, dst_rows.2, dst_rows.3];
     let zero = _mm_setzero_si128();
     // 8 components will be added, use only 1/8 of the error
-    let initial = _mm256_set1_epi32(1 << (normalizer_guard.precision() - 4));
+    let initial = _mm256_set1_epi32(1 << (normalizer.precision() - 4));
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
@@ -106,7 +103,7 @@ unsafe fn horiz_convolution_8u4x(
             x += 1;
         }
 
-        let result_u8x4 = result_i32x4.map(|v| normalizer_guard.clip(v));
+        let result_u8x4 = result_i32x4.map(|v| normalizer.clip(v));
         for i in 0..4 {
             d_rows[i].get_unchecked_mut(dst_x).0 = result_u8x4[i];
         }
@@ -124,11 +121,11 @@ unsafe fn horiz_convolution_8u(
     src_row: &[U8],
     dst_row: &mut [U8],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    normalizer_guard: &optimisations::NormalizerGuard16,
+    normalizer: &optimisations::Normalizer16,
 ) {
     let zero = _mm_setzero_si128();
     // 8 components will be added, use only 1/8 of the error
-    let initial = _mm256_set1_epi32(1 << (normalizer_guard.precision() - 4));
+    let initial = _mm256_set1_epi32(1 << (normalizer.precision() - 4));
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
@@ -170,7 +167,7 @@ unsafe fn horiz_convolution_8u(
             x += 1;
         }
 
-        dst_row.get_unchecked_mut(dst_x).0 = normalizer_guard.clip(result_i32);
+        dst_row.get_unchecked_mut(dst_x).0 = normalizer.clip(result_i32);
     }
 }
 

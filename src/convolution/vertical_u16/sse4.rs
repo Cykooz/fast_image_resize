@@ -12,17 +12,13 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
     mut dst_image: TypedImageViewMut<T>,
     coeffs: Coefficients,
 ) {
-    // native::vert_convolution(src_image, dst_image, coeffs);
-    let (values, window_size, bounds_per_pixel) =
-        (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard32::new(values);
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds_per_pixel);
+    let normalizer = optimisations::Normalizer32::new(coeffs);
+    let coefficients_chunks = normalizer.normalized_chunks();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(&src_image, dst_row, coeffs_chunk, &normalizer_guard);
+            vert_convolution_into_one_row_u16(&src_image, dst_row, coeffs_chunk, &normalizer);
         }
     }
 }
@@ -32,7 +28,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
     src_img: &TypedImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: CoefficientsI32Chunk,
-    normalizer_guard: &optimisations::NormalizerGuard32,
+    normalizer: &optimisations::Normalizer32,
 ) {
     let mut xx: usize = 0;
     let src_width = src_img.width().get() as usize * T::components_count();
@@ -69,7 +65,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
         ),
     ];
 
-    let precision = normalizer_guard.precision();
+    let precision = normalizer.precision();
     let initial = _mm_set1_epi64x(1 << (precision - 1));
     let mut c_buf = [0i64; 2];
 
@@ -114,9 +110,9 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
         for x in 0..2 {
             for sum in sums {
                 _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, sum[x]);
-                *dst_ptr_u16 = normalizer_guard.clip(c_buf[0]);
+                *dst_ptr_u16 = normalizer.clip(c_buf[0]);
                 dst_ptr_u16 = dst_ptr_u16.add(1);
-                *dst_ptr_u16 = normalizer_guard.clip(c_buf[1]);
+                *dst_ptr_u16 = normalizer.clip(c_buf[1]);
                 dst_ptr_u16 = dst_ptr_u16.add(1);
             }
         }
@@ -166,9 +162,9 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
             // sums[i] = _mm_srl_epi64(sums[i] , precision_i64);
             // _mm_packus_epi32(sums[i] , sums[i] );
             _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, sum);
-            *dst_ptr_u16 = normalizer_guard.clip(c_buf[0]);
+            *dst_ptr_u16 = normalizer.clip(c_buf[0]);
             dst_ptr_u16 = dst_ptr_u16.add(1);
-            *dst_ptr_u16 = normalizer_guard.clip(c_buf[1]);
+            *dst_ptr_u16 = normalizer.clip(c_buf[1]);
             dst_ptr_u16 = dst_ptr_u16.add(1);
         }
 
@@ -212,14 +208,14 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
         }
 
         _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, c01);
-        *dst_ptr_u16 = normalizer_guard.clip(c_buf[0]);
+        *dst_ptr_u16 = normalizer.clip(c_buf[0]);
         dst_ptr_u16 = dst_ptr_u16.add(1);
-        *dst_ptr_u16 = normalizer_guard.clip(c_buf[1]);
+        *dst_ptr_u16 = normalizer.clip(c_buf[1]);
         dst_ptr_u16 = dst_ptr_u16.add(1);
         _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, c23);
-        *dst_ptr_u16 = normalizer_guard.clip(c_buf[0]);
+        *dst_ptr_u16 = normalizer.clip(c_buf[0]);
         dst_ptr_u16 = dst_ptr_u16.add(1);
-        *dst_ptr_u16 = normalizer_guard.clip(c_buf[1]);
+        *dst_ptr_u16 = normalizer.clip(c_buf[1]);
         dst_ptr_u16 = dst_ptr_u16.add(1);
 
         xx += 4;
@@ -229,7 +225,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
         let initial = 1 << (precision - 1);
         convolution_by_u16(
             src_img,
-            normalizer_guard,
+            normalizer,
             initial,
             dst_components,
             xx,

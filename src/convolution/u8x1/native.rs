@@ -9,11 +9,9 @@ pub(crate) fn horiz_convolution(
     offset: u32,
     coeffs: Coefficients,
 ) {
-    let (values, window_size, bounds) = (coeffs.values, coeffs.window_size, coeffs.bounds);
-
-    let normalizer_guard = optimisations::NormalizerGuard16::new(values);
-    let precision = normalizer_guard.precision();
-    let coefficients_chunks = normalizer_guard.normalized_chunks(window_size, &bounds);
+    let normalizer = optimisations::Normalizer16::new(coeffs);
+    let precision = normalizer.precision();
+    let coefficients_chunks = normalizer.normalized_chunks();
     let initial = 1 << (precision - 1);
 
     let src_rows = src_image.iter_rows(offset);
@@ -28,7 +26,7 @@ pub(crate) fn horiz_convolution(
             for (&k, &src_pixel) in ks.iter().zip(src_pixels) {
                 ss += src_pixel.0 as i32 * (k as i32);
             }
-            dst_pixel.0 = unsafe { normalizer_guard.clip(ss) };
+            dst_pixel.0 = unsafe { normalizer.clip(ss) };
         }
     }
 }
