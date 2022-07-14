@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+- Fixed resizing when the destination image has the same dimensions 
+  as the source image
+  ([#9](https://github.com/Cykooz/fast_image_resize/issues/9)).
+
 ## [0.9.6] - 2022-06-28
 
 - Added support of new type of pixels `PixelType::U16x4`.

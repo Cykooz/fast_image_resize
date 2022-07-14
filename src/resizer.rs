@@ -3,8 +3,9 @@ use std::num::NonZeroU32;
 use crate::convolution::{self, Convolution, FilterType};
 use crate::errors::DifferentTypesOfPixelsError;
 use crate::image::InnerImage;
-use crate::image_view::{ImageView, ImageViewMut, TypedImageView, TypedImageViewMut};
-use crate::pixels::{Pixel, PixelType};
+use crate::image_view::{ImageView, ImageViewMut};
+use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32, U16, U8};
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuExtensions {
@@ -83,73 +84,73 @@ impl Resizer {
             return Err(DifferentTypesOfPixelsError);
         }
         match src_image.pixel_type() {
+            PixelType::U8 => {
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U8>(src, dst);
+                    }
+                }
+            }
             PixelType::U8x2 => {
-                if let Some(src_rows) = src_image.u8x2_image() {
-                    if let Some(dst_rows) = dst_image.u8x2_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U8x2>(src, dst);
                     }
                 }
             }
             PixelType::U8x3 => {
-                if let Some(src_rows) = src_image.u8x3_image() {
-                    if let Some(dst_rows) = dst_image.u8x3_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U8x3>(src, dst);
                     }
                 }
             }
             PixelType::U8x4 => {
-                if let Some(src_rows) = src_image.u8x4_image() {
-                    if let Some(dst_rows) = dst_image.u8x4_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U8x4>(src, dst);
                     }
                 }
             }
             PixelType::U16 => {
-                if let Some(src_rows) = src_image.u16_image() {
-                    if let Some(dst_rows) = dst_image.u16_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U16>(src, dst);
                     }
                 }
             }
             PixelType::U16x2 => {
-                if let Some(src_rows) = src_image.u16x2_image() {
-                    if let Some(dst_rows) = dst_image.u16x2_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U16x2>(src, dst);
                     }
                 }
             }
             PixelType::U16x3 => {
-                if let Some(src_rows) = src_image.u16x3_image() {
-                    if let Some(dst_rows) = dst_image.u16x3_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U16x3>(src, dst);
                     }
                 }
             }
             PixelType::U16x4 => {
-                if let Some(src_rows) = src_image.u16x4_image() {
-                    if let Some(dst_rows) = dst_image.u16x4_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<U16x4>(src, dst);
                     }
                 }
             }
             PixelType::I32 => {
-                if let Some(src_rows) = src_image.i32_image() {
-                    if let Some(dst_rows) = dst_image.i32_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<I32>(src, dst);
                     }
                 }
             }
             PixelType::F32 => {
-                if let Some(src_rows) = src_image.f32_image() {
-                    if let Some(dst_rows) = dst_image.f32_image() {
-                        self.resize_inner(src_rows, dst_rows);
-                    }
-                }
-            }
-            PixelType::U8 => {
-                if let Some(src_rows) = src_image.u8_image() {
-                    if let Some(dst_rows) = dst_image.u8_image() {
-                        self.resize_inner(src_rows, dst_rows);
+                if let Some(src) = TypedImageView::from_image_view(src_image) {
+                    if let Some(dst) = TypedImageViewMut::from_image_view(dst_image) {
+                        self.resize_inner::<F32>(src, dst);
                     }
                 }
             }
@@ -157,10 +158,13 @@ impl Resizer {
         Ok(())
     }
 
-    fn resize_inner<P>(&mut self, src_image: TypedImageView<P>, dst_image: TypedImageViewMut<P>)
+    fn resize_inner<P>(&mut self, src_image: TypedImageView<P>, mut dst_image: TypedImageViewMut<P>)
     where
         P: Convolution,
     {
+        if dst_image.copy_from_view(&src_image).is_ok() {
+            return;
+        }
         match self.algorithm {
             ResizeAlg::Nearest => resample_nearest(src_image, dst_image),
             ResizeAlg::Convolution(filter_type) => {

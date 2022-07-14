@@ -1,6 +1,6 @@
 use crate::alpha::AlphaMulDiv;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::{U16x2, U16x4, U8x2, U8x4};
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::{
     CpuExtensions, ImageView, ImageViewMut, MulDivImageError, MulDivImagesError, PixelType,
 };
@@ -175,11 +175,9 @@ fn assert_images_u8x2<'s, 'd, 'da>(
     ),
     MulDivImagesError,
 > {
-    let src_image_u8x2 = src_image
-        .u8x2_image()
+    let src_image_u8x2 = TypedImageView::from_image_view(src_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u8x2 = dst_image
-        .u8x2_image()
+    let dst_image_u8x2 = TypedImageViewMut::from_image_view(dst_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     if src_image_u8x2.width() != dst_image_u8x2.width()
         || src_image_u8x2.height() != dst_image_u8x2.height()
@@ -193,9 +191,7 @@ fn assert_images_u8x2<'s, 'd, 'da>(
 fn assert_image_u8x2<'a, 'b>(
     image: &'a mut ImageViewMut<'b>,
 ) -> Result<TypedImageViewMut<'a, 'b, U8x2>, MulDivImageError> {
-    image
-        .u8x2_image()
-        .ok_or(MulDivImageError::UnsupportedPixelType)
+    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
 }
 
 #[inline]
@@ -209,11 +205,9 @@ fn assert_images_u8x4<'s, 'd, 'da>(
     ),
     MulDivImagesError,
 > {
-    let src_image_u8x4 = src_image
-        .u8x4_image()
+    let src_image_u8x4 = TypedImageView::from_image_view(src_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u8x4 = dst_image
-        .u8x4_image()
+    let dst_image_u8x4 = TypedImageViewMut::from_image_view(dst_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     if src_image_u8x4.width() != dst_image_u8x4.width()
         || src_image_u8x4.height() != dst_image_u8x4.height()
@@ -227,9 +221,7 @@ fn assert_images_u8x4<'s, 'd, 'da>(
 fn assert_image_u8x4<'a, 'b>(
     image: &'a mut ImageViewMut<'b>,
 ) -> Result<TypedImageViewMut<'a, 'b, U8x4>, MulDivImageError> {
-    image
-        .u8x4_image()
-        .ok_or(MulDivImageError::UnsupportedPixelType)
+    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
 }
 
 #[inline]
@@ -243,11 +235,9 @@ fn assert_images_u16x2<'s, 'd, 'da>(
     ),
     MulDivImagesError,
 > {
-    let src_image_u16x2 = src_image
-        .u16x2_image()
+    let src_image_u16x2 = TypedImageView::from_image_view(src_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u16x2 = dst_image
-        .u16x2_image()
+    let dst_image_u16x2 = TypedImageViewMut::from_image_view(dst_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     if src_image_u16x2.width() != dst_image_u16x2.width()
         || src_image_u16x2.height() != dst_image_u16x2.height()
@@ -261,9 +251,7 @@ fn assert_images_u16x2<'s, 'd, 'da>(
 fn assert_image_u16x2<'a, 'b>(
     image: &'a mut ImageViewMut<'b>,
 ) -> Result<TypedImageViewMut<'a, 'b, U16x2>, MulDivImageError> {
-    image
-        .u16x2_image()
-        .ok_or(MulDivImageError::UnsupportedPixelType)
+    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
 }
 
 #[inline]
@@ -277,11 +265,9 @@ fn assert_images_u16x4<'s, 'd, 'da>(
     ),
     MulDivImagesError,
 > {
-    let src_image_u16x4 = src_image
-        .u16x4_image()
+    let src_image_u16x4 = TypedImageView::from_image_view(src_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u16x4 = dst_image
-        .u16x4_image()
+    let dst_image_u16x4 = TypedImageViewMut::from_image_view(dst_image)
         .ok_or(MulDivImagesError::UnsupportedPixelType)?;
     if src_image_u16x4.width() != dst_image_u16x4.width()
         || src_image_u16x4.height() != dst_image_u16x4.height()
@@ -295,9 +281,7 @@ fn assert_images_u16x4<'s, 'd, 'da>(
 fn assert_image_u16x4<'a, 'b>(
     image: &'a mut ImageViewMut<'b>,
 ) -> Result<TypedImageViewMut<'a, 'b, U16x4>, MulDivImageError> {
-    image
-        .u16x4_image()
-        .ok_or(MulDivImageError::UnsupportedPixelType)
+    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
 }
 
 fn multiply_alpha<P>(

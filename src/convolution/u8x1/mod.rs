@@ -1,8 +1,9 @@
-use super::{Coefficients, Convolution};
 use crate::convolution::vertical_u8::vert_convolution_u8;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+
+use super::{Coefficients, Convolution};
 
 #[cfg(target_arch = "x86_64")]
 mod avx2;

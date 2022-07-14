@@ -1,6 +1,6 @@
 use crate::alpha::common::{div_and_clip16, mul_div_65535, RECIP_ALPHA16};
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U16x4;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 pub(crate) fn multiply_alpha(
     src_image: TypedImageView<U16x4>,

@@ -1,7 +1,8 @@
 use std::num::NonZeroU32;
 
-use crate::image_view::{ImageRows, ImageRowsMut, TypedImageView, TypedImageViewMut};
+use crate::image_rows::{ImageRows, ImageRowsMut};
 use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32, U16, U8};
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::{ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]

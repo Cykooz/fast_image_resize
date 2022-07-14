@@ -1,6 +1,6 @@
 use crate::convolution::Coefficients;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8x3;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 use super::native;
 

@@ -1,7 +1,8 @@
-use super::{Coefficients, Convolution};
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::I32;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+
+use super::{Coefficients, Convolution};
 
 mod native;
 

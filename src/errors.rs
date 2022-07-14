@@ -10,7 +10,7 @@ pub enum ImageRowsError {
 
 #[derive(Error, Debug, Clone, Copy, PartialEq)]
 pub enum ImageBufferError {
-    #[error("Size of buffer is smaller than required.")]
+    #[error("Size of buffer is smaller than required")]
     InvalidBufferSize,
     #[error("Alignment of buffer don't match to alignment of u32")]
     InvalidBufferAlignment,
@@ -25,5 +25,11 @@ pub enum CropBoxError {
 }
 
 #[derive(Error, Debug, Clone, Copy)]
-#[error("Type of pixels of the source image is not equal to pixel type of the destination image.")]
+#[error("Type of pixels of the source image is not equal to pixel type of the destination image")]
 pub struct DifferentTypesOfPixelsError;
+
+#[derive(Error, Debug, Clone, Copy)]
+#[error(
+    "The dimensions of the source image are not equal to the dimensions of the destination image"
+)]
+pub(crate) struct DifferentDimensionsError;

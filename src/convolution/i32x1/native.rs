@@ -1,6 +1,6 @@
 use crate::convolution::Coefficients;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::I32;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 pub(crate) fn horiz_convolution(
     src_image: TypedImageView<I32>,

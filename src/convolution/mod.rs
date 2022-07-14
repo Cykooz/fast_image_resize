@@ -1,9 +1,10 @@
 use std::num::NonZeroU32;
 
-use crate::image_view::{TypedImageView, TypedImageViewMut};
-use crate::pixels::Pixel;
-use crate::CpuExtensions;
 pub use filters::{get_filter_func, FilterType};
+
+use crate::pixels::Pixel;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::CpuExtensions;
 
 #[macro_use]
 mod macros;

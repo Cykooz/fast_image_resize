@@ -1,9 +1,10 @@
+use std::cmp::Ordering;
 use std::num::NonZeroU32;
 
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    CpuExtensions, DifferentTypesOfPixelsError, FilterType, Image, ImageView, PixelType, ResizeAlg,
-    Resizer,
+    CpuExtensions, CropBox, DifferentTypesOfPixelsError, FilterType, Image, ImageView, PixelType,
+    ResizeAlg, Resizer,
 };
 use testing::PixelExt;
 
@@ -28,6 +29,62 @@ fn try_resize_to_other_pixel_type() {
         resizer.resize(&src_image.view(), &mut dst_image.view_mut()),
         Err(DifferentTypesOfPixelsError)
     ));
+}
+
+#[test]
+fn resize_to_same_size() {
+    let width = NonZeroU32::new(100).unwrap();
+    let height = NonZeroU32::new(80).unwrap();
+    let buffer: Vec<u8> = (0..8000).map(|v| (v & 0xff) as u8).collect();
+    let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8).unwrap();
+    let mut dst_image = Image::new(width, height, PixelType::U8);
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    resizer
+        .resize(&src_image.view(), &mut dst_image.view_mut())
+        .unwrap();
+    assert!(matches!(
+        src_image.buffer().cmp(dst_image.buffer()),
+        Ordering::Equal
+    ));
+}
+
+#[test]
+fn resize_to_same_size_after_cropping() {
+    let width = NonZeroU32::new(100).unwrap();
+    let height = NonZeroU32::new(80).unwrap();
+    let src_width = NonZeroU32::new(120).unwrap();
+    let src_height = NonZeroU32::new(100).unwrap();
+    let buffer: Vec<u8> = (0..12000).map(|v| (v & 0xff) as u8).collect();
+    let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8).unwrap();
+    let mut src_view = src_image.view();
+    src_view
+        .set_crop_box(CropBox {
+            top: 10,
+            left: 10,
+            width,
+            height,
+        })
+        .unwrap();
+
+    let mut dst_image = Image::new(width, height, PixelType::U8);
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    resizer
+        .resize(&src_view, &mut dst_image.view_mut())
+        .unwrap();
+
+    let cropped_buffer: Vec<u8> = (0..12000u32)
+        .filter_map(|v| {
+            let row = v / 120;
+            let col = v % 120;
+            if (10..90u32).contains(&row) && (10..110u32).contains(&col) {
+                Some((v & 0xff) as u8)
+            } else {
+                None
+            }
+        })
+        .collect();
+    let dst_buffer = dst_image.into_vec();
+    assert!(matches!(cropped_buffer.cmp(&dst_buffer), Ordering::Equal));
 }
 
 fn downscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions) -> Vec<u8> {

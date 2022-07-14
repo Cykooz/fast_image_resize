@@ -1,6 +1,6 @@
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U16;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 #[inline(always)]
 pub(crate) fn horiz_convolution(

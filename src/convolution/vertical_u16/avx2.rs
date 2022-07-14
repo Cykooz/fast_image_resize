@@ -1,9 +1,9 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
 use crate::simd_utils;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 pub(crate) fn vert_convolution<T>(
     src_image: TypedImageView<T>,

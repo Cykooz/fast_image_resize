@@ -1,7 +1,7 @@
 pub use errors::*;
 
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
 
 mod common;

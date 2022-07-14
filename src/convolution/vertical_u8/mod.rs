@@ -1,6 +1,6 @@
 use crate::convolution::Coefficients;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
 
 #[cfg(target_arch = "x86_64")]

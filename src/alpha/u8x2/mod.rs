@@ -1,6 +1,6 @@
-use crate::image_view::{TypedImageView, TypedImageViewMut};
-use crate::pixels::U8x2;
 use crate::CpuExtensions;
+use crate::pixels::U8x2;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 use super::AlphaMulDiv;
 

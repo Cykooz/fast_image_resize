@@ -1,9 +1,10 @@
 use std::arch::x86_64::*;
 
-use super::sse4;
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U8x2;
 use crate::simd_utils;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+
+use super::sse4;
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn multiply_alpha(

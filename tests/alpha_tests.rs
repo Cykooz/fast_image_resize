@@ -1,9 +1,8 @@
 use std::num::NonZeroU32;
 
 use fast_image_resize::pixels::{Pixel, U16x2, U16x4, U8x2, U8x4};
-use fast_image_resize::{
-    CpuExtensions, Image, ImageRows, ImageRowsMut, ImageView, ImageViewMut, MulDiv, PixelType,
-};
+use fast_image_resize::{CpuExtensions, Image, ImageView, ImageViewMut, MulDiv, PixelType};
+use fast_image_resize::{ImageRows, ImageRowsMut};
 
 trait IntoImageRows
 where

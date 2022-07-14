@@ -2,9 +2,10 @@ use std::arch::x86_64::*;
 
 use crate::convolution::optimisations::CoefficientsI32Chunk;
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut};
+use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U16x3;
 use crate::simd_utils;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(

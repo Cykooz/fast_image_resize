@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::U16x2;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 use super::native;
 

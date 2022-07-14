@@ -2,9 +2,10 @@ use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut, TypedImageView, TypedImageViewMut};
+use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x4;
 use crate::simd_utils;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd

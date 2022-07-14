@@ -3,9 +3,9 @@ use std::arch::x86_64::*;
 use crate::convolution::optimisations::CoefficientsI32Chunk;
 use crate::convolution::vertical_u16::native::convolution_by_u16;
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{TypedImageView, TypedImageViewMut};
 use crate::pixels::Pixel;
 use crate::simd_utils;
+use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
     src_image: TypedImageView<T>,
