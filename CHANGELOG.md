@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [1.0.0] - 2022-07-24
 
 - Added example of command line application "resizer".
 
