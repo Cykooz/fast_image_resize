@@ -1,3 +1,7 @@
+## [Unreleased] - ReleaseDate
+
+- Added example of command line application "resizer".
+
 ## [0.9.7] - 2022-07-14
 
 - Fixed resizing when the destination image has the same dimensions 

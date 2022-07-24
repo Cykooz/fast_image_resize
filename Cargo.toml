@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "testing",
+    "resizer",
 ]
 
 
@@ -17,7 +18,6 @@ repository = "https://github.com/cykooz/fast_image_resize"
 documentation = "https://docs.rs/crate/fast_image_resize"
 exclude = ["/data"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 num-traits = "0.2.15"
@@ -26,7 +26,7 @@ thiserror = "1.0.31"
 
 [dev-dependencies]
 glassbench = "0.3.3"
-image = "0.24.2"
+image = "0.24.3"
 resize = "0.7.3"
 rgb = "0.8.33"
 png = "0.17.5"
@@ -89,10 +89,10 @@ opt-level = 3
 
 
 [profile.release]
-#debug = true
 lto = true
 opt-level = 3
 codegen-units = 1
+strip = true
 
 
 [profile.test]

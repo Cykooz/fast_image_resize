@@ -19,7 +19,7 @@ const fn get_clip_table() -> [u8; 1280] {
 }
 
 // Handles values form -640 to 639.
-const CLIP8_LOOKUPS: [u8; 1280] = get_clip_table();
+static CLIP8_LOOKUPS: [u8; 1280] = get_clip_table();
 
 // 8 bits for result. Filter can have negative areas.
 // In one cases the sum of the coefficients will be negative,
