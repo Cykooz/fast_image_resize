@@ -33,3 +33,11 @@ pub struct DifferentTypesOfPixelsError;
     "The dimensions of the source image are not equal to the dimensions of the destination image"
 )]
 pub(crate) struct DifferentDimensionsError;
+
+#[derive(Error, Debug, Clone, Copy)]
+pub enum MappingError {
+    #[error("The dimensions of the source image are not equal to the dimensions of the destination image")]
+    DifferentDimensions,
+    #[error("Unsupported combination of pixels of source and/or destination images")]
+    UnsupportedCombinationOfImageTypes,
+}

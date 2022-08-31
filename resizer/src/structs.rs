@@ -48,3 +48,10 @@ impl From<FilterType> for fr::FilterType {
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, clap::ValueEnum)]
+pub enum ColorSpace {
+    Linear,
+    /// sRGB for color images or gamma 2.2 for grayscale images
+    NonLinear,
+}

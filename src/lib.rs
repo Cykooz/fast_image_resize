@@ -13,6 +13,7 @@ pub use resizer::{CpuExtensions, ResizeAlg, Resizer};
 pub use crate::image::Image;
 
 mod alpha;
+pub mod color;
 mod convolution;
 mod errors;
 mod image;

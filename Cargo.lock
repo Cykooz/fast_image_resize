@@ -485,6 +485,7 @@ dependencies = [
  "image",
  "nix",
  "num-traits",
+ "once_cell",
  "png",
  "resize",
  "rgb",

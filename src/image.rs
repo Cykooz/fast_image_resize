@@ -20,7 +20,7 @@ impl<'a> PixelsContainer<'a> {
     }
 }
 
-/// Simple image container.
+/// Simple container of image data.
 #[derive(Debug)]
 pub struct Image<'a> {
     width: NonZeroU32,

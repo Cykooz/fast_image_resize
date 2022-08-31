@@ -1,7 +1,6 @@
 use std::ffi::OsStr;
-use std::fmt::Debug;
 use std::num::NonZeroU32;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
@@ -37,6 +36,10 @@ struct Cli {
     #[clap(short, long, action)]
     overwrite: bool,
 
+    /// Colorspace of image
+    #[clap(short, long, value_enum, default_value_t = structs::ColorSpace::NonLinear)]
+    colorspace: structs::ColorSpace,
+
     /// Algorithm used to resize image
     #[clap(short, long, value_enum, default_value_t = structs::Algorithm::Convolution)]
     algorithm: structs::Algorithm,
@@ -58,7 +61,7 @@ fn main() -> Result<()> {
 }
 
 fn resize(cli: &Cli) -> Result<()> {
-    let (mut src_image, color_type) = open_source_image(&cli.source_path)?;
+    let (mut src_image, color_type) = open_source_image(cli)?;
     let mut dst_image = create_destination_image(cli, &src_image);
 
     let mul_div = fr::MulDiv::default();
@@ -88,13 +91,11 @@ fn resize(cli: &Cli) -> Result<()> {
             .with_context(|| "Failed to divide color channels by alpha")?;
     }
 
-    save_result(cli, &dst_image, color_type)
+    save_result(cli, dst_image, color_type)
 }
 
-fn open_source_image<P>(source_path: P) -> Result<(fr::Image<'static>, ColorType)>
-where
-    P: AsRef<Path> + Debug,
-{
+fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
+    let source_path = &cli.source_path;
     debug!("Opening the source image {:?}", source_path);
     let image = ImageReader::open(&source_path)
         .with_context(|| format!("Failed to read source file from {:?}", source_path))?
@@ -195,7 +196,7 @@ fn get_resizing_algorithm(cli: &Cli) -> fr::ResizeAlg {
     }
 }
 
-fn save_result(cli: &Cli, image: &fr::Image, color_type: ColorType) -> Result<()> {
+fn save_result(cli: &Cli, mut image: fr::Image, color_type: ColorType) -> Result<()> {
     let result_path = if let Some(path) = cli.destination_path.clone() {
         path
     } else {
@@ -214,6 +215,28 @@ fn save_result(cli: &Cli, image: &fr::Image, color_type: ColorType) -> Result<()
             result_path
         ));
     };
+
+    image = match cli.colorspace {
+        structs::ColorSpace::NonLinear => {
+            debug!("Convert the result image from linear colorspace into non-linear");
+            let mut non_linear_dst_image =
+                fr::Image::new(image.width(), image.height(), image.pixel_type());
+            if color_type.has_color() {
+                fr::color::srgb::rgb_into_srgb(
+                    &image.view(),
+                    &mut non_linear_dst_image.view_mut(),
+                )?;
+            } else {
+                fr::color::gamma::linear_into_gamma22(
+                    &image.view(),
+                    &mut non_linear_dst_image.view_mut(),
+                )?;
+            }
+            non_linear_dst_image
+        }
+        _ => image,
+    };
+
     debug!("Save the result image into the file {:?}", result_path);
     image::save_buffer(
         result_path,
