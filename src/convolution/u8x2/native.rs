@@ -1,10 +1,10 @@
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::U8x2;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U8x2>,
-    mut dst_image: TypedImageViewMut<U8x2>,
+    src_image: &ImageView<U8x2>,
+    dst_image: &mut ImageViewMut<U8x2>,
     offset: u32,
     coeffs: Coefficients,
 ) {

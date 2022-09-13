@@ -4,12 +4,12 @@ use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U16x4;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U16x4>,
-    mut dst_image: TypedImageViewMut<U16x4>,
+    src_image: &ImageView<U16x4>,
+    dst_image: &mut ImageViewMut<U16x4>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -135,7 +135,7 @@ unsafe fn horiz_convolution_four_rows(
             x += 2;
         }
 
-        if let Some(&k) = coeffs.get(0) {
+        if let Some(&k) = coeffs.first() {
             let coeff0_i64x4 = _mm256_set1_epi64x(k as i64);
 
             for i in 0..2 {
@@ -283,7 +283,7 @@ unsafe fn horiz_convolution_one_row(
             x += 2;
         }
 
-        if let Some(&k) = coeffs.get(0) {
+        if let Some(&k) = coeffs.first() {
             let coeff_i64x4 = _mm256_set_epi64x(0, 0, k as i64, k as i64);
             let source = _mm256_set_m128i(_mm_setzero_si128(), simd_utils::loadl_epi64(src_row, x));
 

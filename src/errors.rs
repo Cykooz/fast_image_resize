@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageRowsError {
     #[error("Count of rows don't match to image height")]
     InvalidRowsCount,
@@ -8,7 +8,7 @@ pub enum ImageRowsError {
     InvalidRowSize,
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageBufferError {
     #[error("Size of buffer is smaller than required")]
     InvalidBufferSize,
@@ -16,7 +16,7 @@ pub enum ImageBufferError {
     InvalidBufferAlignment,
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CropBoxError {
     #[error("Position of the crop box is out of the image boundaries")]
     PositionIsOutOfImageBoundaries,
@@ -32,12 +32,18 @@ pub struct DifferentTypesOfPixelsError;
 #[error(
     "The dimensions of the source image are not equal to the dimensions of the destination image"
 )]
-pub(crate) struct DifferentDimensionsError;
+pub struct DifferentDimensionsError;
 
-#[derive(Error, Debug, Clone, Copy)]
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MappingError {
     #[error("The dimensions of the source image are not equal to the dimensions of the destination image")]
     DifferentDimensions,
     #[error("Unsupported combination of pixels of source and/or destination images")]
     UnsupportedCombinationOfImageTypes,
+}
+
+impl From<DifferentDimensionsError> for MappingError {
+    fn from(_: DifferentDimensionsError) -> Self {
+        MappingError::DifferentDimensions
+    }
 }

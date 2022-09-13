@@ -1,57 +1,10 @@
 use std::num::NonZeroU32;
 
 use fast_image_resize::pixels::{Pixel, U16x2, U16x4, U8x2, U8x4};
-use fast_image_resize::{CpuExtensions, Image, ImageView, ImageViewMut, MulDiv, PixelType};
-use fast_image_resize::{ImageRows, ImageRowsMut};
-
-trait IntoImageRows
-where
-    Self: Pixel,
-{
-    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows;
-
-    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut;
-}
-
-impl IntoImageRows for U8x2 {
-    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
-        ImageRows::U8x2(rows)
-    }
-
-    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
-        ImageRowsMut::U8x2(rows)
-    }
-}
-
-impl IntoImageRows for U8x4 {
-    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
-        ImageRows::U8x4(rows)
-    }
-
-    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
-        ImageRowsMut::U8x4(rows)
-    }
-}
-
-impl IntoImageRows for U16x2 {
-    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
-        ImageRows::U16x2(rows)
-    }
-
-    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
-        ImageRowsMut::U16x2(rows)
-    }
-}
-
-impl IntoImageRows for U16x4 {
-    fn into_image_rows(rows: Vec<&[Self]>) -> ImageRows {
-        ImageRows::U16x4(rows)
-    }
-
-    fn into_image_rows_mut(rows: Vec<&mut [Self]>) -> ImageRowsMut {
-        ImageRowsMut::U16x4(rows)
-    }
-}
+use fast_image_resize::{
+    CpuExtensions, DynamicImageView, DynamicImageViewMut, Image, ImageView, ImageViewMut, MulDiv,
+    PixelType,
+};
 
 const fn p2(l: u8, a: u8) -> U8x2 {
     U8x2(u16::from_le_bytes([l, a]))
@@ -70,24 +23,23 @@ enum Oper {
 
 fn mul_div_alpha_test<P>(oper: Oper, src_pixel: P, result_pixel: P, cpu_extensions: CpuExtensions)
 where
-    P: Pixel + IntoImageRows,
+    P: Pixel + 'static,
+    for<'a> ImageView<'a, P>: Into<DynamicImageView<'a>>,
+    for<'a> ImageViewMut<'a, P>: Into<DynamicImageViewMut<'a>>,
 {
     let width: u32 = 8 + 8 + 7;
     let height: u32 = 3;
 
     let src_size = width as usize * height as usize;
-    let mut src_pixels: Vec<P> = vec![src_pixel; src_size];
-    let res_pixels: Vec<P> = vec![result_pixel; src_size];
-    let res_buffer = unsafe { res_pixels.align_to::<u8>().1 };
+    let mut src_pixels = vec![src_pixel; src_size];
 
-    let rows: Vec<&[P]> = src_pixels.chunks_exact(width as usize).collect();
-
-    let src_image_view = ImageView::new(
+    let src_dyn_image_view = ImageView::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        P::into_image_rows(rows),
+        &src_pixels,
     )
-    .unwrap();
+    .unwrap()
+    .into();
 
     let mut dst_image = Image::new(
         NonZeroU32::new(width).unwrap(),
@@ -103,13 +55,15 @@ where
 
     match oper {
         Oper::Mul => alpha_mul_div
-            .multiply_alpha(&src_image_view, &mut dst_image_view)
+            .multiply_alpha(&src_dyn_image_view, &mut dst_image_view)
             .unwrap(),
         Oper::Div => alpha_mul_div
-            .divide_alpha(&src_image_view, &mut dst_image_view)
+            .divide_alpha(&src_dyn_image_view, &mut dst_image_view)
             .unwrap(),
     }
 
+    let res_pixels: Vec<P> = vec![result_pixel; src_size];
+    let res_buffer = unsafe { res_pixels.align_to::<u8>().1 };
     let dst_buffer = dst_image.buffer();
     assert!(
         dst_buffer.iter().zip(res_buffer).all(|(&d, &r)| d == r),
@@ -119,13 +73,13 @@ where
     );
 
     // Inplace
-    let rows: Vec<&mut [P]> = src_pixels.chunks_exact_mut(width as usize).collect();
-    let mut image_view = ImageViewMut::new(
+    let mut image_view = ImageViewMut::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        P::into_image_rows_mut(rows),
+        &mut src_pixels,
     )
-    .unwrap();
+    .unwrap()
+    .into();
 
     match oper {
         Oper::Mul => alpha_mul_div

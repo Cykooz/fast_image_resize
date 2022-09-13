@@ -1,3 +1,29 @@
+## [Unreleased] - ReleaseDate
+
+### Crate
+
+- Breaking changes:
+  - Struct `ImageView` replaced by enum `DynamicImageView`.
+  - Struct `ImageViewMut` replaced by enum `DynamicImageViewMut`.
+  - Trait `Pixel` changed:
+    - Associated type `ComponentsCount` renamed into `CountOfComponents`.
+    - Associated type `ComponentCountOfValues` renamed into `CountOfComponentValues`.
+    - Associated method `components_count` renamed into `count_of_components`.
+    - Associated method `component_count_of_values` renamed into `count_of_component_values`.
+- Added generic structs `ImageView` and `ImageViewMut`.
+- Added module `color` for working with colorspace and gamma.
+- Added functions `change_type_of_pixel_components` and 
+  `change_type_of_pixel_components_dyn` to change type of pixel's 
+  components in whole image.
+- Added generic trait `IntoPixelComponent<Out: PixelComponent>`.
+
+### Example application
+
+- Added option `--high_precision` to use `u16` as pixel components 
+  for intermediate image representation.
+- Added converting of source image into linear colorspace before it will be resized.
+  Destination image will be returned into original colorspace before it will be saved.
+
 ## [1.0.0] - 2022-07-24
 
 - Added example of command line application "resizer".

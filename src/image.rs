@@ -1,9 +1,7 @@
 use std::num::NonZeroU32;
 
-use crate::image_rows::{ImageRows, ImageRowsMut};
-use crate::pixels::{Pixel, PixelType, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32, U16, U8};
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
-use crate::{ImageBufferError, ImageView, ImageViewMut};
+use crate::pixels::{Pixel, PixelType};
+use crate::{DynamicImageView, DynamicImageViewMut, ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]
 enum PixelsContainer<'a> {
@@ -136,204 +134,49 @@ impl<'a> Image<'a> {
     }
 
     #[inline(always)]
-    pub fn view(&self) -> ImageView {
-        let buffer = self.buffer();
-        let rows_count = self.height.get() as usize;
-        let rows = match self.pixel_type {
-            PixelType::U8x2 => {
-                let pixels = unsafe { buffer.align_to::<U8x2>().1 };
-                ImageRows::U8x2(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8x3 => {
-                let pixels = unsafe { buffer.align_to::<U8x3>().1 };
-                ImageRows::U8x3(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8x4 => {
-                let pixels = unsafe { buffer.align_to::<U8x4>().1 };
-                ImageRows::U8x4(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16 => {
-                let pixels = unsafe { buffer.align_to::<U16>().1 };
-                ImageRows::U16(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x2 => {
-                let pixels = unsafe { buffer.align_to::<U16x2>().1 };
-                ImageRows::U16x2(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x3 => {
-                let pixels = unsafe { buffer.align_to::<U16x3>().1 };
-                ImageRows::U16x3(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x4 => {
-                let pixels = unsafe { buffer.align_to::<U16x4>().1 };
-                ImageRows::U16x4(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::I32 => {
-                let pixels = unsafe { buffer.align_to::<I32>().1 };
-                ImageRows::I32(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::F32 => {
-                let pixels = unsafe { buffer.align_to::<F32>().1 };
-                ImageRows::F32(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8 => {
-                let pixels = unsafe { buffer.align_to::<U8>().1 };
-                ImageRows::U8(
-                    pixels
-                        .chunks_exact(self.width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-        };
-        ImageView::new(self.width, self.height, rows).unwrap()
+    pub fn view(&self) -> DynamicImageView {
+        macro_rules! get_dynamic_image {
+            ($img_type: expr) => {
+                ($img_type(ImageView::from_buffer(self.width, self.height, self.buffer()).unwrap()))
+            };
+        }
+
+        match self.pixel_type {
+            PixelType::U8 => get_dynamic_image!(DynamicImageView::U8),
+            PixelType::U8x2 => get_dynamic_image!(DynamicImageView::U8x2),
+            PixelType::U8x3 => get_dynamic_image!(DynamicImageView::U8x3),
+            PixelType::U8x4 => get_dynamic_image!(DynamicImageView::U8x4),
+            PixelType::U16 => get_dynamic_image!(DynamicImageView::U16),
+            PixelType::U16x2 => get_dynamic_image!(DynamicImageView::U16x2),
+            PixelType::U16x3 => get_dynamic_image!(DynamicImageView::U16x3),
+            PixelType::U16x4 => get_dynamic_image!(DynamicImageView::U16x4),
+            PixelType::I32 => get_dynamic_image!(DynamicImageView::I32),
+            PixelType::F32 => get_dynamic_image!(DynamicImageView::F32),
+        }
     }
 
     #[inline(always)]
-    pub fn view_mut(&mut self) -> ImageViewMut {
-        let pixel_type = self.pixel_type;
-        let width = self.width;
-        let height = self.height;
-        let buffer = self.buffer_mut();
-        let rows_count = height.get() as usize;
-        let rows = match pixel_type {
-            PixelType::U8x2 => {
-                let pixels = unsafe { buffer.align_to_mut::<U8x2>().1 };
-                ImageRowsMut::U8x2(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8x3 => {
-                let pixels = unsafe { buffer.align_to_mut::<U8x3>().1 };
-                ImageRowsMut::U8x3(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8x4 => {
-                let pixels = unsafe { buffer.align_to_mut::<U8x4>().1 };
-                ImageRowsMut::U8x4(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16 => {
-                let pixels = unsafe { buffer.align_to_mut::<U16>().1 };
-                ImageRowsMut::U16(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x2 => {
-                let pixels = unsafe { buffer.align_to_mut::<U16x2>().1 };
-                ImageRowsMut::U16x2(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x3 => {
-                let pixels = unsafe { buffer.align_to_mut::<U16x3>().1 };
-                ImageRowsMut::U16x3(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U16x4 => {
-                let pixels = unsafe { buffer.align_to_mut::<U16x4>().1 };
-                ImageRowsMut::U16x4(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::I32 => {
-                let pixels = unsafe { buffer.align_to_mut::<I32>().1 };
-                ImageRowsMut::I32(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::F32 => {
-                let pixels = unsafe { buffer.align_to_mut::<F32>().1 };
-                ImageRowsMut::F32(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-            PixelType::U8 => {
-                let pixels = unsafe { buffer.align_to_mut::<U8>().1 };
-                ImageRowsMut::U8(
-                    pixels
-                        .chunks_exact_mut(width.get() as usize)
-                        .take(rows_count)
-                        .collect(),
-                )
-            }
-        };
-        ImageViewMut::new(width, height, rows).unwrap()
+    pub fn view_mut(&mut self) -> DynamicImageViewMut {
+        macro_rules! get_dynamic_image {
+            ($img_type: expr) => {
+                ($img_type(
+                    ImageViewMut::from_buffer(self.width, self.height, self.buffer_mut()).unwrap(),
+                ))
+            };
+        }
+
+        match self.pixel_type {
+            PixelType::U8 => get_dynamic_image!(DynamicImageViewMut::U8),
+            PixelType::U8x2 => get_dynamic_image!(DynamicImageViewMut::U8x2),
+            PixelType::U8x3 => get_dynamic_image!(DynamicImageViewMut::U8x3),
+            PixelType::U8x4 => get_dynamic_image!(DynamicImageViewMut::U8x4),
+            PixelType::U16 => get_dynamic_image!(DynamicImageViewMut::U16),
+            PixelType::U16x2 => get_dynamic_image!(DynamicImageViewMut::U16x2),
+            PixelType::U16x3 => get_dynamic_image!(DynamicImageViewMut::U16x3),
+            PixelType::U16x4 => get_dynamic_image!(DynamicImageViewMut::U16x4),
+            PixelType::I32 => get_dynamic_image!(DynamicImageViewMut::I32),
+            PixelType::F32 => get_dynamic_image!(DynamicImageViewMut::F32),
+        }
     }
 }
 
@@ -344,7 +187,7 @@ where
 {
     width: NonZeroU32,
     height: NonZeroU32,
-    rows: Vec<&'a mut [P]>,
+    pixels: &'a mut [P],
 }
 
 impl<'a, P> InnerImage<'a, P>
@@ -352,23 +195,20 @@ where
     P: Pixel,
 {
     pub fn new(width: NonZeroU32, height: NonZeroU32, pixels: &'a mut [P]) -> Self {
-        let rows = pixels.chunks_mut(width.get() as usize).collect();
         Self {
             width,
             height,
-            rows,
+            pixels,
         }
     }
 
     #[inline(always)]
-    pub fn src_view<'s>(&'s self) -> TypedImageView<'s, 'a, P> {
-        let rows = self.rows.as_slice();
-        let rows: &[&[P]] = unsafe { std::mem::transmute(rows) };
-        TypedImageView::new(self.width, self.height, rows)
+    pub fn src_view(&self) -> ImageView<P> {
+        ImageView::from_pixels(self.width, self.height, self.pixels).unwrap()
     }
 
     #[inline(always)]
-    pub fn dst_view<'s>(&'s mut self) -> TypedImageViewMut<'s, 'a, P> {
-        TypedImageViewMut::new(self.width, self.height, self.rows.as_mut_slice())
+    pub fn dst_view(&mut self) -> ImageViewMut<P> {
+        ImageViewMut::from_pixels(self.width, self.height, self.pixels).unwrap()
     }
 }

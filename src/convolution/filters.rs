@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 pub type FilterFn<'a> = &'a dyn Fn(f64) -> f64;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FilterType {
     /// Each pixel of source image contributes to one pixel of the

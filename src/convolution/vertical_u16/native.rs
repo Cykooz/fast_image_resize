@@ -1,11 +1,11 @@
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::Pixel;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
 pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
-    src_image: TypedImageView<T>,
-    mut dst_image: TypedImageViewMut<T>,
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) {
     // Check safety conditions
@@ -25,7 +25,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
         let dst_components = T::components_mut(dst_row);
 
         convolution_by_u16(
-            &src_image,
+            src_image,
             &normalizer,
             initial,
             dst_components,
@@ -38,7 +38,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
 
 #[inline(always)]
 pub(crate) fn convolution_by_u16<T: Pixel<Component = u16>>(
-    src_image: &TypedImageView<T>,
+    src_image: &ImageView<T>,
     normalizer: &optimisations::Normalizer32,
     initial: i64,
     dst_components: &mut [u16],

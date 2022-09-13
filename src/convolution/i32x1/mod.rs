@@ -1,6 +1,6 @@
 use crate::pixels::I32;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+use crate::{ImageView, ImageViewMut};
 
 use super::{Coefficients, Convolution};
 
@@ -8,8 +8,8 @@ mod native;
 
 impl Convolution for I32 {
     fn horiz_convolution(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         offset: u32,
         coeffs: Coefficients,
         _cpu_extensions: CpuExtensions,
@@ -18,8 +18,8 @@ impl Convolution for I32 {
     }
 
     fn vert_convolution(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         coeffs: Coefficients,
         _cpu_extensions: CpuExtensions,
     ) {

@@ -1,6 +1,6 @@
 use crate::pixels::U8x4;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+use crate::{ImageView, ImageViewMut};
 
 use super::AlphaMulDiv;
 
@@ -12,8 +12,8 @@ mod sse4;
 
 impl AlphaMulDiv for U8x4 {
     fn multiply_alpha(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         cpu_extensions: CpuExtensions,
     ) {
         match cpu_extensions {
@@ -25,7 +25,7 @@ impl AlphaMulDiv for U8x4 {
         }
     }
 
-    fn multiply_alpha_inplace(image: TypedImageViewMut<Self>, cpu_extensions: CpuExtensions) {
+    fn multiply_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions) {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha_inplace(image) },
@@ -36,8 +36,8 @@ impl AlphaMulDiv for U8x4 {
     }
 
     fn divide_alpha(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         cpu_extensions: CpuExtensions,
     ) {
         match cpu_extensions {
@@ -49,7 +49,7 @@ impl AlphaMulDiv for U8x4 {
         }
     }
 
-    fn divide_alpha_inplace(image: TypedImageViewMut<Self>, cpu_extensions: CpuExtensions) {
+    fn divide_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions) {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Avx2 => unsafe { avx2::divide_alpha_inplace(image) },

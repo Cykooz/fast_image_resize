@@ -1,8 +1,8 @@
 pub use errors::*;
 
 use crate::pixels::Pixel;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+use crate::{ImageView, ImageViewMut};
 
 mod common;
 pub(crate) mod errors;
@@ -18,22 +18,22 @@ where
     /// Multiplies RGB-channels of source image by alpha-channel and store
     /// result into destination image.
     fn multiply_alpha(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         cpu_extensions: CpuExtensions,
     );
 
     /// Multiplies RGB-channels of image by alpha-channel inplace.
-    fn multiply_alpha_inplace(image: TypedImageViewMut<Self>, cpu_extensions: CpuExtensions);
+    fn multiply_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions);
 
     /// Divides RGB-channels of source image by alpha-channel and store
     /// result into destination image.
     fn divide_alpha(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         cpu_extensions: CpuExtensions,
     );
 
     /// Divides RGB-channels of image by alpha-channel inplace.
-    fn divide_alpha_inplace(image: TypedImageViewMut<Self>, cpu_extensions: CpuExtensions);
+    fn divide_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions);
 }

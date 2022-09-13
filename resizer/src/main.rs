@@ -48,6 +48,10 @@ struct Cli {
     #[clap(short, long, value_enum, default_value_t = structs::FilterType::Lanczos3)]
     filter: structs::FilterType,
 
+    /// Use u16 as pixel components for intermediate image representation.
+    #[clap(long, action)]
+    high_precision: bool,
+
     #[clap(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 }
@@ -61,7 +65,7 @@ fn main() -> Result<()> {
 }
 
 fn resize(cli: &Cli) -> Result<()> {
-    let (mut src_image, color_type) = open_source_image(cli)?;
+    let (mut src_image, color_type, orig_pixel_type) = open_source_image(cli)?;
     let mut dst_image = create_destination_image(cli, &src_image);
 
     let mul_div = fr::MulDiv::default();
@@ -91,10 +95,10 @@ fn resize(cli: &Cli) -> Result<()> {
             .with_context(|| "Failed to divide color channels by alpha")?;
     }
 
-    save_result(cli, dst_image, color_type)
+    save_result(cli, dst_image, color_type, orig_pixel_type)
 }
 
-fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
+fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::PixelType)> {
     let source_path = &cli.source_path;
     debug!("Opening the source image {:?}", source_path);
     let image = ImageReader::open(&source_path)
@@ -108,11 +112,27 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
         .with_context(|| "Failed to get height of the source image")?;
 
     let color_type = image.color();
-    let (src_buffer, pixel_type) = match color_type {
-        ColorType::L8 => (image.to_luma8().into_raw(), fr::PixelType::U8),
-        ColorType::La8 => (image.to_luma_alpha8().into_raw(), fr::PixelType::U8x2),
-        ColorType::Rgb8 => (image.to_rgb8().into_raw(), fr::PixelType::U8x3),
-        ColorType::Rgba8 => (image.to_rgba8().into_raw(), fr::PixelType::U8x4),
+    let (src_buffer, pixel_type, mut internal_pixel_type) = match color_type {
+        ColorType::L8 => (
+            image.to_luma8().into_raw(),
+            fr::PixelType::U8,
+            fr::PixelType::U16,
+        ),
+        ColorType::La8 => (
+            image.to_luma_alpha8().into_raw(),
+            fr::PixelType::U8x2,
+            fr::PixelType::U16x2,
+        ),
+        ColorType::Rgb8 => (
+            image.to_rgb8().into_raw(),
+            fr::PixelType::U8x3,
+            fr::PixelType::U16x3,
+        ),
+        ColorType::Rgba8 => (
+            image.to_rgba8().into_raw(),
+            fr::PixelType::U8x4,
+            fr::PixelType::U16x4,
+        ),
         ColorType::L16 => (
             image
                 .to_luma16()
@@ -120,6 +140,7 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
                 .iter()
                 .flat_map(|&c| c.to_le_bytes())
                 .collect(),
+            fr::PixelType::U16,
             fr::PixelType::U16,
         ),
         ColorType::La16 => (
@@ -130,6 +151,7 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
                 .flat_map(|&c| c.to_le_bytes())
                 .collect(),
             fr::PixelType::U16x2,
+            fr::PixelType::U16x2,
         ),
         ColorType::Rgb16 => (
             image
@@ -138,6 +160,7 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
                 .iter()
                 .flat_map(|&c| c.to_le_bytes())
                 .collect(),
+            fr::PixelType::U16x3,
             fr::PixelType::U16x3,
         ),
         ColorType::Rgba16 => (
@@ -148,6 +171,7 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
                 .flat_map(|&c| c.to_le_bytes())
                 .collect(),
             fr::PixelType::U16x4,
+            fr::PixelType::U16x4,
         ),
         _ => {
             return Err(anyhow!(
@@ -157,11 +181,44 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType)> {
         }
     };
 
-    Ok((
-        fr::Image::from_vec_u8(src_width, src_height, src_buffer, pixel_type)
-            .with_context(|| "Failed to create source image pixels container")?,
-        color_type,
-    ))
+    if !cli.high_precision {
+        internal_pixel_type = pixel_type;
+    }
+
+    let mut src_image = fr::Image::from_vec_u8(src_width, src_height, src_buffer, pixel_type)
+        .with_context(|| "Failed to create source image pixels container")?;
+
+    src_image = match cli.colorspace {
+        structs::ColorSpace::NonLinear => {
+            debug!("Convert the source image from non-linear colorspace into linear");
+            let mut linear_src_image =
+                fr::Image::new(src_image.width(), src_image.height(), internal_pixel_type);
+            if color_type.has_color() {
+                fr::color::mappers::SRGB_TO_RGB
+                    .forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
+            } else {
+                fr::color::mappers::GAMMA22_TO_LINEAR
+                    .forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
+            }
+            linear_src_image
+        }
+        _ => {
+            if internal_pixel_type != pixel_type {
+                // Convert components of source image into version with high precision
+                let mut hi_src_image =
+                    fr::Image::new(src_image.width(), src_image.height(), internal_pixel_type);
+                fr::change_type_of_pixel_components_dyn(
+                    &src_image.view(),
+                    &mut hi_src_image.view_mut(),
+                )?;
+                hi_src_image
+            } else {
+                src_image
+            }
+        }
+    };
+
+    Ok((src_image, color_type, pixel_type))
 }
 
 fn create_destination_image(cli: &Cli, src_image: &fr::Image) -> fr::Image<'static> {
@@ -196,7 +253,12 @@ fn get_resizing_algorithm(cli: &Cli) -> fr::ResizeAlg {
     }
 }
 
-fn save_result(cli: &Cli, mut image: fr::Image, color_type: ColorType) -> Result<()> {
+fn save_result(
+    cli: &Cli,
+    mut image: fr::Image,
+    color_type: ColorType,
+    pixel_type: fr::PixelType,
+) -> Result<()> {
     let result_path = if let Some(path) = cli.destination_path.clone() {
         path
     } else {
@@ -220,21 +282,28 @@ fn save_result(cli: &Cli, mut image: fr::Image, color_type: ColorType) -> Result
         structs::ColorSpace::NonLinear => {
             debug!("Convert the result image from linear colorspace into non-linear");
             let mut non_linear_dst_image =
-                fr::Image::new(image.width(), image.height(), image.pixel_type());
+                fr::Image::new(image.width(), image.height(), pixel_type);
             if color_type.has_color() {
-                fr::color::srgb::rgb_into_srgb(
-                    &image.view(),
-                    &mut non_linear_dst_image.view_mut(),
-                )?;
+                fr::color::mappers::SRGB_TO_RGB
+                    .backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
             } else {
-                fr::color::gamma::linear_into_gamma22(
-                    &image.view(),
-                    &mut non_linear_dst_image.view_mut(),
-                )?;
+                fr::color::mappers::GAMMA22_TO_LINEAR
+                    .backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
             }
             non_linear_dst_image
         }
-        _ => image,
+        _ => {
+            if image.pixel_type() != pixel_type {
+                let mut lo_src_image = fr::Image::new(image.width(), image.height(), pixel_type);
+                fr::change_type_of_pixel_components_dyn(
+                    &image.view(),
+                    &mut lo_src_image.view_mut(),
+                )?;
+                lo_src_image
+            } else {
+                image
+            }
+        }
     };
 
     debug!("Save the result image into the file {:?}", result_path);

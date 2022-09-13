@@ -4,12 +4,12 @@ use crate::convolution::{Coefficients, optimisations};
 use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x2;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U8x2>,
-    mut dst_image: TypedImageViewMut<U8x2>,
+    src_image: &ImageView<U8x2>,
+    dst_image: &mut ImageViewMut<U8x2>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -168,7 +168,7 @@ unsafe fn horiz_convolution_four_rows(
             x += 2;
         }
 
-        if let Some(&k) = reminder.get(0) {
+        if let Some(&k) = reminder.first() {
             // [16] xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0
             let mmk = _mm256_set1_epi32(k as i32);
 

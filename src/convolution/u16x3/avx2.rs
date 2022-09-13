@@ -1,15 +1,14 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
+use crate::image_view::{FourRows, FourRowsMut, ImageView, ImageViewMut};
 use crate::pixels::U16x3;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U16x3>,
-    mut dst_image: TypedImageViewMut<U16x3>,
+    src_image: &ImageView<U16x3>,
+    dst_image: &mut ImageViewMut<U16x3>,
     offset: u32,
     coeffs: Coefficients,
 ) {

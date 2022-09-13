@@ -1,11 +1,11 @@
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::Pixel;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
 pub(crate) fn vert_convolution<T>(
-    src_image: TypedImageView<T>,
-    mut dst_image: TypedImageViewMut<T>,
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) where
     T: Pixel<Component = u8>,
@@ -30,7 +30,7 @@ pub(crate) fn vert_convolution<T>(
 
         if !head.is_empty() {
             x_src = convolution_by_u8(
-                &src_image,
+                src_image,
                 &normalizer,
                 initial,
                 head,
@@ -62,7 +62,7 @@ pub(crate) fn vert_convolution<T>(
 
         if !tail.is_empty() {
             convolution_by_u8(
-                &src_image,
+                src_image,
                 &normalizer,
                 initial,
                 tail,
@@ -76,7 +76,7 @@ pub(crate) fn vert_convolution<T>(
 
 #[inline(always)]
 fn convolution_by_u8<T>(
-    src_image: &TypedImageView<T>,
+    src_image: &ImageView<T>,
     normalizer: &optimisations::Normalizer16,
     initial: i32,
     dst_components: &mut [u8],

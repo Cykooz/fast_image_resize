@@ -1,14 +1,14 @@
 use std::arch::x86_64::*;
 
 use crate::pixels::U16x2;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 use super::native;
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn multiply_alpha(
-    src_image: TypedImageView<U16x2>,
-    mut dst_image: TypedImageViewMut<U16x2>,
+    src_image: &ImageView<U16x2>,
+    dst_image: &mut ImageViewMut<U16x2>,
 ) {
     let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
@@ -19,7 +19,7 @@ pub(crate) unsafe fn multiply_alpha(
 }
 
 #[target_feature(enable = "sse4.1")]
-pub(crate) unsafe fn multiply_alpha_inplace(mut image: TypedImageViewMut<U16x2>) {
+pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
     for dst_row in image.iter_rows_mut() {
         let src_row = std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len());
         multiply_alpha_row(src_row, dst_row);
@@ -77,8 +77,8 @@ pub(crate) unsafe fn multiply_alpha_row(src_row: &[U16x2], dst_row: &mut [U16x2]
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn divide_alpha(
-    src_image: TypedImageView<U16x2>,
-    mut dst_image: TypedImageViewMut<U16x2>,
+    src_image: &ImageView<U16x2>,
+    dst_image: &mut ImageViewMut<U16x2>,
 ) {
     let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
@@ -89,7 +89,7 @@ pub(crate) unsafe fn divide_alpha(
 }
 
 #[target_feature(enable = "sse4.1")]
-pub(crate) unsafe fn divide_alpha_inplace(mut image: TypedImageViewMut<U16x2>) {
+pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
     for dst_row in image.iter_rows_mut() {
         let src_row = std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len());
         divide_alpha_row(src_row, dst_row);

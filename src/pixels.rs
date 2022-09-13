@@ -53,7 +53,7 @@ pub trait GetCount {
     fn count() -> usize;
 }
 
-/// Generic type to represent the number of component in single pixel.
+/// Generic type to represent the number of components in single pixel.
 pub struct Count<const N: usize>;
 
 impl<const N: usize> GetCount for Count<N> {
@@ -77,7 +77,7 @@ impl<const N: usize> CountOfValues for Values<N> {
 
 pub trait PixelComponent
 where
-    Self: Sized + Copy + 'static,
+    Self: Sized + Copy + Debug + 'static,
 {
 }
 
@@ -89,26 +89,26 @@ impl PixelComponent for f32 {}
 /// Additional information about pixel type.
 pub trait Pixel
 where
-    Self: Copy + Sized + Debug,
+    Self: Copy + Clone + Sized + Debug,
 {
     /// Type of pixel components
     type Component: PixelComponent;
     /// Type that provides information about a count of pixel's components
-    type ComponentsCount: GetCount;
+    type CountOfComponents: GetCount;
     /// Type that provides information about a count of available values of one
-    /// pixel's component as usize
-    type ComponentCountOfValues: CountOfValues;
+    /// pixel's component
+    type CountOfComponentValues: CountOfValues;
 
     fn pixel_type() -> PixelType;
 
     /// Count of pixel's components
-    fn components_count() -> usize {
-        Self::ComponentsCount::count()
+    fn count_of_components() -> usize {
+        Self::CountOfComponents::count()
     }
 
-    /// Count of available values of one pixel's component as usize
-    fn component_count_of_values() -> usize {
-        Self::ComponentCountOfValues::count_of_values()
+    /// Count of available values of one pixel's component
+    fn count_of_component_values() -> usize {
+        Self::CountOfComponentValues::count_of_values()
     }
 
     /// Size of pixel in bytes
@@ -126,14 +126,14 @@ where
 
     /// Create slice of components of pixels from slice of pixels
     fn components(buf: &[Self]) -> &[Self::Component] {
-        let size = buf.len() * Self::components_count();
+        let size = buf.len() * Self::count_of_components();
         let components_ptr = buf.as_ptr() as *const Self::Component;
         unsafe { slice::from_raw_parts(components_ptr, size) }
     }
 
     /// Create mutable slice of components of pixels from mutable slice of pixels
     fn components_mut(buf: &mut [Self]) -> &mut [Self::Component] {
-        let size = buf.len() * Self::components_count();
+        let size = buf.len() * Self::count_of_components();
         let components_ptr = buf.as_mut_ptr() as *mut Self::Component;
         unsafe { slice::from_raw_parts_mut(components_ptr, size) }
     }
@@ -148,8 +148,8 @@ macro_rules! pixel_struct {
 
         impl Pixel for $name {
             type Component = $comp_type;
-            type ComponentsCount = Count<$comp_count>;
-            type ComponentCountOfValues = Values<$comp_values>;
+            type CountOfComponents = Count<$comp_count>;
+            type CountOfComponentValues = Values<$comp_values>;
 
             fn pixel_type() -> PixelType {
                 $pixel_type
@@ -249,26 +249,26 @@ pixel_struct!(
     "One `f32` component per pixel"
 );
 
-pub(crate) trait PixelComponentInto<Out: PixelComponent>
+pub trait IntoPixelComponent<Out: PixelComponent>
 where
     Self: PixelComponent,
 {
     fn into_component(self) -> Out;
 }
 
-impl<C: PixelComponent> PixelComponentInto<C> for C {
+impl<C: PixelComponent> IntoPixelComponent<C> for C {
     fn into_component(self) -> C {
         self
     }
 }
 
-impl PixelComponentInto<u8> for u16 {
+impl IntoPixelComponent<u8> for u16 {
     fn into_component(self) -> u8 {
         self.to_le_bytes()[1]
     }
 }
 
-impl PixelComponentInto<u16> for u8 {
+impl IntoPixelComponent<u16> for u8 {
     fn into_component(self) -> u16 {
         u16::from_le_bytes([self, self])
     }

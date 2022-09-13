@@ -3,12 +3,12 @@ use std::arch::x86_64::*;
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::Pixel;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn vert_convolution<T>(
-    src_image: TypedImageView<T>,
-    mut dst_image: TypedImageViewMut<T>,
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) where
     T: Pixel<Component = u8>,
@@ -19,7 +19,7 @@ pub(crate) fn vert_convolution<T>(
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u8(&src_image, dst_row, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u8(src_image, dst_row, coeffs_chunk, &normalizer);
         }
     }
 }
@@ -27,14 +27,14 @@ pub(crate) fn vert_convolution<T>(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn vert_convolution_into_one_row_u8<T>(
-    src_img: &TypedImageView<T>,
+    src_img: &ImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
     normalizer: &optimisations::Normalizer16,
 ) where
     T: Pixel<Component = u8>,
 {
-    let src_width = src_img.width().get() as usize * T::components_count();
+    let src_width = src_img.width().get() as usize * T::count_of_components();
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;

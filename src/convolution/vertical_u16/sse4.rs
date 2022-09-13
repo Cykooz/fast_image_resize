@@ -5,11 +5,11 @@ use crate::convolution::vertical_u16::native::convolution_by_u16;
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::Pixel;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
-    src_image: TypedImageView<T>,
-    mut dst_image: TypedImageViewMut<T>,
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) {
     let normalizer = optimisations::Normalizer32::new(coeffs);
@@ -18,20 +18,20 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(&src_image, dst_row, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u16(src_image, dst_row, coeffs_chunk, &normalizer);
         }
     }
 }
 
 #[target_feature(enable = "sse4.1")]
 unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
-    src_img: &TypedImageView<T>,
+    src_img: &ImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: CoefficientsI32Chunk,
     normalizer: &optimisations::Normalizer32,
 ) {
     let mut xx: usize = 0;
-    let src_width = src_img.width().get() as usize * T::components_count();
+    let src_width = src_img.width().get() as usize * T::count_of_components();
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
@@ -93,7 +93,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
             y += 2;
         }
 
-        if let Some(&k) = coeffs_reminder.get(0) {
+        if let Some(&k) = coeffs_reminder.first() {
             let s_row = src_img.get_row(y_start + y).unwrap();
             let components = T::components(s_row);
             let coeff_i64x2 = _mm_set1_epi64x(k as i64);
@@ -145,7 +145,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
             y += 2;
         }
 
-        if let Some(&k) = coeffs_reminder.get(0) {
+        if let Some(&k) = coeffs_reminder.first() {
             let s_row = src_img.get_row(y_start + y).unwrap();
             let components = T::components(s_row);
             let coeff_i64x2 = _mm_set1_epi64x(k as i64);
@@ -195,7 +195,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
             y += 2;
         }
 
-        if let Some(&k) = coeffs_reminder.get(0) {
+        if let Some(&k) = coeffs_reminder.first() {
             let s_row = src_img.get_row(y_start + y).unwrap();
             let components = T::components(s_row);
             let coeff_i64x2 = _mm_set1_epi64x(k as i64);

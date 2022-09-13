@@ -118,8 +118,7 @@ fn main() {
         height,
         img.to_rgba8().into_raw(),
         fr::PixelType::U8x4,
-    )
-        .unwrap();
+    ).unwrap();
 
     // Multiple RGB channels of source image by alpha channel 
     // (not required for the Nearest algorithm)
@@ -176,7 +175,7 @@ use image::{ColorType, GenericImageView};
 use fast_image_resize as fr;
 
 fn resize_image_with_cropping(
-    mut src_view: fr::ImageView,
+    mut src_view: fr::DynamicImageView,
     dst_width: NonZeroU32,
     dst_height: NonZeroU32
 ) -> fr::Image {

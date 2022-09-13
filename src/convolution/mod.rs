@@ -3,8 +3,8 @@ use std::num::NonZeroU32;
 pub use filters::{get_filter_func, FilterType};
 
 use crate::pixels::Pixel;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::CpuExtensions;
+use crate::{ImageView, ImageViewMut};
 
 #[macro_use]
 mod macros;
@@ -29,16 +29,16 @@ where
     Self: Pixel,
 {
     fn horiz_convolution(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         offset: u32,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     );
 
     fn vert_convolution(
-        src_image: TypedImageView<Self>,
-        dst_image: TypedImageViewMut<Self>,
+        src_image: &ImageView<Self>,
+        dst_image: &mut ImageViewMut<Self>,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     );

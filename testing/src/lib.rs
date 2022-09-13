@@ -6,6 +6,10 @@ use image::{ColorType, DynamicImage};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{CpuExtensions, Image, PixelType};
 
+pub fn nonzero(v: u32) -> NonZeroU32 {
+    NonZeroU32::new(v).unwrap()
+}
+
 pub fn image_checksum<const N: usize>(buffer: &[u8]) -> [u32; N] {
     let mut res = [0u32; N];
     for pixel in buffer.chunks_exact(N) {

@@ -5,15 +5,15 @@ use crate::convolution::{optimisations, Coefficients};
 use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x4;
 use crate::simd_utils;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<U8x4>,
-    mut dst_image: TypedImageViewMut<U8x4>,
+    src_image: &ImageView<U8x4>,
+    dst_image: &mut ImageViewMut<U8x4>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -132,7 +132,7 @@ unsafe fn horiz_convolution_8u4x(
             x += 2;
         }
 
-        if let Some(&k) = reminder2.get(0) {
+        if let Some(&k) = reminder2.first() {
             // [16] xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0 xx k0
             let mmk = _mm256_set1_epi32(k as i32);
 
@@ -283,7 +283,7 @@ unsafe fn horiz_convolution_8u(
             x += 2
         }
 
-        if let Some(&k) = reminder1.get(0) {
+        if let Some(&k) = reminder1.first() {
             let pix = simd_utils::mm_cvtepu8_epi32(src_row, x);
             let mmk = _mm_set1_epi32(k as i32);
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));

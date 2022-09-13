@@ -1,10 +1,10 @@
 use crate::convolution::Coefficients;
 use crate::pixels::I32;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
 pub(crate) fn horiz_convolution(
-    src_image: TypedImageView<I32>,
-    mut dst_image: TypedImageViewMut<I32>,
+    src_image: &ImageView<I32>,
+    dst_image: &mut ImageViewMut<I32>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -25,8 +25,8 @@ pub(crate) fn horiz_convolution(
 }
 
 pub(crate) fn vert_convolution(
-    src_image: TypedImageView<I32>,
-    mut dst_image: TypedImageViewMut<I32>,
+    src_image: &ImageView<I32>,
+    dst_image: &mut ImageViewMut<I32>,
     coeffs: Coefficients,
 ) {
     let coefficients_chunks = coeffs.get_chunks();

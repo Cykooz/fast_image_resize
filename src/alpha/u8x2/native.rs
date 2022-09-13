@@ -1,11 +1,8 @@
 use crate::alpha::common::{div_and_clip, mul_div_255, RECIP_ALPHA};
 use crate::pixels::U8x2;
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
+use crate::{ImageView, ImageViewMut};
 
-pub(crate) fn multiply_alpha(
-    src_image: TypedImageView<U8x2>,
-    mut dst_image: TypedImageViewMut<U8x2>,
-) {
+pub(crate) fn multiply_alpha(src_image: &ImageView<U8x2>, dst_image: &mut ImageViewMut<U8x2>) {
     let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
 
@@ -14,7 +11,7 @@ pub(crate) fn multiply_alpha(
     }
 }
 
-pub(crate) fn multiply_alpha_inplace(mut image: TypedImageViewMut<U8x2>) {
+pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x2>) {
     for dst_row in image.iter_rows_mut() {
         let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
         multiply_alpha_row(src_row, dst_row);
@@ -33,10 +30,7 @@ pub(crate) fn multiply_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
 // Divide
 
 #[inline]
-pub(crate) fn divide_alpha(
-    src_image: TypedImageView<U8x2>,
-    mut dst_image: TypedImageViewMut<U8x2>,
-) {
+pub(crate) fn divide_alpha(src_image: &ImageView<U8x2>, dst_image: &mut ImageViewMut<U8x2>) {
     let src_rows = src_image.iter_rows(0);
     let dst_rows = dst_image.iter_rows_mut();
 
@@ -46,7 +40,7 @@ pub(crate) fn divide_alpha(
 }
 
 #[inline]
-pub(crate) fn divide_alpha_inplace(mut image: TypedImageViewMut<U8x2>) {
+pub(crate) fn divide_alpha_inplace(image: &mut ImageViewMut<U8x2>) {
     for dst_row in image.iter_rows_mut() {
         let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
         divide_alpha_row(src_row, dst_row);

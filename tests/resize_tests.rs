@@ -1,14 +1,13 @@
 use std::cmp::Ordering;
-use std::num::NonZeroU32;
 
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    CpuExtensions, CropBox, DifferentTypesOfPixelsError, FilterType, Image, ImageView, PixelType,
-    ResizeAlg, Resizer,
+    CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView, FilterType, Image,
+    PixelType, ResizeAlg, Resizer,
 };
-use testing::PixelExt;
+use testing::{nonzero, PixelExt};
 
-fn get_new_height(src_image: &ImageView, new_width: u32) -> u32 {
+fn get_new_height(src_image: &DynamicImageView, new_width: u32) -> u32 {
     let scale = new_width as f32 / src_image.width().get() as f32;
     (src_image.height().get() as f32 * scale).round() as u32
 }
@@ -20,11 +19,7 @@ const NEW_BIG_WIDTH: u32 = 5016;
 fn try_resize_to_other_pixel_type() {
     let src_image = U8x4::load_big_src_image();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    let mut dst_image = Image::new(
-        NonZeroU32::new(1024).unwrap(),
-        NonZeroU32::new(256).unwrap(),
-        PixelType::U8,
-    );
+    let mut dst_image = Image::new(nonzero(1024), nonzero(256), PixelType::U8);
     assert!(matches!(
         resizer.resize(&src_image.view(), &mut dst_image.view_mut()),
         Err(DifferentTypesOfPixelsError)
@@ -33,8 +28,8 @@ fn try_resize_to_other_pixel_type() {
 
 #[test]
 fn resize_to_same_size() {
-    let width = NonZeroU32::new(100).unwrap();
-    let height = NonZeroU32::new(80).unwrap();
+    let width = nonzero(100);
+    let height = nonzero(80);
     let buffer: Vec<u8> = (0..8000).map(|v| (v & 0xff) as u8).collect();
     let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8).unwrap();
     let mut dst_image = Image::new(width, height, PixelType::U8);
@@ -50,10 +45,10 @@ fn resize_to_same_size() {
 
 #[test]
 fn resize_to_same_size_after_cropping() {
-    let width = NonZeroU32::new(100).unwrap();
-    let height = NonZeroU32::new(80).unwrap();
-    let src_width = NonZeroU32::new(120).unwrap();
-    let src_height = NonZeroU32::new(100).unwrap();
+    let width = nonzero(100);
+    let height = nonzero(80);
+    let src_width = nonzero(120);
+    let src_height = nonzero(100);
     let buffer: Vec<u8> = (0..12000).map(|v| (v & 0xff) as u8).collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8).unwrap();
     let mut src_view = src_image.view();
@@ -95,15 +90,10 @@ fn downscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensi
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
-    let new_height = get_new_height(&image.view(), NEW_WIDTH);
-    let mut result = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
+    let image_view = image.view();
+    let new_height = get_new_height(&image_view, NEW_WIDTH);
+    let mut result = Image::new(nonzero(NEW_WIDTH), nonzero(new_height), image.pixel_type());
+    assert!(resizer.resize(&image_view, &mut result.view_mut()).is_ok());
 
     let alg_name = match resize_alg {
         ResizeAlg::Nearest => "nearest",
@@ -140,8 +130,8 @@ fn upscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtension
     }
     let new_height = get_new_height(&image.view(), NEW_BIG_WIDTH);
     let mut result = Image::new(
-        NonZeroU32::new(NEW_BIG_WIDTH).unwrap(),
-        NonZeroU32::new(new_height).unwrap(),
+        nonzero(NEW_BIG_WIDTH),
+        nonzero(new_height),
         image.pixel_type(),
     );
     assert!(resizer
@@ -539,8 +529,8 @@ fn resizer_u16x4() {
     use rgb::FromSlice;
 
     let src_image = U16x4::load_big_image().to_rgba16();
-    let new_width = NonZeroU32::new(852).unwrap();
-    let new_height = NonZeroU32::new(567).unwrap();
+    let new_width = nonzero(852);
+    let new_height = nonzero(567);
 
     let resize_src_image = src_image.as_raw().as_rgba();
     let mut dst =

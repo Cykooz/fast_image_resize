@@ -1,9 +1,8 @@
 use crate::alpha::AlphaMulDiv;
-use crate::pixels::{U16x2, U16x4, U8x2, U8x4};
-use crate::typed_image_view::{TypedImageView, TypedImageViewMut};
 use crate::{
-    CpuExtensions, ImageView, ImageViewMut, MulDivImageError, MulDivImagesError, PixelType,
+    CpuExtensions, DynamicImageView, DynamicImageViewMut, MulDivImageError, MulDivImagesError,
 };
+use crate::{ImageView, ImageViewMut};
 
 /// Methods of this structure used to multiply or divide color-channels (RGB or Luma)
 /// by alpha-channel. Supported pixel types: U8x2, U8x4, U16x2 and U16x4.
@@ -48,55 +47,49 @@ impl MulDiv {
     /// result into destination image.
     pub fn multiply_alpha(
         &self,
-        src_image: &ImageView,
-        dst_image: &mut ImageViewMut,
+        src_image: &DynamicImageView,
+        dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImagesError> {
-        match src_image.pixel_type() {
-            PixelType::U8x2 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u8x2(src_image, dst_image)?;
-                multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U8x4 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u8x4(src_image, dst_image)?;
-                multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U16x2 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u16x2(src_image, dst_image)?;
-                multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U16x4 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u16x4(src_image, dst_image)?;
-                multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-
+        match (src_image, dst_image) {
+            (
+                DynamicImageView::U8x2(typed_src_image),
+                DynamicImageViewMut::U8x2(typed_dst_image),
+            ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U8x4(typed_src_image),
+                DynamicImageViewMut::U8x4(typed_dst_image),
+            ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U16x2(typed_src_image),
+                DynamicImageViewMut::U16x2(typed_dst_image),
+            ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U16x4(typed_src_image),
+                DynamicImageViewMut::U16x4(typed_dst_image),
+            ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
             _ => Err(MulDivImagesError::UnsupportedPixelType),
         }
     }
 
     /// Multiplies color-channels (RGB or Luma) of image by alpha-channel inplace.
-    pub fn multiply_alpha_inplace(&self, image: &mut ImageViewMut) -> Result<(), MulDivImageError> {
-        match image.pixel_type() {
-            PixelType::U8x2 => {
-                let typed_image = assert_image_u8x2(image)?;
+    pub fn multiply_alpha_inplace(
+        &self,
+        image: &mut DynamicImageViewMut,
+    ) -> Result<(), MulDivImageError> {
+        match image {
+            DynamicImageViewMut::U8x2(typed_image) => {
                 multiply_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U8x4 => {
-                let typed_image = assert_image_u8x4(image)?;
+            DynamicImageViewMut::U8x4(typed_image) => {
                 multiply_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U16x2 => {
-                let typed_image = assert_image_u16x2(image)?;
+            DynamicImageViewMut::U16x2(typed_image) => {
                 multiply_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U16x4 => {
-                let typed_image = assert_image_u16x4(image)?;
+            DynamicImageViewMut::U16x4(typed_image) => {
                 multiply_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
@@ -108,54 +101,49 @@ impl MulDiv {
     /// result into destination image.
     pub fn divide_alpha(
         &self,
-        src_image: &ImageView,
-        dst_image: &mut ImageViewMut,
+        src_image: &DynamicImageView,
+        dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImagesError> {
-        match src_image.pixel_type() {
-            PixelType::U8x2 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u8x2(src_image, dst_image)?;
-                divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U8x4 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u8x4(src_image, dst_image)?;
-                divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U16x2 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u16x2(src_image, dst_image)?;
-                divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
-            PixelType::U16x4 => {
-                let (typed_src_image, typed_dst_image) = assert_images_u16x4(src_image, dst_image)?;
-                divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions);
-                Ok(())
-            }
+        match (src_image, dst_image) {
+            (
+                DynamicImageView::U8x2(typed_src_image),
+                DynamicImageViewMut::U8x2(typed_dst_image),
+            ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U8x4(typed_src_image),
+                DynamicImageViewMut::U8x4(typed_dst_image),
+            ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U16x2(typed_src_image),
+                DynamicImageViewMut::U16x2(typed_dst_image),
+            ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            (
+                DynamicImageView::U16x4(typed_src_image),
+                DynamicImageViewMut::U16x4(typed_dst_image),
+            ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
             _ => Err(MulDivImagesError::UnsupportedPixelType),
         }
     }
 
     /// Divides color-channels (RGB or Luma) of image by alpha-channel inplace.
-    pub fn divide_alpha_inplace(&self, image: &mut ImageViewMut) -> Result<(), MulDivImageError> {
-        match image.pixel_type() {
-            PixelType::U8x2 => {
-                let typed_image = assert_image_u8x2(image)?;
+    pub fn divide_alpha_inplace(
+        &self,
+        image: &mut DynamicImageViewMut,
+    ) -> Result<(), MulDivImageError> {
+        match image {
+            DynamicImageViewMut::U8x2(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U8x4 => {
-                let typed_image = assert_image_u8x4(image)?;
+            DynamicImageViewMut::U8x4(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U16x2 => {
-                let typed_image = assert_image_u16x2(image)?;
+            DynamicImageViewMut::U16x2(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
-            PixelType::U16x4 => {
-                let typed_image = assert_image_u16x4(image)?;
+            DynamicImageViewMut::U16x4(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }
@@ -164,137 +152,22 @@ impl MulDiv {
     }
 }
 
-#[inline]
-fn assert_images_u8x2<'s, 'd, 'da>(
-    src_image: &'s ImageView<'s>,
-    dst_image: &'d mut ImageViewMut<'da>,
-) -> Result<
-    (
-        TypedImageView<'s, 's, U8x2>,
-        TypedImageViewMut<'d, 'da, U8x2>,
-    ),
-    MulDivImagesError,
-> {
-    let src_image_u8x2 = TypedImageView::from_image_view(src_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u8x2 = TypedImageViewMut::from_image_view(dst_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    if src_image_u8x2.width() != dst_image_u8x2.width()
-        || src_image_u8x2.height() != dst_image_u8x2.height()
-    {
-        return Err(MulDivImagesError::SizeIsDifferent);
-    }
-    Ok((src_image_u8x2, dst_image_u8x2))
-}
-
-#[inline]
-fn assert_image_u8x2<'a, 'b>(
-    image: &'a mut ImageViewMut<'b>,
-) -> Result<TypedImageViewMut<'a, 'b, U8x2>, MulDivImageError> {
-    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
-}
-
-#[inline]
-fn assert_images_u8x4<'s, 'd, 'da>(
-    src_image: &'s ImageView<'s>,
-    dst_image: &'d mut ImageViewMut<'da>,
-) -> Result<
-    (
-        TypedImageView<'s, 's, U8x4>,
-        TypedImageViewMut<'d, 'da, U8x4>,
-    ),
-    MulDivImagesError,
-> {
-    let src_image_u8x4 = TypedImageView::from_image_view(src_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u8x4 = TypedImageViewMut::from_image_view(dst_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    if src_image_u8x4.width() != dst_image_u8x4.width()
-        || src_image_u8x4.height() != dst_image_u8x4.height()
-    {
-        return Err(MulDivImagesError::SizeIsDifferent);
-    }
-    Ok((src_image_u8x4, dst_image_u8x4))
-}
-
-#[inline]
-fn assert_image_u8x4<'a, 'b>(
-    image: &'a mut ImageViewMut<'b>,
-) -> Result<TypedImageViewMut<'a, 'b, U8x4>, MulDivImageError> {
-    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
-}
-
-#[inline]
-fn assert_images_u16x2<'s, 'd, 'da>(
-    src_image: &'s ImageView<'s>,
-    dst_image: &'d mut ImageViewMut<'da>,
-) -> Result<
-    (
-        TypedImageView<'s, 's, U16x2>,
-        TypedImageViewMut<'d, 'da, U16x2>,
-    ),
-    MulDivImagesError,
-> {
-    let src_image_u16x2 = TypedImageView::from_image_view(src_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u16x2 = TypedImageViewMut::from_image_view(dst_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    if src_image_u16x2.width() != dst_image_u16x2.width()
-        || src_image_u16x2.height() != dst_image_u16x2.height()
-    {
-        return Err(MulDivImagesError::SizeIsDifferent);
-    }
-    Ok((src_image_u16x2, dst_image_u16x2))
-}
-
-#[inline]
-fn assert_image_u16x2<'a, 'b>(
-    image: &'a mut ImageViewMut<'b>,
-) -> Result<TypedImageViewMut<'a, 'b, U16x2>, MulDivImageError> {
-    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
-}
-
-#[inline]
-fn assert_images_u16x4<'s, 'd, 'da>(
-    src_image: &'s ImageView<'s>,
-    dst_image: &'d mut ImageViewMut<'da>,
-) -> Result<
-    (
-        TypedImageView<'s, 's, U16x4>,
-        TypedImageViewMut<'d, 'da, U16x4>,
-    ),
-    MulDivImagesError,
-> {
-    let src_image_u16x4 = TypedImageView::from_image_view(src_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    let dst_image_u16x4 = TypedImageViewMut::from_image_view(dst_image)
-        .ok_or(MulDivImagesError::UnsupportedPixelType)?;
-    if src_image_u16x4.width() != dst_image_u16x4.width()
-        || src_image_u16x4.height() != dst_image_u16x4.height()
-    {
-        return Err(MulDivImagesError::SizeIsDifferent);
-    }
-    Ok((src_image_u16x4, dst_image_u16x4))
-}
-
-#[inline]
-fn assert_image_u16x4<'a, 'b>(
-    image: &'a mut ImageViewMut<'b>,
-) -> Result<TypedImageViewMut<'a, 'b, U16x4>, MulDivImageError> {
-    TypedImageViewMut::from_image_view(image).ok_or(MulDivImageError::UnsupportedPixelType)
-}
-
 fn multiply_alpha<P>(
-    src_image: TypedImageView<P>,
-    dst_image: TypedImageViewMut<P>,
+    src_image: &ImageView<P>,
+    dst_image: &mut ImageViewMut<P>,
     cpu_extensions: CpuExtensions,
-) where
+) -> Result<(), MulDivImagesError>
+where
     P: AlphaMulDiv,
 {
-    P::multiply_alpha(src_image, dst_image, cpu_extensions)
+    if src_image.width() != dst_image.width() || src_image.height() != dst_image.height() {
+        return Err(MulDivImagesError::SizeIsDifferent);
+    }
+    P::multiply_alpha(src_image, dst_image, cpu_extensions);
+    Ok(())
 }
 
-fn multiply_alpha_inplace<P>(image: TypedImageViewMut<P>, cpu_extensions: CpuExtensions)
+fn multiply_alpha_inplace<P>(image: &mut ImageViewMut<P>, cpu_extensions: CpuExtensions)
 where
     P: AlphaMulDiv,
 {
@@ -302,16 +175,21 @@ where
 }
 
 fn divide_alpha<P>(
-    src_image: TypedImageView<P>,
-    dst_image: TypedImageViewMut<P>,
+    src_image: &ImageView<P>,
+    dst_image: &mut ImageViewMut<P>,
     cpu_extensions: CpuExtensions,
-) where
+) -> Result<(), MulDivImagesError>
+where
     P: AlphaMulDiv,
 {
-    P::divide_alpha(src_image, dst_image, cpu_extensions)
+    if src_image.width() != dst_image.width() || src_image.height() != dst_image.height() {
+        return Err(MulDivImagesError::SizeIsDifferent);
+    }
+    P::divide_alpha(src_image, dst_image, cpu_extensions);
+    Ok(())
 }
 
-fn divide_alpha_inplace<P>(image: TypedImageViewMut<P>, cpu_extensions: CpuExtensions)
+fn divide_alpha_inplace<P>(image: &mut ImageViewMut<P>, cpu_extensions: CpuExtensions)
 where
     P: AlphaMulDiv,
 {
