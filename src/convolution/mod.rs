@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 pub use filters::{get_filter_func, FilterType};
 
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::CpuExtensions;
 use crate::{ImageView, ImageViewMut};
 
@@ -26,7 +26,7 @@ mod vertical_u8;
 
 pub(crate) trait Convolution
 where
-    Self: Pixel,
+    Self: PixelExt,
 {
     fn horiz_convolution(
         src_image: &ImageView<Self>,

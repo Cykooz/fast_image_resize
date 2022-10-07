@@ -1,15 +1,15 @@
 use std::num::NonZeroU32;
 
-use crate::pixels::{Pixel, PixelType};
+use crate::pixels::{PixelExt, PixelType};
 use crate::{DynamicImageView, DynamicImageViewMut, ImageBufferError, ImageView, ImageViewMut};
 
 #[derive(Debug)]
-enum PixelsContainer<'a> {
+enum BufferContainer<'a> {
     MutU8(&'a mut [u8]),
     VecU8(Vec<u8>),
 }
 
-impl<'a> PixelsContainer<'a> {
+impl<'a> BufferContainer<'a> {
     fn as_vec(&self) -> Vec<u8> {
         match self {
             Self::MutU8(slice) => slice.to_vec(),
@@ -23,7 +23,7 @@ impl<'a> PixelsContainer<'a> {
 pub struct Image<'a> {
     width: NonZeroU32,
     height: NonZeroU32,
-    pixels: PixelsContainer<'a>,
+    buffer: BufferContainer<'a>,
     pixel_type: PixelType,
 }
 
@@ -31,11 +31,11 @@ impl<'a> Image<'a> {
     /// Create empty image with given dimensions and pixel type.
     pub fn new(width: NonZeroU32, height: NonZeroU32, pixel_type: PixelType) -> Self {
         let pixels_count = (width.get() * height.get()) as usize;
-        let pixels = PixelsContainer::VecU8(vec![0; pixels_count * pixel_type.size()]);
+        let buffer = BufferContainer::VecU8(vec![0; pixels_count * pixel_type.size()]);
         Self {
             width,
             height,
-            pixels,
+            buffer,
             pixel_type,
         }
     }
@@ -56,7 +56,7 @@ impl<'a> Image<'a> {
         Ok(Self {
             width,
             height,
-            pixels: PixelsContainer::VecU8(buffer),
+            buffer: BufferContainer::VecU8(buffer),
             pixel_type,
         })
     }
@@ -77,7 +77,7 @@ impl<'a> Image<'a> {
         Ok(Self {
             width,
             height,
-            pixels: PixelsContainer::MutU8(buffer),
+            buffer: BufferContainer::MutU8(buffer),
             pixel_type,
         })
     }
@@ -87,7 +87,7 @@ impl<'a> Image<'a> {
         Image {
             width: self.width,
             height: self.height,
-            pixels: PixelsContainer::VecU8(self.pixels.as_vec()),
+            buffer: BufferContainer::VecU8(self.buffer.as_vec()),
             pixel_type: self.pixel_type,
         }
     }
@@ -110,26 +110,26 @@ impl<'a> Image<'a> {
     /// Buffer with image pixels.
     #[inline(always)]
     pub fn buffer(&self) -> &[u8] {
-        match &self.pixels {
-            PixelsContainer::MutU8(p) => *p,
-            PixelsContainer::VecU8(v) => v,
+        match &self.buffer {
+            BufferContainer::MutU8(p) => *p,
+            BufferContainer::VecU8(v) => v,
         }
     }
 
     /// Mutable buffer with image pixels.
     #[inline(always)]
     fn buffer_mut(&mut self) -> &mut [u8] {
-        match &mut self.pixels {
-            PixelsContainer::MutU8(p) => p,
-            PixelsContainer::VecU8(ref mut v) => v.as_mut_slice(),
+        match &mut self.buffer {
+            BufferContainer::MutU8(p) => p,
+            BufferContainer::VecU8(ref mut v) => v.as_mut_slice(),
         }
     }
 
     #[inline(always)]
     pub fn into_vec(self) -> Vec<u8> {
-        match self.pixels {
-            PixelsContainer::MutU8(p) => p.into(),
-            PixelsContainer::VecU8(v) => v,
+        match self.buffer {
+            BufferContainer::MutU8(p) => p.into(),
+            BufferContainer::VecU8(v) => v,
         }
     }
 
@@ -183,7 +183,7 @@ impl<'a> Image<'a> {
 /// Generic image container for internal purposes.
 pub(crate) struct InnerImage<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     width: NonZeroU32,
     height: NonZeroU32,
@@ -192,7 +192,7 @@ where
 
 impl<'a, P> InnerImage<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     pub fn new(width: NonZeroU32, height: NonZeroU32, pixels: &'a mut [P]) -> Self {
         Self {

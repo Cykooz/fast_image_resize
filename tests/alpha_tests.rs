@@ -1,17 +1,17 @@
 use std::num::NonZeroU32;
 
-use fast_image_resize::pixels::{Pixel, U16x2, U16x4, U8x2, U8x4};
+use fast_image_resize::pixels::{PixelExt, U16x2, U16x4, U8x2, U8x4};
 use fast_image_resize::{
     CpuExtensions, DynamicImageView, DynamicImageViewMut, Image, ImageView, ImageViewMut, MulDiv,
     PixelType,
 };
 
 const fn p2(l: u8, a: u8) -> U8x2 {
-    U8x2(u16::from_le_bytes([l, a]))
+    U8x2::new(u16::from_le_bytes([l, a]))
 }
 
 const fn p4(r: u8, g: u8, b: u8, a: u8) -> U8x4 {
-    U8x4(u32::from_le_bytes([r, g, b, a]))
+    U8x4::new(u32::from_le_bytes([r, g, b, a]))
 }
 
 enum Oper {
@@ -23,7 +23,7 @@ enum Oper {
 
 fn mul_div_alpha_test<P>(oper: Oper, src_pixel: P, result_pixel: P, cpu_extensions: CpuExtensions)
 where
-    P: Pixel + 'static,
+    P: PixelExt + 'static,
     for<'a> ImageView<'a, P>: Into<DynamicImageView<'a>>,
     for<'a> ImageViewMut<'a, P>: Into<DynamicImageViewMut<'a>>,
 {
@@ -189,26 +189,26 @@ mod multiply_alpha_u16x2 {
     use fast_image_resize::pixels::U16x2;
 
     const SRC_PIXELS: [U16x2; 9] = [
-        U16x2([0xffff, 0x8000]),
-        U16x2([0x8000, 0x8000]),
-        U16x2([0, 0x8000]),
-        U16x2([0xffff, 0xffff]),
-        U16x2([0x8000, 0xffff]),
-        U16x2([0, 0xffff]),
-        U16x2([0xffff, 0]),
-        U16x2([0x8000, 0]),
-        U16x2([0, 0]),
+        U16x2::new([0xffff, 0x8000]),
+        U16x2::new([0x8000, 0x8000]),
+        U16x2::new([0, 0x8000]),
+        U16x2::new([0xffff, 0xffff]),
+        U16x2::new([0x8000, 0xffff]),
+        U16x2::new([0, 0xffff]),
+        U16x2::new([0xffff, 0]),
+        U16x2::new([0x8000, 0]),
+        U16x2::new([0, 0]),
     ];
     const RES_PIXELS: [U16x2; 9] = [
-        U16x2([0x8000, 0x8000]),
-        U16x2([0x4000, 0x8000]),
-        U16x2([0, 0x8000]),
-        U16x2([0xffff, 0xffff]),
-        U16x2([0x8000, 0xffff]),
-        U16x2([0, 0xffff]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
+        U16x2::new([0x8000, 0x8000]),
+        U16x2::new([0x4000, 0x8000]),
+        U16x2::new([0, 0x8000]),
+        U16x2::new([0xffff, 0xffff]),
+        U16x2::new([0x8000, 0xffff]),
+        U16x2::new([0, 0xffff]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
     ];
 
     #[cfg(target_arch = "x86_64")]
@@ -241,14 +241,14 @@ mod multiply_alpha_u16x4 {
     use fast_image_resize::pixels::U16x4;
 
     const SRC_PIXELS: [U16x4; 3] = [
-        U16x4([0xffff, 0x8000, 0, 0x8000]),
-        U16x4([0xffff, 0x8000, 0, 0xffff]),
-        U16x4([0xffff, 0x8000, 0, 0]),
+        U16x4::new([0xffff, 0x8000, 0, 0x8000]),
+        U16x4::new([0xffff, 0x8000, 0, 0xffff]),
+        U16x4::new([0xffff, 0x8000, 0, 0]),
     ];
     const RES_PIXELS: [U16x4; 3] = [
-        U16x4([0x8000, 0x4000, 0, 0x8000]),
-        U16x4([0xffff, 0x8000, 0, 0xffff]),
-        U16x4([0, 0, 0, 0]),
+        U16x4::new([0x8000, 0x4000, 0, 0x8000]),
+        U16x4::new([0xffff, 0x8000, 0, 0xffff]),
+        U16x4::new([0, 0, 0, 0]),
     ];
 
     #[cfg(target_arch = "x86_64")]
@@ -371,37 +371,37 @@ mod divide_alpha_u16x2 {
 
     const OPER: Oper = Oper::Div;
     const SRC_PIXELS: [U16x2; 9] = [
-        U16x2([0x8000, 0x8000]),
-        U16x2([0x4000, 0x8000]),
-        U16x2([0, 0x8000]),
-        U16x2([0xffff, 0xffff]),
-        U16x2([0x8000, 0xffff]),
-        U16x2([0, 0xffff]),
-        U16x2([0xffff, 0]),
-        U16x2([0x8000, 0]),
-        U16x2([0, 0]),
+        U16x2::new([0x8000, 0x8000]),
+        U16x2::new([0x4000, 0x8000]),
+        U16x2::new([0, 0x8000]),
+        U16x2::new([0xffff, 0xffff]),
+        U16x2::new([0x8000, 0xffff]),
+        U16x2::new([0, 0xffff]),
+        U16x2::new([0xffff, 0]),
+        U16x2::new([0x8000, 0]),
+        U16x2::new([0, 0]),
     ];
     const RES_PIXELS: [U16x2; 9] = [
-        U16x2([0xffff, 0x8000]),
-        U16x2([0x7fff, 0x8000]),
-        U16x2([0, 0x8000]),
-        U16x2([0xffff, 0xffff]),
-        U16x2([0x8000, 0xffff]),
-        U16x2([0, 0xffff]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
+        U16x2::new([0xffff, 0x8000]),
+        U16x2::new([0x7fff, 0x8000]),
+        U16x2::new([0, 0x8000]),
+        U16x2::new([0xffff, 0xffff]),
+        U16x2::new([0x8000, 0xffff]),
+        U16x2::new([0, 0xffff]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
     ];
     const SIMD_RES_PIXELS: [U16x2; 9] = [
-        U16x2([0xffff, 0x8000]),
-        U16x2([0x8000, 0x8000]),
-        U16x2([0, 0x8000]),
-        U16x2([0xffff, 0xffff]),
-        U16x2([0x8000, 0xffff]),
-        U16x2([0, 0xffff]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
-        U16x2([0, 0]),
+        U16x2::new([0xffff, 0x8000]),
+        U16x2::new([0x8000, 0x8000]),
+        U16x2::new([0, 0x8000]),
+        U16x2::new([0xffff, 0xffff]),
+        U16x2::new([0x8000, 0xffff]),
+        U16x2::new([0, 0xffff]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
+        U16x2::new([0, 0]),
     ];
 
     #[cfg(target_arch = "x86_64")]
@@ -434,19 +434,19 @@ mod divide_alpha_u16x4 {
 
     const OPER: Oper = Oper::Div;
     const SRC_PIXELS: [U16x4; 3] = [
-        U16x4([0x8000, 0x4000, 0, 0x8000]),
-        U16x4([0xffff, 0x8000, 0, 0xffff]),
-        U16x4([0xffff, 0x8000, 0, 0]),
+        U16x4::new([0x8000, 0x4000, 0, 0x8000]),
+        U16x4::new([0xffff, 0x8000, 0, 0xffff]),
+        U16x4::new([0xffff, 0x8000, 0, 0]),
     ];
     const RES_PIXELS: [U16x4; 3] = [
-        U16x4([0xffff, 0x7fff, 0, 0x8000]),
-        U16x4([0xffff, 0x8000, 0, 0xffff]),
-        U16x4([0, 0, 0, 0]),
+        U16x4::new([0xffff, 0x7fff, 0, 0x8000]),
+        U16x4::new([0xffff, 0x8000, 0, 0xffff]),
+        U16x4::new([0, 0, 0, 0]),
     ];
     const SIMD_RES_PIXELS: [U16x4; 3] = [
-        U16x4([0xffff, 0x8000, 0, 0x8000]),
-        U16x4([0xffff, 0x8000, 0, 0xffff]),
-        U16x4([0, 0, 0, 0]),
+        U16x4::new([0xffff, 0x8000, 0, 0x8000]),
+        U16x4::new([0xffff, 0x8000, 0, 0xffff]),
+        U16x4::new([0, 0, 0, 0]),
     ];
 
     #[cfg(target_arch = "x86_64")]

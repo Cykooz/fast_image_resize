@@ -27,7 +27,7 @@ pub fn image_u16_checksum<const N: usize>(buffer: &[u8]) -> [u64; N] {
     res
 }
 
-pub trait PixelExt: Pixel {
+pub trait PixelTestingExt: PixelExt {
     fn pixel_type_str() -> &'static str {
         match Self::pixel_type() {
             PixelType::U8 => "u8",
@@ -83,13 +83,13 @@ pub trait PixelExt: Pixel {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8>;
 }
 
-impl PixelExt for U8 {
+impl PixelTestingExt for U8 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_luma8().into_raw()
     }
 }
 
-impl PixelExt for U8x2 {
+impl PixelTestingExt for U8x2 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
             .unwrap()
@@ -109,13 +109,13 @@ impl PixelExt for U8x2 {
     }
 }
 
-impl PixelExt for U8x3 {
+impl PixelTestingExt for U8x3 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_rgb8().into_raw()
     }
 }
 
-impl PixelExt for U8x4 {
+impl PixelTestingExt for U8x4 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
             .unwrap()
@@ -135,7 +135,7 @@ impl PixelExt for U8x4 {
     }
 }
 
-impl PixelExt for U16 {
+impl PixelTestingExt for U16 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         // img.to_luma16()
         //     .as_raw()
@@ -152,7 +152,7 @@ impl PixelExt for U16 {
     }
 }
 
-impl PixelExt for U16x2 {
+impl PixelTestingExt for U16x2 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
             .unwrap()
@@ -176,7 +176,7 @@ impl PixelExt for U16x2 {
     }
 }
 
-impl PixelExt for U16x3 {
+impl PixelTestingExt for U16x3 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_rgb8()
             .as_raw()
@@ -186,7 +186,7 @@ impl PixelExt for U16x3 {
     }
 }
 
-impl PixelExt for U16x4 {
+impl PixelTestingExt for U16x4 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
             .unwrap()
@@ -210,7 +210,7 @@ impl PixelExt for U16x4 {
     }
 }
 
-impl PixelExt for I32 {
+impl PixelTestingExt for I32 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_luma16()
             .as_raw()
@@ -221,7 +221,7 @@ impl PixelExt for I32 {
     }
 }
 
-impl PixelExt for F32 {
+impl PixelTestingExt for F32 {
     fn img_into_bytes(img: DynamicImage) -> Vec<u8> {
         img.to_luma16()
             .as_raw()

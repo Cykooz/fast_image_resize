@@ -107,8 +107,8 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) 
     }
 
     if let Some(src) = src_remainder.first() {
-        let src_pixels = [*src, U16x4([0, 0, 0, 0])];
-        let mut dst_pixels = [U16x4([0, 0, 0, 0]); 2];
+        let src_pixels = [*src, U16x4::new([0, 0, 0, 0])];
+        let mut dst_pixels = [U16x4::new([0, 0, 0, 0]); 2];
         divide_alpha_two_pixels(src_pixels.as_ptr(), dst_pixels.as_mut_ptr());
 
         let dst_reminder = dst_chunks.into_remainder();

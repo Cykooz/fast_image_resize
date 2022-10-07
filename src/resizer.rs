@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 
 use crate::convolution::{self, Convolution, FilterType};
 use crate::image::InnerImage;
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::{
     DifferentTypesOfPixelsError, DynamicImageView, DynamicImageViewMut, ImageView, ImageViewMut,
 };
@@ -184,7 +184,7 @@ impl Resizer {
     }
 }
 
-fn get_temp_image_from_buffer<P: Pixel>(
+fn get_temp_image_from_buffer<P: PixelExt>(
     buffer: &mut Vec<u8>,
     width: NonZeroU32,
     height: NonZeroU32,
@@ -201,7 +201,7 @@ fn get_temp_image_from_buffer<P: Pixel>(
 
 fn resample_nearest<P>(src_image: &ImageView<P>, dst_image: &mut ImageViewMut<P>)
 where
-    P: Pixel,
+    P: PixelExt,
 {
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();

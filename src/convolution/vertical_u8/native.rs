@@ -1,5 +1,5 @@
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
@@ -8,7 +8,7 @@ pub(crate) fn vert_convolution<T>(
     dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) where
-    T: Pixel<Component = u8>,
+    T: PixelExt<Component = u8>,
 {
     // Check safety conditions
     debug_assert_eq!(src_image.width(), dst_image.width());
@@ -85,7 +85,7 @@ fn convolution_by_u8<T>(
     ks: &[i16],
 ) -> usize
 where
-    T: Pixel<Component = u8>,
+    T: PixelExt<Component = u8>,
 {
     for dst_component in dst_components {
         let mut ss = initial;

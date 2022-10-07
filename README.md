@@ -6,12 +6,6 @@
 
 Rust library for fast image resizing with using of SIMD instructions.
 
-_Note: This library does not support converting image color spaces.
-If it is important for you to resize images with a non-linear color space
-(e.g. sRGB) correctly, then you need to convert it to a linear color space
-before resizing. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
-about resizing with respect to color space._
-
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
@@ -28,6 +22,23 @@ Supported pixel formats and available optimisations:
 | U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |      +      |    +    |  +   |
 |  I32   | One `i32` component per pixel                                 |      +      |    -    |  -   |
 |  F32   | One `f32` component per pixel                                 |      +      |    -    |  -   |
+
+## Colorspace
+
+Resizer from this crate does not convert image into linear color space 
+during resize process. If it is important for you to resize images with a 
+non-linear color space (e.g. sRGB) correctly, then you need to convert 
+it to a linear color space before resizing and convert back a color space of 
+result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
+about resizing with respect to color space.
+
+This crate provides the
+[PixelComponentMapper](https://docs.rs/fast_image_resize/target/doc/fast_image_resize/color/struct.PixelComponentMapper.html)
+structure that allows you to create color space converters for images 
+whose pixels based on `u8` and `u16` components.
+
+In addition, the crate contains lazy-static instances of the `PixelComponentMapper` 
+structure: `SRGB_TO_RGB` and `GAMMA22_TO_LINEAR`. 
 
 ## Some benchmarks
 
@@ -49,11 +60,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.01  |  84.06   |   148.84   |  205.25  |
-| resize     |    -    |  52.21   |   104.32   |  154.11  |
-| fir rust   |  0.28   |  41.75   |   76.85    |  113.11  |
-| fir sse4.1 |  0.28   |  28.16   |   43.00    |  59.62   |
-| fir avx2   |  0.28   |   7.41   |    9.61    |  13.84   |
+| image      |  19.37  |  82.24   |   141.62   |  200.90  |
+| resize     |    -    |  51.49   |   102.74   |  153.21  |
+| fir rust   |  0.28   |  44.07   |   81.14    |  119.43  |
+| fir sse4.1 |  0.28   |  28.22   |   43.29    |  57.77   |
+| fir avx2   |  0.28   |   7.47   |    9.65    |  13.86   |
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
@@ -68,10 +79,10 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  61.94   |   122.19   |  182.60  |
-| fir rust   |  0.19   |  37.33   |   53.29    |  76.49   |
-| fir sse4.1 |  0.19   |  13.14   |   17.25    |  22.59   |
-| fir avx2   |  0.19   |   9.59   |   12.09    |  16.18   |
+| resize     |    -    |  62.30   |   122.50   |  182.64  |
+| fir rust   |  0.19   |  37.27   |   53.06    |  75.83   |
+| fir sse4.1 |  0.19   |  13.20   |   17.29    |  22.74   |
+| fir avx2   |  0.19   |   9.58   |   12.09    |  16.24   |
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
@@ -85,11 +96,11 @@ Pipeline:
 
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  15.60  |  45.30   |   72.95    |  102.13  |
-| resize     |    -    |  17.29   |   35.45    |  61.14   |
-| fir rust   |  0.15   |  13.91   |   15.37    |  22.86   |
-| fir sse4.1 |  0.15   |  12.16   |   12.16    |  18.19   |
-| fir avx2   |  0.15   |   6.33   |    4.66    |   7.69   |
+| image      |  15.80  |  46.71   |   74.50    |  102.36  |
+| resize     |    -    |  17.33   |   35.75    |  61.46   |
+| fir rust   |  0.16   |  14.63   |   16.86    |  24.73   |
+| fir sse4.1 |  0.16   |  12.32   |   12.37    |  18.32   |
+| fir avx2   |  0.16   |   6.29   |    4.69    |   7.94   |
 
 ## Examples
 

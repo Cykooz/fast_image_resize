@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
 
@@ -11,7 +11,7 @@ pub(crate) fn vert_convolution<T>(
     dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
 ) where
-    T: Pixel<Component = u8>,
+    T: PixelExt<Component = u8>,
 {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
@@ -32,7 +32,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
     normalizer: &optimisations::Normalizer16,
 ) where
-    T: Pixel<Component = u8>,
+    T: PixelExt<Component = u8>,
 {
     let src_width = src_img.width().get() as usize * T::count_of_components();
     let y_start = coeffs_chunk.start;

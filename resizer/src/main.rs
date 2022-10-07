@@ -24,13 +24,13 @@ struct Cli {
     #[clap(value_parser)]
     destination_path: Option<PathBuf>,
 
-    /// Width of result image
+    /// Width of result image, in pixels or percentage of the source image's width
     #[clap(short, long, value_parser)]
-    width: Option<NonZeroU32>,
+    width: Option<structs::Size>,
 
-    /// Height of result image
+    /// Height of result image in pixels or percentage of the source image's width height
     #[clap(short, long, value_parser)]
-    height: Option<NonZeroU32>,
+    height: Option<structs::Size>,
 
     /// Overwrite destination file
     #[clap(short, long, action)]
@@ -226,15 +226,24 @@ fn create_destination_image(cli: &Cli, src_image: &fr::Image) -> fr::Image<'stat
 
     let (dst_width, dst_height) = match (cli.width, cli.height) {
         (None, None) => (src_image.width(), src_image.height()),
-        (Some(width), None) => (
-            width,
-            get_non_zero_u32((width.get() as f32 / aspect_ratio).round() as u32),
+        (Some(width), None) => {
+            let width = width.calculate_size(src_image.width());
+            (
+                width,
+                get_non_zero_u32((width.get() as f32 / aspect_ratio).round() as u32),
+            )
+        }
+        (None, Some(height)) => {
+            let height = height.calculate_size(src_image.height());
+            (
+                get_non_zero_u32((height.get() as f32 * aspect_ratio).round() as u32),
+                height,
+            )
+        }
+        (Some(width), Some(height)) => (
+            width.calculate_size(src_image.width()),
+            height.calculate_size(src_image.height()),
         ),
-        (None, Some(height)) => (
-            get_non_zero_u32((height.get() as f32 * aspect_ratio).round() as u32),
-            height,
-        ),
-        (Some(width), Some(height)) => (width, height),
     };
 
     fr::Image::new(dst_width, dst_height, src_image.pixel_type())
@@ -316,4 +325,15 @@ fn save_result(
     )
     .with_context(|| "Failed to save the result image")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        Cli::command().debug_assert()
+    }
 }

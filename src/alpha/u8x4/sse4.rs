@@ -101,13 +101,13 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
-        let mut src_pixels = [U8x4(0); 4];
+        let mut src_pixels = [U8x4::new(0); 4];
         src_pixels
             .iter_mut()
             .zip(src_remainder)
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x4(0); 4];
+        let mut dst_pixels = [U8x4::new(0); 4];
         divide_alpha_four_pixels(src_pixels.as_ptr(), dst_pixels.as_mut_ptr());
 
         dst_pixels

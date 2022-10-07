@@ -1,6 +1,6 @@
 pub use errors::*;
 
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::CpuExtensions;
 use crate::{ImageView, ImageViewMut};
 
@@ -13,7 +13,7 @@ mod u8x4;
 
 pub(crate) trait AlphaMulDiv
 where
-    Self: Pixel,
+    Self: PixelExt,
 {
     /// Multiplies RGB-channels of source image by alpha-channel and store
     /// result into destination image.

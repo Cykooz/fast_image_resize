@@ -5,7 +5,7 @@ use fast_image_resize::{
     CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView, FilterType, Image,
     PixelType, ResizeAlg, Resizer,
 };
-use testing::{nonzero, PixelExt};
+use testing::{nonzero, PixelTestingExt};
 
 fn get_new_height(src_image: &DynamicImageView, new_width: u32) -> u32 {
     let scale = new_width as f32 / src_image.width().get() as f32;
@@ -82,7 +82,10 @@ fn resize_to_same_size_after_cropping() {
     assert!(matches!(cropped_buffer.cmp(&dst_buffer), Ordering::Equal));
 }
 
-fn downscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions) -> Vec<u8> {
+fn downscale_test<P: PixelTestingExt>(
+    resize_alg: ResizeAlg,
+    cpu_extensions: CpuExtensions,
+) -> Vec<u8> {
     let image = P::load_big_src_image();
     assert_eq!(image.pixel_type(), P::pixel_type());
 
@@ -120,7 +123,10 @@ fn downscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensi
     result.buffer().to_owned()
 }
 
-fn upscale_test<P: PixelExt>(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions) -> Vec<u8> {
+fn upscale_test<P: PixelTestingExt>(
+    resize_alg: ResizeAlg,
+    cpu_extensions: CpuExtensions,
+) -> Vec<u8> {
     let image = P::load_small_src_image();
     assert_eq!(image.pixel_type(), P::pixel_type());
 

@@ -3,11 +3,11 @@ use std::arch::x86_64::*;
 use crate::convolution::optimisations::CoefficientsI32Chunk;
 use crate::convolution::vertical_u16::native::convolution_by_u16;
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
 
-pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
+pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
@@ -24,7 +24,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
 }
 
 #[target_feature(enable = "sse4.1")]
-unsafe fn vert_convolution_into_one_row_u16<T: Pixel<Component = u16>>(
+unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
     coeffs_chunk: CoefficientsI32Chunk,

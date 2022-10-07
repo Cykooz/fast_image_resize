@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 fast_image_resize = {path=".."}
-image = "0.24.2"
-clap = { version = "3.2.14", features = ["derive"] }
+image = "0.24.4"
+clap = { version = "4.0.9", features = ["derive"] }
 log = "0.4.17"
-env_logger = "0.9.0"
-anyhow = "1.0.58"
-clap-verbosity-flag = "1.0.1"
+env_logger = "0.9.1"
+anyhow = "1.0.65"
+clap-verbosity-flag = "2.0.0"

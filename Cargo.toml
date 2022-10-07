@@ -21,15 +21,15 @@ exclude = ["/data"]
 
 [dependencies]
 num-traits = "0.2.15"
-once_cell = "1.14.0"
-thiserror = "1.0.35"
+once_cell = "1.15.0"
+thiserror = "1.0.37"
 
 
 [dev-dependencies]
 glassbench = "0.3.3"
-image = "0.24.3"
+image = "0.24.4"
 resize = "0.7.4"
-rgb = "0.8.33"
+rgb = "0.8.34"
 png = "0.17.6"
 nix = { version = "0.25.0", default-features = false, features = ["sched"] }
 testing = {path= "testing" }
@@ -82,6 +82,11 @@ harness = false
 
 [[bench]]
 name = "bench_compare_la16"
+harness = false
+
+
+[[bench]]
+name = "bench_color_mapper"
 harness = false
 
 

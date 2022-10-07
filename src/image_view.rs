@@ -1,7 +1,8 @@
+use std::fmt::Debug;
 use std::num::NonZeroU32;
 use std::slice;
 
-use crate::pixels::{GetCount, IntoPixelComponent, Pixel, PixelComponent};
+use crate::pixels::{GetCount, IntoPixelComponent, PixelComponent, PixelExt};
 use crate::{CropBoxError, DifferentDimensionsError, ImageBufferError, ImageRowsError, PixelType};
 
 pub(crate) type RowMut<'a, 'b, T> = &'a mut &'b mut [T];
@@ -27,7 +28,7 @@ pub struct CropBox {
 #[derive(Debug, Clone)]
 pub struct ImageView<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     width: NonZeroU32,
     height: NonZeroU32,
@@ -37,7 +38,7 @@ where
 
 impl<'a, P> ImageView<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     pub fn new(
         width: NonZeroU32,
@@ -236,7 +237,9 @@ where
 
     #[inline(always)]
     pub(crate) fn iter_rows<'s>(&'s self, start_y: u32) -> impl Iterator<Item = &'a [P]> + 's {
-        self.rows.iter().skip(start_y as usize).copied()
+        let start_y = start_y as usize;
+        let rows = self.rows.get(start_y..).unwrap_or(&[]);
+        rows.iter().copied()
     }
 
     #[inline(always)]
@@ -263,12 +266,13 @@ where
 
     #[inline(always)]
     pub(crate) fn iter_cropped_rows<'s>(&'s self) -> impl Iterator<Item = &'a [P]> + 's {
+        let first_row = self.crop_box.top as usize;
+        let last_row = first_row + self.crop_box.height.get() as usize;
+        let rows = unsafe { self.rows.get_unchecked(first_row..last_row) };
+
         let first_col = self.crop_box.left as usize;
         let last_col = first_col + self.crop_box.width.get() as usize;
-        self.rows
-            .iter()
-            .skip(self.crop_box.top as usize)
-            .take(self.crop_box.height.get() as usize)
+        rows.iter()
             // Safety guaranteed by method 'set_crop_box'
             .map(move |row| unsafe { row.get_unchecked(first_col..last_col) })
     }
@@ -278,7 +282,7 @@ where
 #[derive(Debug)]
 pub struct ImageViewMut<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     width: NonZeroU32,
     height: NonZeroU32,
@@ -287,7 +291,7 @@ where
 
 impl<'a, P> ImageViewMut<'a, P>
 where
-    P: Pixel,
+    P: PixelExt,
 {
     pub fn new(
         width: NonZeroU32,
@@ -425,7 +429,7 @@ fn align_buffer_to_mut<T>(buffer: &mut [u8]) -> Result<&mut [T], ImageBufferErro
     Ok(pixels)
 }
 
-pub fn change_type_of_pixel_components<S, D, CC, In, Out>(
+pub fn change_type_of_pixel_components<S, D, In, Out, CC>(
     src_image: &ImageView<S>,
     dst_image: &mut ImageViewMut<D>,
 ) -> Result<(), DifferentDimensionsError>
@@ -433,14 +437,8 @@ where
     Out: PixelComponent,
     In: IntoPixelComponent<Out>,
     CC: GetCount,
-    S: Pixel<
-        Component = In,
-        CountOfComponents = CC, // Count of source pixel's components
-    >,
-    D: Pixel<
-        Component = Out,
-        CountOfComponents = CC, // Count of destination pixel's components
-    >,
+    S: PixelExt<Component = In, CountOfComponents = CC>,
+    D: PixelExt<Component = Out, CountOfComponents = CC>,
 {
     if src_image.width() != dst_image.width() || src_image.height() != dst_image.height() {
         return Err(DifferentDimensionsError);

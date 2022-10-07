@@ -9,7 +9,7 @@
 use num_traits::bounds::UpperBounded;
 use num_traits::Zero;
 
-use crate::pixels::{GetCount, IntoPixelComponent, Pixel, PixelComponent, Values};
+use crate::pixels::{GetCount, IntoPixelComponent, PixelComponent, PixelExt, Values};
 use crate::{DynamicImageView, DynamicImageViewMut, MappingError};
 use crate::{ImageView, ImageViewMut};
 
@@ -31,13 +31,13 @@ impl FromF32 for u16 {
     }
 }
 
-struct MappingTable<Out: PixelComponent, const N: usize>([Out; N]);
+struct MappingTable<Out: PixelComponent, const SIZE: usize>([Out; SIZE]);
 
 impl<Out, const SIZE: usize> MappingTable<Out, SIZE>
 where
     Out: PixelComponent + Zero + UpperBounded + FromF32 + Into<f32>,
 {
-    pub fn new<F>(map_func: &F) -> MappingTable<Out, SIZE>
+    pub fn new<F>(map_func: &F) -> Self
     where
         F: Fn(f32) -> f32,
     {
@@ -58,6 +58,16 @@ where
         }
     }
 
+    fn map_inplace(&self, buffer: &mut [Out])
+    where
+        Out: Into<usize>,
+    {
+        for c in buffer.iter_mut() {
+            let i: usize = (*c).into();
+            *c = self.0[i];
+        }
+    }
+
     fn map_with_gaps<In>(&self, src_buffer: &[In], dst_buffer: &mut [Out], gap_step: usize)
     where
         In: IntoPixelComponent<Out> + Into<usize>,
@@ -71,20 +81,26 @@ where
         }
     }
 
-    pub fn map_image<S, D, CC, In>(&self, src_image: &ImageView<S>, dst_image: &mut ImageViewMut<D>)
+    fn map_with_gaps_inplace(&self, buffer: &mut [Out], gap_step: usize)
     where
-        In: IntoPixelComponent<Out> + Into<usize>,
+        Out: Into<usize>,
+    {
+        for (i, c) in buffer.iter_mut().enumerate() {
+            if (i + 1) % gap_step != 0 {
+                let i: usize = (*c).into();
+                *c = self.0[i];
+            }
+        }
+    }
+
+    pub fn map_image<S, D, In, CC>(&self, src_image: &ImageView<S>, dst_image: &mut ImageViewMut<D>)
+    where
+        In: PixelComponent<CountOfComponentValues = Values<SIZE>>
+            + IntoPixelComponent<Out>
+            + Into<usize>,
         CC: GetCount,
-        S: Pixel<
-            Component = In,
-            CountOfComponents = CC, // Count of source pixel's components
-            CountOfComponentValues = Values<SIZE>, // Total count of values of one source pixel's component
-        >,
-        S::Component: Into<usize>,
-        D: Pixel<
-            Component = Out,
-            CountOfComponents = CC, // Count of destination pixel's components
-        >,
+        S: PixelExt<Component = In, CountOfComponents = CC>,
+        D: PixelExt<Component = Out, CountOfComponents = CC>,
     {
         for (s_row, d_row) in src_image.iter_rows(0).zip(dst_image.iter_rows_mut()) {
             let s_comp = S::components(s_row);
@@ -93,6 +109,22 @@ where
                 2 => self.map_with_gaps(s_comp, d_comp, 2), // Don't map alpha channel
                 4 => self.map_with_gaps(s_comp, d_comp, 4), // Don't map alpha channel
                 _ => self.map(s_comp, d_comp),
+            }
+        }
+    }
+
+    pub fn map_image_inplace<S, CC>(&self, image: &mut ImageViewMut<S>)
+    where
+        CC: GetCount,
+        S: PixelExt<Component = Out, CountOfComponents = CC>,
+        Out: Into<usize>,
+    {
+        for row in image.iter_rows_mut() {
+            let comp = S::components_mut(row);
+            match CC::count() {
+                2 => self.map_with_gaps_inplace(comp, 2), // Don't map alpha channel
+                4 => self.map_with_gaps_inplace(comp, 4), // Don't map alpha channel
+                _ => self.map_inplace(comp),
             }
         }
     }
@@ -109,6 +141,10 @@ struct MappingTablesGroup {
 ///
 /// This structure holds tables for mapping values of pixel's
 /// components in forward and backward directions.
+///
+/// Alpha channel from such pixel types as `U8x2`, `U8x4`, `U16x2` and `U16x4`
+/// not mapped with tables. This component transformed into destination
+/// component type with help of [IntoPixelComponent] trait.
 pub struct PixelComponentMapper {
     forward_mapping_tables: MappingTablesGroup,
     backward_mapping_tables: MappingTablesGroup,
@@ -160,7 +196,6 @@ impl PixelComponentMapper {
         }
     }
 
-    #[inline]
     fn map(
         tables: &MappingTablesGroup,
         src_image: &DynamicImageView,
@@ -202,6 +237,38 @@ impl PixelComponentMapper {
         Ok(())
     }
 
+    fn map_inplace(
+        tables: &MappingTablesGroup,
+        image: &mut DynamicImageViewMut,
+    ) -> Result<(), MappingError> {
+        use DynamicImageViewMut as DIMut;
+
+        macro_rules! match_img {
+            (
+                $tables: ident, $image: ident,
+                $(($p8_mut: path, $p16_mut: path),)*
+            ) => {
+                match $image {
+                    $(
+                        $p8_mut(img) => $tables.u8_u8.map_image_inplace(img),
+                        $p16_mut(img) => $tables.u16_u16.map_image_inplace(img),
+                    )*
+                    _ => return Err(MappingError::UnsupportedCombinationOfImageTypes),
+                }
+            };
+        }
+
+        match_img!(
+            tables,
+            image,
+            (DIMut::U8, DIMut::U16),
+            (DIMut::U8x2, DIMut::U16x2),
+            (DIMut::U8x3, DIMut::U16x3),
+            (DIMut::U8x4, DIMut::U16x4),
+        );
+        Ok(())
+    }
+
     /// Mapping in the forward direction of pixel's components of source image
     /// into corresponding components of destination image.
     pub fn forward_map(
@@ -212,6 +279,10 @@ impl PixelComponentMapper {
         Self::map(&self.forward_mapping_tables, src_image, dst_image)
     }
 
+    pub fn forward_map_inplace(&self, image: &mut DynamicImageViewMut) -> Result<(), MappingError> {
+        Self::map_inplace(&self.forward_mapping_tables, image)
+    }
+
     /// Mapping in the backward direction of pixel's components of source image
     /// into corresponding components of destination image.
     pub fn backward_map(
@@ -220,5 +291,12 @@ impl PixelComponentMapper {
         dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), MappingError> {
         Self::map(&self.backward_mapping_tables, src_image, dst_image)
+    }
+
+    pub fn backward_map_inplace(
+        &self,
+        image: &mut DynamicImageViewMut,
+    ) -> Result<(), MappingError> {
+        Self::map_inplace(&self.backward_mapping_tables, image)
     }
 }

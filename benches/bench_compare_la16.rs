@@ -4,7 +4,7 @@ use glassbench::*;
 
 use fast_image_resize::pixels::U16x2;
 use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, PixelType, ResizeAlg, Resizer};
-use testing::PixelExt;
+use testing::PixelTestingExt;
 
 mod utils;
 

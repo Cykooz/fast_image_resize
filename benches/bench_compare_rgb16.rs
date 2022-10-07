@@ -8,7 +8,7 @@ use rgb::{FromSlice, RGB};
 use fast_image_resize::pixels::U16x3;
 use fast_image_resize::Image;
 use fast_image_resize::{CpuExtensions, FilterType, ResizeAlg, Resizer};
-use testing::PixelExt;
+use testing::PixelTestingExt;
 
 mod utils;
 

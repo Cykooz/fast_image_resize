@@ -1,9 +1,9 @@
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::Pixel;
+use crate::pixels::PixelExt;
 use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
-pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
+pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
     coeffs: Coefficients,
@@ -37,7 +37,7 @@ pub(crate) fn vert_convolution<T: Pixel<Component = u16>>(
 }
 
 #[inline(always)]
-pub(crate) fn convolution_by_u16<T: Pixel<Component = u16>>(
+pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
     normalizer: &optimisations::Normalizer32,
     initial: i64,
