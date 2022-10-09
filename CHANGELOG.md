@@ -12,7 +12,7 @@
     - associated method `component_count_of_values` renamed into `count_of_component_values`.
   - All pixel types (`U8`, `U8x2`, ...) replaced by type aliases for new 
     generic structure `Pixel`. Use method `new()` to create 
-    instance of one pixel. 
+    instance of one pixel.
 - Added module `color` for working with colorspace and gamma:
   - Added mapper `SRGB_TO_RGB`. It is lazy static instance of `PixelComponentMapper` to 
     convert images from SRGB colorspace to linear RGB and back.
@@ -24,6 +24,7 @@
   components in whole image.
 - Added generic trait `IntoPixelComponent<Out: PixelComponent>`.
 - Added generic structure `Pixel` for create all types of pixels.
+- Added full support of optimisation with help of `SSE4.1` for convolution of `U8x3` images.
 
 ### Example application
 

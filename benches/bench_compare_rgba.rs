@@ -1,4 +1,6 @@
 use std::num::NonZeroU32;
+use std::thread::sleep;
+use std::time::Duration;
 
 use glassbench::*;
 use resize::px::RGBA;
@@ -27,7 +29,7 @@ pub fn bench_downscale_rgba(bench: &mut Bench) {
             let filter = match alg_name {
                 "Nearest" => {
                     // resizer doesn't support "nearest" algorithm
-                    task.iter(|| {});
+                    task.iter(|| sleep(Duration::new(0, 1)));
                     return;
                 }
                 "Bilinear" => resize::Type::Triangle,

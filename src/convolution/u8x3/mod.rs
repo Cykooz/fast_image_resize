@@ -23,9 +23,7 @@ impl Convolution for U8x3 {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Avx2 => avx2::horiz_convolution(src_image, dst_image, offset, coeffs),
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe {
-                sse4::horiz_convolution(src_image, dst_image, offset, coeffs)
-            },
+            CpuExtensions::Sse4_1 => sse4::horiz_convolution(src_image, dst_image, offset, coeffs),
             _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
         }
     }

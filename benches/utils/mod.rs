@@ -25,10 +25,10 @@ pub fn print_md_table(bench: &Bench) {
                 res_map.insert(crate_name.clone(), Vec::new());
             }
             if let Some(values) = res_map.get_mut(&crate_name) {
-                let s_value = format!("{:.2}", value);
-                if s_value == "0.00" {
+                if value < 0.10 {
                     values.push("-".to_string());
                 } else {
+                    let s_value = format!("{:.2}", value);
                     values.push(s_value);
                 }
             }

@@ -3,6 +3,8 @@ use resize::px::RGBA;
 use resize::Pixel::RGBA16P;
 use rgb::FromSlice;
 use std::num::NonZeroU32;
+use std::thread::sleep;
+use std::time::Duration;
 
 use fast_image_resize::pixels::U16x4;
 use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, ResizeAlg, Resizer};
@@ -27,7 +29,7 @@ pub fn bench_downscale_rgba16(bench: &mut Bench) {
             let filter = match alg_name {
                 "Nearest" => {
                     // resizer doesn't support "nearest" algorithm
-                    task.iter(|| {});
+                    task.iter(|| sleep(Duration::new(0, 1)));
                     return;
                 }
                 "Bilinear" => resize::Type::Triangle,
