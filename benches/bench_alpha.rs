@@ -98,6 +98,10 @@ fn bench_alpha(bench: &mut Bench) {
         cpu_extensions.push(CpuExtensions::Sse4_1);
         cpu_extensions.push(CpuExtensions::Avx2);
     }
+    #[cfg(target_arch = "aarch64")]
+    {
+        cpu_extensions.push(CpuExtensions::Neon);
+    }
     for pixel_type in pixel_types {
         for &extensions in cpu_extensions.iter() {
             println!("Mul {:?} {:?}", pixel_type, extensions);

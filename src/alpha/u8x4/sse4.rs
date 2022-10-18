@@ -129,7 +129,6 @@ unsafe fn divide_alpha_four_pixels(src: *const U8x4, dst: *mut U8x4) {
 
     let alpha_f32 = _mm_cvtepi32_ps(_mm_srli_epi32::<24>(src_pixels));
     let scaled_alpha_f32 = _mm_div_ps(alpha_scale, alpha_f32);
-    // let scaled_alpha_f32 = _mm_mul_ps(alpha_scale, _mm_rcp_ps(alpha_f32));
     let scaled_alpha_i32 = _mm_cvtps_epi32(scaled_alpha_f32);
     let mma0 = _mm_shuffle_epi8(scaled_alpha_i32, shuffle1);
     let mma1 = _mm_shuffle_epi8(scaled_alpha_i32, shuffle2);

@@ -14,6 +14,8 @@ pub enum CpuExtensions {
     Sse4_1,
     #[cfg(target_arch = "x86_64")]
     Avx2,
+    #[cfg(target_arch = "aarch64")]
+    Neon,
 }
 
 impl Default for CpuExtensions {
@@ -28,7 +30,17 @@ impl Default for CpuExtensions {
         }
     }
 
-    #[cfg(not(target_arch = "x86_64"))]
+    #[cfg(target_arch = "aarch64")]
+    fn default() -> Self {
+        use std::arch::is_aarch64_feature_detected;
+        if is_aarch64_feature_detected!("neon") {
+            Self::Neon
+        } else {
+            Self::None
+        }
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     fn default() -> Self {
         Self::None
     }

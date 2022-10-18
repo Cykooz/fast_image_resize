@@ -315,6 +315,10 @@ fn downscale_u8x4() {
         cpu_extensions_vec.push(CpuExtensions::Sse4_1);
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
+    #[cfg(target_arch = "aarch64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
     for cpu_extensions in cpu_extensions_vec {
         let buffer =
             downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);

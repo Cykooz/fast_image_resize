@@ -25,6 +25,9 @@
 - Added generic trait `IntoPixelComponent<Out: PixelComponent>`.
 - Added generic structure `Pixel` for create all types of pixels.
 - Added full support of optimisation with help of `SSE4.1` for convolution of `U8x3` images.
+- Added support of optimisation with help of `NEON SIMD` for convolution of `U8x4` images.
+- Added optimisation for processing `U8x4` images by `MulDiv` with
+  helps of `NEON SIMD` instructions.
 
 ### Example application
 

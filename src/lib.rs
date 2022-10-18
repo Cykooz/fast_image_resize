@@ -21,6 +21,8 @@ mod errors;
 mod image;
 mod image_view;
 mod mul_div;
+#[cfg(target_arch = "aarch64")]
+mod neon_utils;
 pub mod pixels;
 mod resizer;
 #[cfg(target_arch = "x86_64")]

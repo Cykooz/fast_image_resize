@@ -2,7 +2,7 @@ macro_rules! constify_imm8 {
     ($imm8:expr, $expand:ident) => {
         #[allow(overflowing_literals)]
         match ($imm8) & 0b0011_1111 {
-            0 => $expand!(0),
+            0 => {}
             1 => $expand!(1),
             2 => $expand!(2),
             3 => $expand!(3),
@@ -33,7 +33,6 @@ macro_rules! constify_imm8 {
             29 => $expand!(29),
             30 => $expand!(30),
             31 => $expand!(31),
-            32 => $expand!(32),
             _ => unreachable!(),
         }
     };
