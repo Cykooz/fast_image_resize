@@ -520,6 +520,13 @@ fn multiply_alpha_real_image_test() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
+        if !cpu_extensions.is_supported() {
+            println!(
+                "Cpu Extensions '{}' not supported by your CPU",
+                cpu_ext_into_str(cpu_extensions)
+            );
+            continue;
+        }
         unsafe {
             alpha_mul_div.set_cpu_extensions(cpu_extensions);
         }
@@ -560,6 +567,13 @@ fn divide_alpha_real_image_test() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
+        if !cpu_extensions.is_supported() {
+            println!(
+                "Cpu Extensions '{}' not supported by your CPU",
+                cpu_ext_into_str(cpu_extensions)
+            );
+            continue;
+        }
         unsafe {
             alpha_mul_div.set_cpu_extensions(cpu_extensions);
         }

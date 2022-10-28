@@ -124,10 +124,10 @@ where
 }
 
 struct MappingTablesGroup {
-    u8_u8: MappingTable<u8, 256>,
-    u8_u16: MappingTable<u16, 256>,
-    u16_u8: MappingTable<u8, 65536>,
-    u16_u16: MappingTable<u16, 65536>,
+    u8_u8: Box<MappingTable<u8, 256>>,
+    u8_u16: Box<MappingTable<u16, 256>>,
+    u16_u8: Box<MappingTable<u8, 65536>>,
+    u16_u16: Box<MappingTable<u16, 65536>>,
 }
 
 /// Mapper of pixel's components.
@@ -182,16 +182,16 @@ impl PixelComponentMapper {
     {
         Self {
             forward_mapping_tables: MappingTablesGroup {
-                u8_u8: MappingTable::new(&forward_map_func),
-                u8_u16: MappingTable::new(&forward_map_func),
-                u16_u8: MappingTable::new(&forward_map_func),
-                u16_u16: MappingTable::new(&forward_map_func),
+                u8_u8: Box::new(MappingTable::new(&forward_map_func)),
+                u8_u16: Box::new(MappingTable::new(&forward_map_func)),
+                u16_u8: Box::new(MappingTable::new(&forward_map_func)),
+                u16_u16: Box::new(MappingTable::new(&forward_map_func)),
             },
             backward_mapping_tables: MappingTablesGroup {
-                u8_u8: MappingTable::new(&backward_map_func),
-                u8_u16: MappingTable::new(&backward_map_func),
-                u16_u8: MappingTable::new(&backward_map_func),
-                u16_u16: MappingTable::new(&backward_map_func),
+                u8_u8: Box::new(MappingTable::new(&backward_map_func)),
+                u8_u16: Box::new(MappingTable::new(&backward_map_func)),
+                u16_u8: Box::new(MappingTable::new(&backward_map_func)),
+                u16_u16: Box::new(MappingTable::new(&backward_map_func)),
             },
         }
     }

@@ -3,6 +3,7 @@
 ### Crate
 
 - Added method `CpuExtensions::is_supported(&self)`.
+- Internals of `PixelComponentMapper` changed to use heap to store its data.
 - Fixed link to documentation page in `README.md` file.
 
 ## [2.0.0] - 2022-10-28
