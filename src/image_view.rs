@@ -15,7 +15,8 @@ pub(crate) type FourRowsMut<'a, 'b, T> = (
     &'a mut &'b mut [T],
 );
 
-/// Parameters of crop box that may be used with [`ImageView`] and [`crate::DynamicImageView`]
+/// Parameters of crop box that may be used with [`ImageView`]
+/// and [`DynamicImageView`](crate::DynamicImageView)
 #[derive(Debug, Clone, Copy)]
 pub struct CropBox {
     pub left: u32,
