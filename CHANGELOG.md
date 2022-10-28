@@ -19,13 +19,12 @@
   - All pixel types (`U8`, `U8x2`, ...) replaced by type aliases for new 
     generic structure `Pixel`. Use method `new()` to create 
     instance of one pixel.
-- Added module `color` for working with colorspace and gamma:
-  - Added structure `PixelComponentMapper` that holds tables for mapping values of pixel's
-    components in forward and backward directions.
-  - Added function `create_gamma_22_mapper()` to create instance of `PixelComponentMapper`
-    that converts images with gamma 2.2 to linear colorspace and back. 
-  - Added function `create_srgb_mapper()` to create instance of `PixelComponentMapper`
-    that converts images from SRGB colorspace to linear RGB and back.
+- Added structure `PixelComponentMapper` that holds tables for mapping values of pixel's
+  components in forward and backward directions.
+- Added function `create_gamma_22_mapper()` to create instance of `PixelComponentMapper`
+  that converts images with gamma 2.2 to linear colorspace and back. 
+- Added function `create_srgb_mapper()` to create instance of `PixelComponentMapper`
+  that converts images from SRGB colorspace to linear RGB and back.
 - Added generic structs `ImageView` and `ImageViewMut`.
 - Added functions `change_type_of_pixel_components` and 
   `change_type_of_pixel_components_dyn` that change type of pixel's 
