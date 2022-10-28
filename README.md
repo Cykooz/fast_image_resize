@@ -33,7 +33,7 @@ result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_co
 about resizing with respect to color space.
 
 This crate provides the
-[PixelComponentMapper](https://docs.rs/fast_image_resize/target/doc/fast_image_resize/struct.PixelComponentMapper.html)
+[PixelComponentMapper](https://docs.rs/fast_image_resize/latest/fast_image_resize/struct.PixelComponentMapper.html)
 structure that allows you to create colorspace converters for images 
 whose pixels based on `u8` and `u16` components.
 
