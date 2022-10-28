@@ -18,6 +18,21 @@ pub enum CpuExtensions {
     Neon,
 }
 
+impl CpuExtensions {
+    /// Returns `true` if your CPU support the extension.
+    pub fn is_supported(&self) -> bool {
+        match self {
+            #[cfg(target_arch = "x86_64")]
+            Self::Avx2 => is_x86_feature_detected!("avx2"),
+            #[cfg(target_arch = "x86_64")]
+            Self::Sse4_1 => is_x86_feature_detected!("sse4.1"),
+            #[cfg(target_arch = "aarch64")]
+            Self::Neon => true,
+            Self::None => true,
+        }
+    }
+}
+
 impl Default for CpuExtensions {
     #[cfg(target_arch = "x86_64")]
     fn default() -> Self {

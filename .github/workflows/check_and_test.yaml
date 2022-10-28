@@ -24,16 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
       - uses: Swatinem/rust-cache@v2
 
       - name: Run tests
         run: |
           cargo check
-          cargo test --verbose
+          cargo test

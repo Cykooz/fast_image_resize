@@ -10,20 +10,24 @@ pub fn nonzero(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()
 }
 
-pub fn image_checksum<const N: usize>(buffer: &[u8]) -> [u32; N] {
-    let mut res = [0u32; N];
-    for pixel in buffer.chunks_exact(N) {
-        res.iter_mut().zip(pixel).for_each(|(d, &s)| *d += s as u32);
-    }
-    res
-}
-
-pub fn image_u16_checksum<const N: usize>(buffer: &[u8]) -> [u64; N] {
-    let buffer_u16 = unsafe { buffer.align_to::<u16>().1 };
+pub fn image_checksum<P: PixelExt, const N: usize>(image: &Image) -> [u64; N] {
+    let buffer = image.buffer();
     let mut res = [0u64; N];
-    for pixel in buffer_u16.chunks_exact(N) {
-        res.iter_mut().zip(pixel).for_each(|(d, &s)| *d += s as u64);
-    }
+    let component_size = P::size() / P::count_of_components();
+    match component_size {
+        1 => {
+            for pixel in buffer.chunks_exact(N) {
+                res.iter_mut().zip(pixel).for_each(|(d, &s)| *d += s as u64);
+            }
+        }
+        2 => {
+            let buffer_u16 = unsafe { buffer.align_to::<u16>().1 };
+            for pixel in buffer_u16.chunks_exact(N) {
+                res.iter_mut().zip(pixel).for_each(|(d, &s)| *d += s as u64);
+            }
+        }
+        _ => (),
+    };
     res
 }
 

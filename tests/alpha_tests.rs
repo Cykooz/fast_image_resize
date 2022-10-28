@@ -5,6 +5,7 @@ use fast_image_resize::{
     CpuExtensions, DynamicImageView, DynamicImageViewMut, Image, ImageView, ImageViewMut, MulDiv,
     PixelType,
 };
+use testing::cpu_ext_into_str;
 
 const fn p2(l: u8, a: u8) -> U8x2 {
     U8x2::new(u16::from_le_bytes([l, a]))
@@ -27,6 +28,13 @@ where
     for<'a> ImageView<'a, P>: Into<DynamicImageView<'a>>,
     for<'a> ImageViewMut<'a, P>: Into<DynamicImageViewMut<'a>>,
 {
+    if !cpu_extensions.is_supported() {
+        println!(
+            "Cpu Extensions '{}' not supported by your CPU",
+            cpu_ext_into_str(cpu_extensions)
+        );
+        return;
+    }
     let width: u32 = 8 + 8 + 7;
     let height: u32 = 3;
 
@@ -519,13 +527,10 @@ fn multiply_alpha_real_image_test() {
             .multiply_alpha(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
-        let name = format!(
-            "multiple_alpha-{}",
-            testing::cpu_ext_into_str(cpu_extensions)
-        );
+        let name = format!("multiple_alpha-{}", cpu_ext_into_str(cpu_extensions));
         testing::save_result(&dst_image, &name);
 
-        let checksum = testing::image_checksum::<4>(dst_image.buffer());
+        let checksum = testing::image_checksum::<U8x4, 4>(&dst_image);
         assert_eq!(checksum, [4177920, 4177920, 4177920, 8355840]);
     }
 }
@@ -562,10 +567,10 @@ fn divide_alpha_real_image_test() {
             .divide_alpha(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
-        let name = format!("divide_alpha-{}", testing::cpu_ext_into_str(cpu_extensions));
+        let name = format!("divide_alpha-{}", cpu_ext_into_str(cpu_extensions));
         testing::save_result(&dst_image, &name);
 
-        let checksum = testing::image_checksum::<4>(dst_image.buffer());
+        let checksum = testing::image_checksum::<U8x4, 4>(&dst_image);
         assert_eq!(checksum, [8292504, 8292504, 8292504, 8355840]);
     }
 }

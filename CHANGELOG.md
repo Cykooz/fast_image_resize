@@ -2,6 +2,7 @@
 
 ### Crate
 
+- Added method `CpuExtensions::is_supported(&self)`.
 - Fixed link to documentation page in `README.md` file.
 
 ## [2.0.0] - 2022-10-28

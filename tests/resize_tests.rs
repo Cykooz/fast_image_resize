@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::fmt::Debug;
 
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
     CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView, FilterType, Image,
     PixelType, ResizeAlg, Resizer,
 };
-use testing::{nonzero, PixelTestingExt};
+use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
 
 fn get_new_height(src_image: &DynamicImageView, new_width: u32) -> u32 {
     let scale = new_width as f32 / src_image.width().get() as f32;
@@ -82,98 +83,129 @@ fn resize_to_same_size_after_cropping() {
     assert!(matches!(cropped_buffer.cmp(&dst_buffer), Ordering::Equal));
 }
 
-fn downscale_test<P: PixelTestingExt>(
-    resize_alg: ResizeAlg,
-    cpu_extensions: CpuExtensions,
-) -> Vec<u8> {
-    let image = P::load_big_src_image();
-    assert_eq!(image.pixel_type(), P::pixel_type());
-
-    let mut resizer = Resizer::new(resize_alg);
-    unsafe {
-        resizer.set_cpu_extensions(cpu_extensions);
-    }
-    let image_view = image.view();
-    let new_height = get_new_height(&image_view, NEW_WIDTH);
-    let mut result = Image::new(nonzero(NEW_WIDTH), nonzero(new_height), image.pixel_type());
-    assert!(resizer.resize(&image_view, &mut result.view_mut()).is_ok());
-
-    let alg_name = match resize_alg {
-        ResizeAlg::Nearest => "nearest",
-        ResizeAlg::Convolution(filter) => match filter {
-            FilterType::Box => "box",
-            FilterType::Bilinear => "bilinear",
-            FilterType::Hamming => "hamming",
-            FilterType::Mitchell => "mitchell",
-            FilterType::CatmullRom => "catmullrom",
-            FilterType::Lanczos3 => "lanczos3",
-            _ => "unknown",
-        },
-        ResizeAlg::SuperSampling(_, _) => "supersampling",
-        _ => "unknown",
-    };
-
-    let name = format!(
-        "downscale-{}-{}-{}",
-        P::pixel_type_str(),
-        alg_name,
-        testing::cpu_ext_into_str(cpu_extensions),
-    );
-    testing::save_result(&result, &name);
-    result.buffer().to_owned()
+trait ResizeTest<const CC: usize> {
+    fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
+    fn upscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
 }
 
-fn upscale_test<P: PixelTestingExt>(
-    resize_alg: ResizeAlg,
-    cpu_extensions: CpuExtensions,
-) -> Vec<u8> {
-    let image = P::load_small_src_image();
-    assert_eq!(image.pixel_type(), P::pixel_type());
+impl<T, C, const CC: usize> ResizeTest<CC> for Pixel<T, C, CC>
+where
+    Self: PixelTestingExt,
+    T: Sized + Copy + Clone + Debug + 'static,
+    C: PixelComponent,
+{
+    fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]) {
+        if !cpu_extensions.is_supported() {
+            println!(
+                "Cpu Extensions '{}' not supported by your CPU",
+                cpu_ext_into_str(cpu_extensions)
+            );
+            return;
+        }
 
-    let mut resizer = Resizer::new(resize_alg);
-    unsafe {
-        resizer.set_cpu_extensions(cpu_extensions);
-    }
-    let new_height = get_new_height(&image.view(), NEW_BIG_WIDTH);
-    let mut result = Image::new(
-        nonzero(NEW_BIG_WIDTH),
-        nonzero(new_height),
-        image.pixel_type(),
-    );
-    assert!(resizer
-        .resize(&image.view(), &mut result.view_mut())
-        .is_ok());
+        let image = Self::load_big_src_image();
+        assert_eq!(image.pixel_type(), Self::pixel_type());
 
-    let alg_name = match resize_alg {
-        ResizeAlg::Nearest => "nearest",
-        ResizeAlg::Convolution(filter) => match filter {
-            FilterType::Box => "box",
-            FilterType::Bilinear => "bilinear",
-            FilterType::Hamming => "hamming",
-            FilterType::Mitchell => "mitchell",
-            FilterType::CatmullRom => "catmullrom",
-            FilterType::Lanczos3 => "lanczos3",
+        let mut resizer = Resizer::new(resize_alg);
+        unsafe {
+            resizer.set_cpu_extensions(cpu_extensions);
+        }
+        let image_view = image.view();
+        let new_height = get_new_height(&image_view, NEW_WIDTH);
+        let mut result = Image::new(nonzero(NEW_WIDTH), nonzero(new_height), image.pixel_type());
+        assert!(resizer.resize(&image_view, &mut result.view_mut()).is_ok());
+
+        let alg_name = match resize_alg {
+            ResizeAlg::Nearest => "nearest",
+            ResizeAlg::Convolution(filter) => match filter {
+                FilterType::Box => "box",
+                FilterType::Bilinear => "bilinear",
+                FilterType::Hamming => "hamming",
+                FilterType::Mitchell => "mitchell",
+                FilterType::CatmullRom => "catmullrom",
+                FilterType::Lanczos3 => "lanczos3",
+                _ => "unknown",
+            },
+            ResizeAlg::SuperSampling(_, _) => "supersampling",
             _ => "unknown",
-        },
-        ResizeAlg::SuperSampling(_, _) => "supersampling",
-        _ => "unknown",
-    };
+        };
 
-    let name = format!(
-        "upscale-{}-{}-{}",
-        P::pixel_type_str(),
-        alg_name,
-        testing::cpu_ext_into_str(cpu_extensions),
-    );
-    testing::save_result(&result, &name);
-    result.buffer().to_owned()
+        let name = format!(
+            "downscale-{}-{}-{}",
+            Self::pixel_type_str(),
+            alg_name,
+            cpu_ext_into_str(cpu_extensions),
+        );
+        testing::save_result(&result, &name);
+        assert_eq!(
+            testing::image_checksum::<Self, CC>(&result),
+            checksum,
+            "Error in checksum for {:?}",
+            cpu_extensions
+        );
+    }
+
+    fn upscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]) {
+        if !cpu_extensions.is_supported() {
+            println!(
+                "Cpu Extensions '{}' not supported by your CPU",
+                cpu_ext_into_str(cpu_extensions)
+            );
+            return;
+        }
+
+        let image = Self::load_small_src_image();
+        assert_eq!(image.pixel_type(), Self::pixel_type());
+
+        let mut resizer = Resizer::new(resize_alg);
+        unsafe {
+            resizer.set_cpu_extensions(cpu_extensions);
+        }
+        let new_height = get_new_height(&image.view(), NEW_BIG_WIDTH);
+        let mut result = Image::new(
+            nonzero(NEW_BIG_WIDTH),
+            nonzero(new_height),
+            image.pixel_type(),
+        );
+        assert!(resizer
+            .resize(&image.view(), &mut result.view_mut())
+            .is_ok());
+
+        let alg_name = match resize_alg {
+            ResizeAlg::Nearest => "nearest",
+            ResizeAlg::Convolution(filter) => match filter {
+                FilterType::Box => "box",
+                FilterType::Bilinear => "bilinear",
+                FilterType::Hamming => "hamming",
+                FilterType::Mitchell => "mitchell",
+                FilterType::CatmullRom => "catmullrom",
+                FilterType::Lanczos3 => "lanczos3",
+                _ => "unknown",
+            },
+            ResizeAlg::SuperSampling(_, _) => "supersampling",
+            _ => "unknown",
+        };
+
+        let name = format!(
+            "upscale-{}-{}-{}",
+            Self::pixel_type_str(),
+            alg_name,
+            cpu_ext_into_str(cpu_extensions),
+        );
+        testing::save_result(&result, &name);
+        assert_eq!(
+            testing::image_checksum::<Self, CC>(&result),
+            checksum,
+            "Error in checksum for {:?}",
+            cpu_extensions
+        );
+    }
 }
 
 #[test]
 fn downscale_u8() {
     type P = U8;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_checksum::<1>(&buffer), [2920348]);
+    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -182,17 +214,18 @@ fn downscale_u8() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(testing::image_checksum::<1>(&buffer), [2923557]);
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [2923557],
+        );
     }
 }
 
 #[test]
 fn upscale_u8() {
     type P = U8;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_checksum::<1>(&buffer), [1148754010]);
+    P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [1148754010]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -200,17 +233,18 @@ fn upscale_u8() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(testing::image_checksum::<1>(&buffer), [1148811406]);
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [1148811406],
+        );
     }
 }
 
 #[test]
 fn downscale_u8x2() {
     type P = U8x2;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_checksum::<2>(&buffer), [2920348, 6121802]);
+    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348, 6121802]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -219,19 +253,21 @@ fn downscale_u8x2() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(testing::image_checksum::<2>(&buffer), [2923557, 6122818]);
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [2923557, 6122818],
+        );
     }
 }
 
 #[test]
 fn upscale_u8x2() {
     type P = U8x2;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_checksum::<2>(&buffer),
-        [1146218632, 2364895380]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [1146218632, 2364895380],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -241,11 +277,10 @@ fn upscale_u8x2() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_checksum::<2>(&buffer),
-            [1146283728, 2364890194]
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [1146283728, 2364890194],
         );
     }
 }
@@ -253,10 +288,10 @@ fn upscale_u8x2() {
 #[test]
 fn downscale_u8x3() {
     type P = U8x3;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_checksum::<3>(&buffer),
-        [2937940, 2945380, 2882679]
+    P::downscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [2937940, 2945380, 2882679],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -266,11 +301,10 @@ fn downscale_u8x3() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_checksum::<3>(&buffer),
-            [2942479, 2947850, 2885072]
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [2942479, 2947850, 2885072],
         );
     }
 }
@@ -278,10 +312,10 @@ fn downscale_u8x3() {
 #[test]
 fn upscale_u8x3() {
     type P = U8x3;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_checksum::<3>(&buffer),
-        [1156008260, 1158417906, 1135087540]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [1156008260, 1158417906, 1135087540],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -291,11 +325,10 @@ fn upscale_u8x3() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_checksum::<3>(&buffer),
-            [1156107005, 1158443335, 1135101759]
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [1156107005, 1158443335, 1135101759],
         );
     }
 }
@@ -303,10 +336,10 @@ fn upscale_u8x3() {
 #[test]
 fn downscale_u8x4() {
     type P = U8x4;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_checksum::<4>(&buffer),
-        [2937940, 2945380, 2882679, 6121802]
+    P::downscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [2937940, 2945380, 2882679, 6121802],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -320,16 +353,16 @@ fn downscale_u8x4() {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_checksum::<4>(&buffer),
-            [2942479, 2947850, 2885072, 6122818]
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [2942479, 2947850, 2885072, 6122818],
         );
 
-        downscale_test::<P>(
+        P::downscale_test(
             ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
             cpu_extensions,
+            [2942546, 2947627, 2884866, 6123158],
         );
     }
 }
@@ -337,10 +370,10 @@ fn downscale_u8x4() {
 #[test]
 fn upscale_u8x4() {
     type P = U8x4;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_checksum::<4>(&buffer),
-        [1155096957, 1152644783, 1123285879, 2364895380]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [1155096957, 1152644783, 1123285879, 2364895380],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -350,11 +383,10 @@ fn upscale_u8x4() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_checksum::<4>(&buffer),
-            [1155201788, 1152688479, 1123328716, 2364890194]
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [1155201788, 1152688479, 1123328716, 2364890194],
         );
     }
 }
@@ -362,8 +394,7 @@ fn upscale_u8x4() {
 #[test]
 fn downscale_u16() {
     type P = U16;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_u16_checksum::<1>(&buffer), [750529436]);
+    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [750529436]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -372,13 +403,10 @@ fn downscale_u16() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<1>(&buffer),
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
             [751401243],
-            "Error in checksum for {:?}",
-            cpu_extensions
         );
     }
 }
@@ -386,8 +414,7 @@ fn downscale_u16() {
 #[test]
 fn upscale_u16() {
     type P = U16;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(testing::image_u16_checksum::<1>(&buffer), [295229780570]);
+    P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [295229780570]);
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -396,13 +423,10 @@ fn upscale_u16() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<1>(&buffer),
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
             [295246940755],
-            "Error in checksum for {:?}",
-            cpu_extensions
         );
     }
 }
@@ -410,10 +434,10 @@ fn upscale_u16() {
 #[test]
 fn downscale_u16x2() {
     type P = U16x2;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<2>(&buffer),
-        [750529436, 1573303114]
+    P::downscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [750529436, 1573303114],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -423,11 +447,10 @@ fn downscale_u16x2() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<2>(&buffer),
-            [751401243, 1573563971]
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [751401243, 1573563971],
         );
     }
 }
@@ -435,10 +458,10 @@ fn downscale_u16x2() {
 #[test]
 fn upscale_u16x2() {
     type P = U16x2;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<2>(&buffer),
-        [294578188424, 607778112660]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [294578188424, 607778112660],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -448,11 +471,10 @@ fn upscale_u16x2() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<2>(&buffer),
-            [294597368766, 607776760273]
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [294597368766, 607776760273],
         );
     }
 }
@@ -460,10 +482,10 @@ fn upscale_u16x2() {
 #[test]
 fn downscale_u16x3() {
     type P = U16x3;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<3>(&buffer),
-        [755050580, 756962660, 740848503]
+    P::downscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [755050580, 756962660, 740848503],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -473,11 +495,10 @@ fn downscale_u16x3() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<3>(&buffer),
-            [756269847, 757632467, 741478612]
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [756269847, 757632467, 741478612],
         );
     }
 }
@@ -485,10 +506,10 @@ fn downscale_u16x3() {
 #[test]
 fn upscale_u16x3() {
     type P = U16x3;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<3>(&buffer),
-        [297094122820, 297713401842, 291717497780]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [297094122820, 297713401842, 291717497780],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -498,11 +519,10 @@ fn upscale_u16x3() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<3>(&buffer),
-            [297122154090, 297723994984, 291725294637]
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [297122154090, 297723994984, 291725294637],
         );
     }
 }
@@ -510,10 +530,10 @@ fn upscale_u16x3() {
 #[test]
 fn downscale_u16x4() {
     type P = U16x4;
-    let buffer = downscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<4>(&buffer),
-        [755050580, 756962660, 740848503, 1573303114]
+    P::downscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [755050580, 756962660, 740848503, 1573303114],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -523,48 +543,21 @@ fn downscale_u16x4() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            downscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<4>(&buffer),
-            [756269847, 757632467, 741478612, 1573563971]
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
+            [756269847, 757632467, 741478612, 1573563971],
         );
     }
 }
 
 #[test]
-fn resizer_u16x4() {
-    use resize::px::RGBA;
-    use resize::Pixel::RGBA16P;
-    use rgb::FromSlice;
-
-    let src_image = U16x4::load_big_image().to_rgba16();
-    let new_width = nonzero(852);
-    let new_height = nonzero(567);
-
-    let resize_src_image = src_image.as_raw().as_rgba();
-    let mut dst =
-        vec![RGBA::new(0u16, 0u16, 0u16, 0u16); (new_width.get() * new_height.get()) as usize];
-    let filter = resize::Type::Triangle;
-    let mut resize = resize::new(
-        src_image.width() as usize,
-        src_image.height() as usize,
-        new_width.get() as usize,
-        new_height.get() as usize,
-        RGBA16P,
-        filter,
-    )
-    .unwrap();
-    resize.resize(resize_src_image, &mut dst).unwrap();
-}
-
-#[test]
 fn upscale_u16x4() {
     type P = U16x4;
-    let buffer = upscale_test::<P>(ResizeAlg::Nearest, CpuExtensions::None);
-    assert_eq!(
-        testing::image_u16_checksum::<4>(&buffer),
-        [296859917949, 296229709231, 288684470903, 607778112660]
+    P::upscale_test(
+        ResizeAlg::Nearest,
+        CpuExtensions::None,
+        [296859917949, 296229709231, 288684470903, 607778112660],
     );
 
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
@@ -574,10 +567,9 @@ fn upscale_u16x4() {
         cpu_extensions_vec.push(CpuExtensions::Avx2);
     }
     for cpu_extensions in cpu_extensions_vec {
-        let buffer =
-            upscale_test::<P>(ResizeAlg::Convolution(FilterType::Lanczos3), cpu_extensions);
-        assert_eq!(
-            testing::image_u16_checksum::<4>(&buffer),
+        P::upscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            cpu_extensions,
             [296888688348, 296243667797, 288698172180, 607776760273],
         );
     }
