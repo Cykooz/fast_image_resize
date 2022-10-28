@@ -31,4 +31,4 @@ jobs:
       - name: Run tests
         run: |
           cargo check
-          cargo test -- --test-threads 1
+          cargo test
