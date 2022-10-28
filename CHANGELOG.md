@@ -5,7 +5,7 @@
 - Breaking changes:
   - Struct `ImageView` replaced by enum `DynamicImageView`.
   - Struct `ImageViewMut` replaced by enum `DynamicImageViewMut`.
-  - Trait `Pixel` renamed into `PixelExt` and changed:
+  - Trait `Pixel` renamed into `PixelExt` and some its internals changed:
     - associated type `ComponentsCount` renamed into `CountOfComponents`.
     - associated type `ComponentCountOfValues` deleted.
     - associated method `components_count` renamed into `count_of_components`.
@@ -14,18 +14,20 @@
     generic structure `Pixel`. Use method `new()` to create 
     instance of one pixel.
 - Added module `color` for working with colorspace and gamma:
-  - Added mapper `SRGB_TO_RGB`. It is lazy static instance of `PixelComponentMapper` to 
-    convert images from SRGB colorspace to linear RGB and back.
-  - Added mapper `GAMMA22_TO_LINEAR`. It is lazy static instance of `PixelComponentMapper`
-    to convert images with gamma 2.2 to linear colorspace and back.
+  - Added structure `PixelComponentMapper` that holds tables for mapping values of pixel's
+    components in forward and backward directions.
+  - Added function `create_gamma_22_mapper()` to create instance of `PixelComponentMapper`
+    that converts images with gamma 2.2 to linear colorspace and back. 
+  - Added function `create_srgb_mapper()` to create instance of `PixelComponentMapper`
+    that converts images from SRGB colorspace to linear RGB and back.
 - Added generic structs `ImageView` and `ImageViewMut`.
 - Added functions `change_type_of_pixel_components` and 
-  `change_type_of_pixel_components_dyn` to change type of pixel's 
+  `change_type_of_pixel_components_dyn` that change type of pixel's 
   components in whole image.
 - Added generic trait `IntoPixelComponent<Out: PixelComponent>`.
 - Added generic structure `Pixel` for create all types of pixels.
-- Added full support of optimisation with help of `SSE4.1` for convolution of `U8x3` images.
-- Added support of optimisation with help of `NEON SIMD` for convolution of `U8x4` images.
+- Added full support of optimisation with helps of `SSE4.1` for convolution of `U8x3` images.
+- Added support of optimisation with helps of `NEON SIMD` for convolution of `U8x4` images.
 - Added optimisation for processing `U8x4` images by `MulDiv` with
   helps of `NEON SIMD` instructions.
 

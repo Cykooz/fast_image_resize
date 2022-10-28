@@ -25,7 +25,7 @@ Supported pixel formats and available optimisations:
 
 ## Colorspace
 
-Resizer from this crate does not convert image into linear color space 
+Resizer from this crate does not convert image into linear colorspace 
 during resize process. If it is important for you to resize images with a 
 non-linear color space (e.g. sRGB) correctly, then you need to convert 
 it to a linear color space before resizing and convert back a color space of 
@@ -33,12 +33,13 @@ result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_co
 about resizing with respect to color space.
 
 This crate provides the
-[PixelComponentMapper](https://docs.rs/fast_image_resize/target/doc/fast_image_resize/color/struct.PixelComponentMapper.html)
-structure that allows you to create color space converters for images 
+[PixelComponentMapper](https://docs.rs/fast_image_resize/target/doc/fast_image_resize/struct.PixelComponentMapper.html)
+structure that allows you to create colorspace converters for images 
 whose pixels based on `u8` and `u16` components.
 
-In addition, the crate contains lazy-static instances of the `PixelComponentMapper` 
-structure: `SRGB_TO_RGB` and `GAMMA22_TO_LINEAR`. 
+In addition, the crate contains functions `create_gamma_22_mapper()` 
+and `create_srgb_mapper()` to create instance of `PixelComponentMapper`
+that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
 ## Some benchmarks
 

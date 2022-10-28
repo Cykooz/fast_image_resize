@@ -1,6 +1,4 @@
-use once_cell::sync::Lazy;
-
-use crate::color::PixelComponentMapper;
+use crate::PixelComponentMapper;
 
 fn gamma_into_linear(input: f32) -> f32 {
     input.powf(2.2)
@@ -10,9 +8,10 @@ fn linear_into_gamma(input: f32) -> f32 {
     input.powf(1.0 / 2.2)
 }
 
-/// Mapper to convert an image from Gamma 2.2 to linear colorspace and back.
-pub static GAMMA22_TO_LINEAR: Lazy<PixelComponentMapper> =
-    Lazy::new(|| PixelComponentMapper::new(&gamma_into_linear, &linear_into_gamma));
+/// Create mapper to convert an image from Gamma 2.2 to linear colorspace and back.
+pub fn create_gamma_22_mapper() -> PixelComponentMapper {
+    PixelComponentMapper::new(gamma_into_linear, linear_into_gamma)
+}
 
 /// https://en.wikipedia.org/wiki/SRGB#From_sRGB_to_CIE_XYZ
 /// http://www.ericbrasseur.org/gamma.html?i=2#formulas
@@ -36,6 +35,7 @@ fn linear_to_srgb(input: f32) -> f32 {
     }
 }
 
-/// Mapper to convert an image from sRGB to linear RGB colorspace and back.
-pub static SRGB_TO_RGB: Lazy<PixelComponentMapper> =
-    Lazy::new(|| PixelComponentMapper::new(&srgb_to_linear, &linear_to_srgb));
+/// Create mapper to convert an image from sRGB to linear RGB colorspace and back.
+pub fn create_srgb_mapper() -> PixelComponentMapper {
+    PixelComponentMapper::new(srgb_to_linear, linear_to_srgb)
+}

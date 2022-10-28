@@ -6,6 +6,7 @@ mod gamma_tests {
 
     #[test]
     fn gamma22_into_linear_test() {
+        let mapper = fr::create_gamma_22_mapper();
         let buffer: Vec<u8> = (0u8..=255).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8).unwrap();
@@ -14,7 +15,7 @@ mod gamma_tests {
 
         // into U8
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8);
-        fr::color::mappers::GAMMA22_TO_LINEAR
+        mapper
             .forward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
         let dst_checksum = testing::image_checksum::<1>(dst_image.buffer());
@@ -22,7 +23,7 @@ mod gamma_tests {
 
         // into U16
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U16);
-        fr::color::mappers::GAMMA22_TO_LINEAR
+        mapper
             .forward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
         let dst_checksum = testing::image_u16_checksum::<1>(dst_image.buffer());
@@ -31,18 +32,17 @@ mod gamma_tests {
 
     #[test]
     fn gamma22_into_linear_errors_test() {
+        let mapper = fr::create_gamma_22_mapper();
         let buffer: Vec<u8> = (0u8..=255).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8).unwrap();
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(1), fr::PixelType::U8);
-        let result = fr::color::mappers::GAMMA22_TO_LINEAR
-            .forward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.forward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(result, Err(fr::MappingError::DifferentDimensions)));
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x2);
-        let result = fr::color::mappers::GAMMA22_TO_LINEAR
-            .forward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.forward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(
             result,
             Err(fr::MappingError::UnsupportedCombinationOfImageTypes)
@@ -51,12 +51,13 @@ mod gamma_tests {
 
     #[test]
     fn linear_into_gamma22_test() {
+        let mapper = fr::create_gamma_22_mapper();
         let buffer: Vec<u8> = (0u8..=255).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8).unwrap();
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8);
 
-        fr::color::mappers::GAMMA22_TO_LINEAR
+        mapper
             .backward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
@@ -68,18 +69,17 @@ mod gamma_tests {
 
     #[test]
     fn linear_into_gamma22_errors_test() {
+        let mapper = fr::create_gamma_22_mapper();
         let buffer: Vec<u8> = (0u8..=255).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8).unwrap();
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(1), fr::PixelType::U8);
-        let result = fr::color::mappers::GAMMA22_TO_LINEAR
-            .backward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.backward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(result, Err(fr::MappingError::DifferentDimensions)));
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x2);
-        let result = fr::color::mappers::GAMMA22_TO_LINEAR
-            .backward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.backward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(
             result,
             Err(fr::MappingError::UnsupportedCombinationOfImageTypes)
@@ -92,6 +92,7 @@ mod srgb_tests {
 
     #[test]
     fn srgb_into_rgb_test() {
+        let mapper = fr::create_srgb_mapper();
         let buffer: Vec<u8> = (0u8..=255).flat_map(|v| [v, v, v]).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8x3).unwrap();
@@ -99,7 +100,7 @@ mod srgb_tests {
         assert_eq!(src_checksum, [32640, 32640, 32640]);
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x3);
-        fr::color::mappers::SRGB_TO_RGB
+        mapper
             .forward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
@@ -109,6 +110,7 @@ mod srgb_tests {
 
     #[test]
     fn srgba_into_rgba_test() {
+        let mapper = fr::create_srgb_mapper();
         let buffer: Vec<u8> = (0u8..=255).flat_map(|v| [v, v, v, 255]).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8x4).unwrap();
@@ -116,7 +118,7 @@ mod srgb_tests {
         assert_eq!(src_checksum, [32640, 32640, 32640, 65280]);
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x4);
-        fr::color::mappers::SRGB_TO_RGB
+        mapper
             .forward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
@@ -126,18 +128,17 @@ mod srgb_tests {
 
     #[test]
     fn srgb_into_rgb_errors_test() {
+        let mapper = fr::create_srgb_mapper();
         let buffer: Vec<u8> = (0u8..=255).flat_map(|v| [v, v, v]).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8x3).unwrap();
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(1), fr::PixelType::U8x3);
-        let result = fr::color::mappers::SRGB_TO_RGB
-            .forward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.forward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(result, Err(fr::MappingError::DifferentDimensions)));
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x2);
-        let result = fr::color::mappers::SRGB_TO_RGB
-            .forward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.forward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(
             result,
             Err(fr::MappingError::UnsupportedCombinationOfImageTypes)
@@ -146,6 +147,7 @@ mod srgb_tests {
 
     #[test]
     fn rgb_into_srgb_test() {
+        let mapper = fr::create_srgb_mapper();
         let buffer: Vec<u8> = (0u8..=255).flat_map(|v| [v, v, v]).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8x3).unwrap();
@@ -153,7 +155,7 @@ mod srgb_tests {
         assert_eq!(src_checksum, [32640, 32640, 32640]);
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x3);
-        fr::color::mappers::SRGB_TO_RGB
+        mapper
             .backward_map(&src_image.view(), &mut dst_image.view_mut())
             .unwrap();
 
@@ -163,18 +165,17 @@ mod srgb_tests {
 
     #[test]
     fn rgb_into_srgb_errors_test() {
+        let mapper = fr::create_srgb_mapper();
         let buffer: Vec<u8> = (0u8..=255).flat_map(|v| [v, v, v]).collect();
         let src_image =
             fr::Image::from_vec_u8(nonzero(16), nonzero(16), buffer, fr::PixelType::U8x3).unwrap();
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(1), fr::PixelType::U8x3);
-        let result = fr::color::mappers::SRGB_TO_RGB
-            .backward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.backward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(result, Err(fr::MappingError::DifferentDimensions)));
 
         let mut dst_image = fr::Image::new(nonzero(16), nonzero(16), fr::PixelType::U8x2);
-        let result = fr::color::mappers::SRGB_TO_RGB
-            .backward_map(&src_image.view(), &mut dst_image.view_mut());
+        let result = mapper.backward_map(&src_image.view(), &mut dst_image.view_mut());
         assert!(matches!(
             result,
             Err(fr::MappingError::UnsupportedCombinationOfImageTypes)

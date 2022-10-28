@@ -1,11 +1,4 @@
-//! Functions for working with colorspace and gamma.
-//!
-//! Supported all pixel types exclude `I32` and `F32`.
-//!
-//! Source and destination images may have different bit depth of one pixel component.
-//! But count of components must be equal.
-//! For example, you may convert `U8x3` image with sRGB colorspace into
-//! `U16x3` image with linear colorspace.
+//! Functions and structs for working with colorspace and gamma.
 use num_traits::bounds::UpperBounded;
 use num_traits::Zero;
 
@@ -13,7 +6,7 @@ use crate::pixels::{GetCount, IntoPixelComponent, PixelComponent, PixelExt, Valu
 use crate::{DynamicImageView, DynamicImageViewMut, MappingError};
 use crate::{ImageView, ImageViewMut};
 
-pub mod mappers;
+pub(crate) mod mappers;
 
 trait FromF32 {
     fn from_f32(x: f32) -> Self;
@@ -142,6 +135,13 @@ struct MappingTablesGroup {
 /// This structure holds tables for mapping values of pixel's
 /// components in forward and backward directions.
 ///
+/// Supported all pixel types exclude `I32` and `F32`.
+///
+/// Source and destination images may have different bit depth of one pixel component.
+/// But count of components must be equal.
+/// For example, you may convert `U8x3` image with sRGB colorspace into
+/// `U16x3` image with linear colorspace.
+///
 /// Alpha channel from such pixel types as `U8x2`, `U8x4`, `U16x2` and `U16x4`
 /// not mapped with tables. This component transformed into destination
 /// component type with help of [IntoPixelComponent] trait.
@@ -160,7 +160,7 @@ impl PixelComponentMapper {
     ///
     /// Example:
     /// ```
-    /// # use fast_image_resize::color::PixelComponentMapper;
+    /// # use fast_image_resize::PixelComponentMapper;
     /// #
     /// fn gamma_into_linear(input: f32) -> f32 {
     ///     input.powf(2.2)
@@ -171,27 +171,27 @@ impl PixelComponentMapper {
     /// }
     ///
     /// let gamma22_to_linear = PixelComponentMapper::new(
-    ///     &gamma_into_linear,
-    ///     &linear_into_gamma,
+    ///     gamma_into_linear,
+    ///     linear_into_gamma,
     /// );
     /// ```
-    pub fn new<FF, BF>(forward_map_func: &FF, backward_map_func: &BF) -> Self
+    pub fn new<FF, BF>(forward_map_func: FF, backward_map_func: BF) -> Self
     where
         FF: Fn(f32) -> f32,
         BF: Fn(f32) -> f32,
     {
         Self {
             forward_mapping_tables: MappingTablesGroup {
-                u8_u8: MappingTable::new(forward_map_func),
-                u8_u16: MappingTable::new(forward_map_func),
-                u16_u8: MappingTable::new(forward_map_func),
-                u16_u16: MappingTable::new(forward_map_func),
+                u8_u8: MappingTable::new(&forward_map_func),
+                u8_u16: MappingTable::new(&forward_map_func),
+                u16_u8: MappingTable::new(&forward_map_func),
+                u16_u16: MappingTable::new(&forward_map_func),
             },
             backward_mapping_tables: MappingTablesGroup {
-                u8_u8: MappingTable::new(backward_map_func),
-                u8_u16: MappingTable::new(backward_map_func),
-                u16_u8: MappingTable::new(backward_map_func),
-                u16_u16: MappingTable::new(backward_map_func),
+                u8_u8: MappingTable::new(&backward_map_func),
+                u8_u16: MappingTable::new(&backward_map_func),
+                u16_u8: MappingTable::new(&backward_map_func),
+                u16_u16: MappingTable::new(&backward_map_func),
             },
         }
     }

@@ -7,6 +7,7 @@ use clap::Parser;
 use image::io::Reader as ImageReader;
 use image::ColorType;
 use log::debug;
+use once_cell::sync::Lazy;
 
 use fast_image_resize as fr;
 
@@ -36,7 +37,7 @@ struct Cli {
     #[clap(short, long, action)]
     overwrite: bool,
 
-    /// Colorspace of image
+    /// Colorspace of source image
     #[clap(short, long, value_enum, default_value_t = structs::ColorSpace::NonLinear)]
     colorspace: structs::ColorSpace,
 
@@ -55,6 +56,9 @@ struct Cli {
     #[clap(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 }
+
+static SRGB_TO_RGB: Lazy<fr::PixelComponentMapper> = Lazy::new(fr::create_srgb_mapper);
+static GAMMA22_TO_LINEAR: Lazy<fr::PixelComponentMapper> = Lazy::new(fr::create_gamma_22_mapper);
 
 fn main() -> Result<()> {
     let cli: Cli = Cli::parse();
@@ -194,10 +198,9 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::Pi
             let mut linear_src_image =
                 fr::Image::new(src_image.width(), src_image.height(), internal_pixel_type);
             if color_type.has_color() {
-                fr::color::mappers::SRGB_TO_RGB
-                    .forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
+                SRGB_TO_RGB.forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
             } else {
-                fr::color::mappers::GAMMA22_TO_LINEAR
+                GAMMA22_TO_LINEAR
                     .forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
             }
             linear_src_image
@@ -293,10 +296,9 @@ fn save_result(
             let mut non_linear_dst_image =
                 fr::Image::new(image.width(), image.height(), pixel_type);
             if color_type.has_color() {
-                fr::color::mappers::SRGB_TO_RGB
-                    .backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
+                SRGB_TO_RGB.backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
             } else {
-                fr::color::mappers::GAMMA22_TO_LINEAR
+                GAMMA22_TO_LINEAR
                     .backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
             }
             non_linear_dst_image

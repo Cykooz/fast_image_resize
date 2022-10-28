@@ -31,7 +31,6 @@ pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
 #[target_feature(enable = "neon")]
 unsafe fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
     let zero = vdupq_n_u8(0);
-    // let half = vdupq_n_u16(128);
 
     const MAX_A: u32 = 0xff000000u32;
     let max_alpha = vreinterpretq_u8_u32(vdupq_n_u32(MAX_A));
