@@ -5,6 +5,7 @@
 - Added method `CpuExtensions::is_supported(&self)`.
 - Internals of `PixelComponentMapper` changed to use heap to store its data.
 - Fixed link to documentation page in `README.md` file.
+- Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x4` images.
 
 ## [2.0.0] - 2022-10-28
 

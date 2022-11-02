@@ -21,6 +21,10 @@ pub fn bench_downscale_la(bench: &mut Bench) {
         cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
         cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
     }
+    #[cfg(target_arch = "aarch64")]
+    {
+        cpu_ext_and_name.push((CpuExtensions::Neon, "neon"));
+    }
     for (cpu_ext, ext_name) in cpu_ext_and_name {
         for alg_name in alg_names {
             let resize_alg = match alg_name {

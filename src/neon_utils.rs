@@ -27,6 +27,31 @@ pub unsafe fn load_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t {
 }
 
 #[inline(always)]
+pub unsafe fn load_u16x4<T>(buf: &[T], index: usize) -> uint16x4_t {
+    vld1_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_u16x8<T>(buf: &[T], index: usize) -> uint16x8_t {
+    vld1q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_u16x8x2<T>(buf: &[T], index: usize) -> uint16x8x2_t {
+    vld1q_u16_x2(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
+    vld1q_u16_x4(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_i32x2<T>(buf: &[T], index: usize) -> int32x2_t {
+    vld1_s32(buf.get_unchecked(index..).as_ptr() as *const i32)
+}
+
+#[inline(always)]
 pub unsafe fn load_i32x4<T>(buf: &[T], index: usize) -> int32x4_t {
     vld1q_s32(buf.get_unchecked(index..).as_ptr() as *const i32)
 }
@@ -54,6 +79,31 @@ pub unsafe fn load_i32x4x4<T>(buf: &[T], index: usize) -> int32x4x4_t {
 #[inline(always)]
 pub unsafe fn store_i32x4x4<T>(buf: &mut [T], index: usize, v: int32x4x4_t) {
     vst1q_s32_x4(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut i32, v);
+}
+
+#[inline(always)]
+pub unsafe fn load_i64x2<T>(buf: &[T], index: usize) -> int64x2_t {
+    vld1q_s64(buf.get_unchecked(index..).as_ptr() as *const i64)
+}
+
+#[inline(always)]
+pub unsafe fn load_i64x2x2<T>(buf: &[T], index: usize) -> int64x2x2_t {
+    vld1q_s64_x2(buf.get_unchecked(index..).as_ptr() as *const i64)
+}
+
+#[inline(always)]
+pub unsafe fn load_i64x2x4<T>(buf: &[T], index: usize) -> int64x2x4_t {
+    vld1q_s64_x4(buf.get_unchecked(index..).as_ptr() as *const i64)
+}
+
+#[inline(always)]
+pub unsafe fn store_i64x2x2<T>(buf: &mut [T], index: usize, v: int64x2x2_t) {
+    vst1q_s64_x2(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut i64, v);
+}
+
+#[inline(always)]
+pub unsafe fn store_i64x2x4<T>(buf: &mut [T], index: usize, v: int64x2x4_t) {
+    vst1q_s64_x4(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut i64, v);
 }
 
 #[inline(always)]
