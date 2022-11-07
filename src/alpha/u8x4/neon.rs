@@ -137,7 +137,7 @@ unsafe fn divide_alpha_four_pixels(src: &[U8x4], dst: &mut [U8x4]) {
     let zero_alpha_mask = vceqzq_u32(alpha_u32);
     let alpha_f32 = vcvtq_f32_u32(vorrq_u32(alpha_u32, zero_alpha_mask));
     let scaled_alpha_f32 = vdivq_f32(alpha_scale, alpha_f32);
-    let scaled_alpha_u32 = vcvtnq_u32_f32(scaled_alpha_f32);
+    let scaled_alpha_u32 = vcvtaq_u32_f32(scaled_alpha_f32);
     let mma0 = vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u32(scaled_alpha_u32), shuffle1));
     let mma1 = vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u32(scaled_alpha_u32), shuffle2));
 

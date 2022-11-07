@@ -283,6 +283,14 @@ mod multiply_alpha_u16x4 {
         }
     }
 
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn neon_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Neon);
+        }
+    }
+
     #[test]
     fn native_test() {
         for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
@@ -486,6 +494,14 @@ mod divide_alpha_u16x4 {
     fn sse4_test() {
         for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
             mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
+        }
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn neon_test() {
+        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
+            mul_div_alpha_test(OPER, s, r, CpuExtensions::Neon);
         }
     }
 

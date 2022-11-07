@@ -6,6 +6,8 @@
 - Internals of `PixelComponentMapper` changed to use heap to store its data.
 - Fixed link to documentation page in `README.md` file.
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x4` images.
+- Added optimisation for processing `U16x4` images by `MulDiv` with
+  helps of `NEON SIMD` instructions.
 
 ## [2.0.0] - 2022-10-28
 
