@@ -156,7 +156,7 @@ unsafe fn divide_alpha_four_pixels(src: *const U16x4, dst: *mut U16x4) {
     let alpha1_f32x8 = _mm256_cvtepi32_ps(_mm256_shuffle_epi8(src_pixels, alpha32_sh1));
 
     let pix0_f32x8 = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(src_pixels, zero));
-    let pix1_f32x8 = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(src_pixels, zero));
+    let pix1_f32x8 = _mm256_cvtepi32_ps(_mm256_unpackhi_epi16(src_pixels, zero));
 
     let scaled_pix0_f32x8 = _mm256_mul_ps(pix0_f32x8, alpha_max);
     let scaled_pix1_f32x8 = _mm256_mul_ps(pix1_f32x8, alpha_max);

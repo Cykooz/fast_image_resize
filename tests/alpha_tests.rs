@@ -22,8 +22,12 @@ enum Oper {
 
 // Multiplies by alpha
 
-fn mul_div_alpha_test<P>(oper: Oper, src_pixel: P, result_pixel: P, cpu_extensions: CpuExtensions)
-where
+fn mul_div_alpha_test<P, const N: usize>(
+    oper: Oper,
+    src_pixels_tpl: [P; N],
+    expected_pixels_tpl: [P; N],
+    cpu_extensions: CpuExtensions,
+) where
     P: PixelExt + 'static,
     for<'a> ImageView<'a, P>: Into<DynamicImageView<'a>>,
     for<'a> ImageViewMut<'a, P>: Into<DynamicImageViewMut<'a>>,
@@ -39,7 +43,13 @@ where
     let height: u32 = 3;
 
     let src_size = width as usize * height as usize;
-    let mut src_pixels = vec![src_pixel; src_size];
+    let src_pixels: Vec<P> = src_pixels_tpl
+        .iter()
+        .copied()
+        .cycle()
+        .take(src_size)
+        .collect();
+    let mut dst_pixels = src_pixels.clone();
 
     let src_dyn_image_view = ImageView::from_pixels(
         NonZeroU32::new(width).unwrap(),
@@ -49,12 +59,13 @@ where
     .unwrap()
     .into();
 
-    let mut dst_image = Image::new(
+    let mut dst_dyn_image_view = ImageViewMut::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        P::pixel_type(),
-    );
-    let mut dst_image_view = dst_image.view_mut();
+        &mut dst_pixels,
+    )
+    .unwrap()
+    .into();
 
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
@@ -63,28 +74,37 @@ where
 
     match oper {
         Oper::Mul => alpha_mul_div
-            .multiply_alpha(&src_dyn_image_view, &mut dst_image_view)
+            .multiply_alpha(&src_dyn_image_view, &mut dst_dyn_image_view)
             .unwrap(),
         Oper::Div => alpha_mul_div
-            .divide_alpha(&src_dyn_image_view, &mut dst_image_view)
+            .divide_alpha(&src_dyn_image_view, &mut dst_dyn_image_view)
             .unwrap(),
     }
 
-    let res_pixels: Vec<P> = vec![result_pixel; src_size];
-    let res_buffer = unsafe { res_pixels.align_to::<u8>().1 };
-    let dst_buffer = dst_image.buffer();
-    assert!(
-        dst_buffer.iter().zip(res_buffer).all(|(&d, &r)| d == r),
-        "failed test: src={:?}, expected_result={:?}",
-        src_pixel,
-        result_pixel
-    );
+    let expected_pixels: Vec<P> = expected_pixels_tpl
+        .iter()
+        .copied()
+        .cycle()
+        .take(src_size)
+        .collect();
+    for ((s, r), e) in src_pixels
+        .iter()
+        .zip(dst_pixels)
+        .zip(expected_pixels.iter())
+    {
+        assert_eq!(
+            r, *e,
+            "failed test: src={:?}, result={:?}, expected_result={:?}",
+            s, r, e
+        );
+    }
 
     // Inplace
+    let mut src_pixels_clone = src_pixels.clone();
     let mut image_view = ImageViewMut::from_pixels(
         NonZeroU32::new(width).unwrap(),
         NonZeroU32::new(height).unwrap(),
-        &mut src_pixels,
+        &mut src_pixels_clone,
     )
     .unwrap()
     .into();
@@ -96,13 +116,13 @@ where
         Oper::Div => alpha_mul_div.divide_alpha_inplace(&mut image_view).unwrap(),
     }
 
-    let src_buffer = unsafe { src_pixels.align_to::<u8>().1 };
-    assert!(
-        src_buffer.iter().zip(res_buffer).all(|(&s, &r)| s == r),
-        "failed inplace test: src={:?}, expected_result={:?}",
-        src_pixel,
-        result_pixel
-    );
+    for ((s, r), e) in src_pixels.iter().zip(src_pixels_clone).zip(expected_pixels) {
+        assert_eq!(
+            r, e,
+            "failed inplace test: src={:?}, result={:?}, expected_result={:?}",
+            s, r, e
+        );
+    }
 }
 
 #[cfg(test)]
@@ -119,32 +139,24 @@ mod multiply_alpha_u8x4 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Neon);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -178,24 +190,18 @@ mod multiply_alpha_u8x2 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -230,24 +236,18 @@ mod multiply_alpha_u16x2 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -270,32 +270,24 @@ mod multiply_alpha_u16x4 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::Neon);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(Oper::Mul, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -316,32 +308,24 @@ mod divide_alpha_u8x4 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Neon);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -376,24 +360,18 @@ mod divide_alpha_u8x2 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -439,24 +417,18 @@ mod divide_alpha_u16x2 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
@@ -484,32 +456,24 @@ mod divide_alpha_u16x4 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Avx2);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(SIMD_RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Sse4_1);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::Neon);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]
     fn native_test() {
-        for (s, r) in SRC_PIXELS.into_iter().zip(RES_PIXELS) {
-            mul_div_alpha_test(OPER, s, r, CpuExtensions::None);
-        }
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 

@@ -91,7 +91,7 @@ trait ResizeTest<const CC: usize> {
 impl<T, C, const CC: usize> ResizeTest<CC> for Pixel<T, C, CC>
 where
     Self: PixelTestingExt,
-    T: Sized + Copy + Clone + Debug + 'static,
+    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
     C: PixelComponent,
 {
     fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]) {

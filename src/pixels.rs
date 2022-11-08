@@ -80,7 +80,7 @@ impl<const N: usize> GetCountOfValues for Values<N> {
 /// Information about one component of pixel.
 pub trait PixelComponent
 where
-    Self: Sized + Copy + Debug + 'static,
+    Self: Sized + Copy + Debug + PartialEq + 'static,
 {
     /// Type that provides information about a count of
     /// available values of one pixel's component
@@ -112,7 +112,7 @@ pub trait IntoPixelType {
 /// Additional information about pixel type.
 pub trait PixelExt
 where
-    Self: Copy + Clone + Sized + Debug + IntoPixelType,
+    Self: Copy + Clone + Sized + Debug + PartialEq + IntoPixelType,
 {
     /// Type of pixel components
     type Component: PixelComponent;
@@ -158,19 +158,19 @@ where
 }
 
 /// Generic type of pixel.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub struct Pixel<T, C, const COUNT_OF_COMPONENTS: usize>(
     pub T,
     PhantomData<[C; COUNT_OF_COMPONENTS]>,
 )
 where
-    T: Sized + Copy + Clone + Debug + 'static,
+    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
     C: PixelComponent;
 
 impl<T, C, const COUNT_OF_COMPONENTS: usize> Pixel<T, C, COUNT_OF_COMPONENTS>
 where
-    T: Sized + Copy + Clone + Debug + 'static,
+    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
     C: PixelComponent,
 {
     #[inline(always)]
@@ -182,7 +182,7 @@ where
 impl<T, C, const COUNT_OF_COMPONENTS: usize> PixelExt for Pixel<T, C, COUNT_OF_COMPONENTS>
 where
     Self: IntoPixelType,
-    T: Sized + Copy + Clone + Debug + 'static,
+    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
     C: PixelComponent,
 {
     type Component = C;

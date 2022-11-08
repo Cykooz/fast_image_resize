@@ -4,10 +4,12 @@
 
 - Added method `CpuExtensions::is_supported(&self)`.
 - Internals of `PixelComponentMapper` changed to use heap to store its data.
-- Fixed link to documentation page in `README.md` file.
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x4` images.
 - Added optimisation for processing `U16x4` images by `MulDiv` with
   helps of `NEON SIMD` instructions.
+- Fixed link to documentation page in `README.md` file.
+- Fixed error in implementation of `MulDiv::divide_alpha()` and `MulDiv::divide_alpha_inplace()`
+  for `U16x4` pixels with optimisation with helps of `SSE4.1` and `AVX2`.
 
 ## [2.0.0] - 2022-10-28
 
