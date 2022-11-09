@@ -468,7 +468,7 @@ mod divide_alpha_u16x4 {
     #[cfg(target_arch = "aarch64")]
     #[test]
     fn neon_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
+        mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]

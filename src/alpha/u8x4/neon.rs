@@ -1,8 +1,8 @@
+use std::arch::aarch64::*;
+
 use crate::neon_utils;
 use crate::pixels::U8x4;
 use crate::{ImageView, ImageViewMut};
-use std::arch::aarch64::*;
-use std::intrinsics::transmute;
 
 use super::native;
 
@@ -30,45 +30,90 @@ pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
 #[inline]
 #[target_feature(enable = "neon")]
 unsafe fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
-    let zero = vdupq_n_u8(0);
+    let zero_u8x16 = vdupq_n_u8(0);
+    let zero_u8x8 = vdup_n_u8(0);
 
-    const MAX_A: u32 = 0xff000000u32;
-    let max_alpha = vreinterpretq_u8_u32(vdupq_n_u32(MAX_A));
-    static FACTOR_MASK_DATA: [u8; 16] = [3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15];
-    let factor_mask = vld1q_u8(FACTOR_MASK_DATA.as_ptr());
-
-    let src_chunks = src_row.chunks_exact(4);
+    let src_chunks = src_row.chunks_exact(16);
     let src_remainder = src_chunks.remainder();
-    let mut dst_chunks = dst_row.chunks_exact_mut(4);
+    let mut dst_chunks = dst_row.chunks_exact_mut(16);
 
     for (src, dst) in src_chunks.zip(&mut dst_chunks) {
-        let src_pixels = neon_utils::load_u8x16(src, 0);
+        let mut pixels = neon_utils::load_deintrel_u8x16x4(src, 0);
 
-        let factor_pixels = vqtbl1q_u8(src_pixels, factor_mask);
-        let factor_pixels = vorrq_u8(factor_pixels, max_alpha);
+        let alpha_u8 = pixels.3;
+        let alpha_u16_lo = vreinterpretq_u16_u8(vzip1q_u8(alpha_u8, zero_u8x16));
+        let alpha_u16_hi = vreinterpretq_u16_u8(vzip2q_u8(alpha_u8, zero_u8x16));
 
-        let pix1 = vreinterpretq_u16_u8(vzip1q_u8(src_pixels, zero));
-        let factors = vreinterpretq_u16_u8(vzip1q_u8(factor_pixels, zero));
-        let pix1 = vmulq_u16(pix1, factors);
-        let pix1 = vaddq_u16(pix1, vrshrq_n_u16::<8>(pix1));
-        let pix1 = vrshrq_n_u16::<8>(pix1);
+        pixels.0 = mul_color_to_alpha_u8x16(pixels.0, alpha_u16_lo, alpha_u16_hi, zero_u8x16);
+        pixels.1 = mul_color_to_alpha_u8x16(pixels.1, alpha_u16_lo, alpha_u16_hi, zero_u8x16);
+        pixels.2 = mul_color_to_alpha_u8x16(pixels.2, alpha_u16_lo, alpha_u16_hi, zero_u8x16);
 
-        let pix2 = vreinterpretq_u16_u8(vzip2q_u8(src_pixels, zero));
-        let factors = vreinterpretq_u16_u8(vzip2q_u8(factor_pixels, zero));
-        let pix2 = vmulq_u16(pix2, factors);
-        let pix2 = vaddq_u16(pix2, vrshrq_n_u16::<8>(pix2));
-        let pix2 = vrshrq_n_u16::<8>(pix2);
+        let dst_ptr = dst.as_mut_ptr() as *mut u8;
+        vst4q_u8(dst_ptr, pixels);
+    }
 
-        let dst_pixels = vcombine_u8(vqmovn_u16(pix1), vqmovn_u16(pix2));
+    let src_chunks = src_remainder.chunks_exact(8);
+    let src_remainder = src_chunks.remainder();
+    let dst_reminder = dst_chunks.into_remainder();
+    let mut dst_chunks = dst_reminder.chunks_exact_mut(8);
 
-        let dst_ptr = dst.as_mut_ptr() as *mut u128;
-        vstrq_p128(dst_ptr, transmute(dst_pixels));
+    for (src, dst) in src_chunks.zip(&mut dst_chunks) {
+        let mut pixels = neon_utils::load_deintrel_u8x8x4(src, 0);
+
+        let alpha_u8 = pixels.3;
+        let alpha_u16_lo = vreinterpret_u16_u8(vzip1_u8(alpha_u8, zero_u8x8));
+        let alpha_u16_hi = vreinterpret_u16_u8(vzip2_u8(alpha_u8, zero_u8x8));
+        let alpha_u16 = vcombine_u16(alpha_u16_lo, alpha_u16_hi);
+
+        pixels.0 = mul_color_to_alpha_u8x8(pixels.0, alpha_u16, zero_u8x8);
+        pixels.1 = mul_color_to_alpha_u8x8(pixels.1, alpha_u16, zero_u8x8);
+        pixels.2 = mul_color_to_alpha_u8x8(pixels.2, alpha_u16, zero_u8x8);
+
+        let dst_ptr = dst.as_mut_ptr() as *mut u8;
+        vst4_u8(dst_ptr, pixels);
     }
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
         native::multiply_alpha_row(src_remainder, dst_reminder);
     }
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+unsafe fn mul_color_to_alpha_u8x16(
+    color: uint8x16_t,
+    alpha_u16_lo: uint16x8_t,
+    alpha_u16_hi: uint16x8_t,
+    zero: uint8x16_t,
+) -> uint8x16_t {
+    let color_u16_lo = vreinterpretq_u16_u8(vzip1q_u8(color, zero));
+    let mut tmp_res = vmulq_u16(color_u16_lo, alpha_u16_lo);
+    tmp_res = vaddq_u16(tmp_res, vrshrq_n_u16::<8>(tmp_res));
+    let res_u16_lo = vrshrq_n_u16::<8>(tmp_res);
+
+    let color_u16_hi = vreinterpretq_u16_u8(vzip2q_u8(color, zero));
+    let mut tmp_res = vmulq_u16(color_u16_hi, alpha_u16_hi);
+    tmp_res = vaddq_u16(tmp_res, vrshrq_n_u16::<8>(tmp_res));
+    let res_u16_hi = vrshrq_n_u16::<8>(tmp_res);
+
+    vcombine_u8(vqmovn_u16(res_u16_lo), vqmovn_u16(res_u16_hi))
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+unsafe fn mul_color_to_alpha_u8x8(
+    color: uint8x8_t,
+    alpha_u16: uint16x8_t,
+    zero: uint8x8_t,
+) -> uint8x8_t {
+    let color_u16_lo = vreinterpret_u16_u8(vzip1_u8(color, zero));
+    let color_u16_hi = vreinterpret_u16_u8(vzip2_u8(color, zero));
+    let color_u16 = vcombine_u16(color_u16_lo, color_u16_hi);
+    let mut tmp_res = vmulq_u16(color_u16, alpha_u16);
+    tmp_res = vaddq_u16(tmp_res, vrshrq_n_u16::<8>(tmp_res));
+    let res_u16 = vrshrq_n_u16::<8>(tmp_res);
+    vqmovn_u16(res_u16)
 }
 
 // Divide
@@ -91,26 +136,34 @@ pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
     }
 }
 
+#[inline]
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
-    let src_chunks = src_row.chunks_exact(4);
+unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
+    let src_chunks = src_row.chunks_exact(16);
     let src_remainder = src_chunks.remainder();
-    let mut dst_chunks = dst_row.chunks_exact_mut(4);
-
+    let mut dst_chunks = dst_row.chunks_exact_mut(16);
     for (src, dst) in src_chunks.zip(&mut dst_chunks) {
-        divide_alpha_four_pixels(src, dst);
+        divide_alpha_16_pixels(src, dst);
+    }
+
+    let src_chunks = src_remainder.chunks_exact(8);
+    let src_remainder = src_chunks.remainder();
+    let dst_reminder = dst_chunks.into_remainder();
+    let mut dst_chunks = dst_reminder.chunks_exact_mut(8);
+    for (src, dst) in src_chunks.zip(&mut dst_chunks) {
+        divide_alpha_8_pixels(src, dst);
     }
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
-        let mut src_pixels = [U8x4::new(0); 4];
+        let mut src_pixels = [U8x4::new(0); 8];
         src_pixels
             .iter_mut()
             .zip(src_remainder)
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x4::new(0); 4];
-        divide_alpha_four_pixels(src_pixels.as_slice(), dst_pixels.as_mut_slice());
+        let mut dst_pixels = [U8x4::new(0); 8];
+        divide_alpha_8_pixels(src_pixels.as_slice(), dst_pixels.as_mut_slice());
 
         dst_pixels
             .iter()
@@ -119,38 +172,109 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
     }
 }
 
-#[target_feature(enable = "neon")]
 #[inline]
-unsafe fn divide_alpha_four_pixels(src: &[U8x4], dst: &mut [U8x4]) {
+#[target_feature(enable = "neon")]
+unsafe fn divide_alpha_16_pixels(src: &[U8x4], dst: &mut [U8x4]) {
     let zero = vdupq_n_u8(0);
-    let alpha_mask = vreinterpretq_u8_u32(vdupq_n_u32(0xff000000u32));
-
-    static SHUFFLE1_DATA: [u8; 16] = [0, 1, 0, 1, 0, 1, 0, 1, 4, 5, 4, 5, 4, 5, 4, 5];
-    let shuffle1 = vld1q_u8(SHUFFLE1_DATA.as_ptr());
-    static SHUFFLE2_DATA: [u8; 16] = [8, 9, 8, 9, 8, 9, 8, 9, 12, 13, 12, 13, 12, 13, 12, 13];
-    let shuffle2 = vld1q_u8(SHUFFLE2_DATA.as_ptr());
     let alpha_scale = vdupq_n_f32(255.0 * 256.0);
+    let mut pixels = neon_utils::load_deintrel_u8x16x4(src, 0);
+    let nonzero_alpha_mask = vmvnq_u8(vceqzq_u8(pixels.3));
 
-    let src_pixels = neon_utils::load_u8x16(src, 0);
+    let alpha_u16_lo = vzip1q_u8(pixels.3, zero);
+    let alpha_u16_hi = vzip2q_u8(pixels.3, zero);
 
-    let alpha_u32 = vshrq_n_u32::<24>(vreinterpretq_u32_u8(src_pixels));
-    let zero_alpha_mask = vceqzq_u32(alpha_u32);
-    let alpha_f32 = vcvtq_f32_u32(vorrq_u32(alpha_u32, zero_alpha_mask));
-    let scaled_alpha_f32 = vdivq_f32(alpha_scale, alpha_f32);
-    let scaled_alpha_u32 = vcvtaq_u32_f32(scaled_alpha_f32);
-    let mma0 = vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u32(scaled_alpha_u32), shuffle1));
-    let mma1 = vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u32(scaled_alpha_u32), shuffle2));
+    let alpha_f32_0 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip1q_u8(alpha_u16_lo, zero)));
+    let recip_alpha_f32_0 = vdivq_f32(alpha_scale, alpha_f32_0);
+    let recip_alpha_u16_0 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_0));
 
-    let pix0 = vreinterpretq_u16_u8(vzip1q_u8(zero, src_pixels));
-    let pix1 = vreinterpretq_u16_u8(vzip2q_u8(zero, src_pixels));
+    let alpha_f32_1 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip2q_u8(alpha_u16_lo, zero)));
+    let recip_alpha_f32_1 = vdivq_f32(alpha_scale, alpha_f32_1);
+    let recip_alpha_u16_1 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_1));
 
-    let pix0 = neon_utils::mulhi_u16x8(pix0, mma0);
-    let pix1 = neon_utils::mulhi_u16x8(pix1, mma1);
+    let alpha_f32_2 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip1q_u8(alpha_u16_hi, zero)));
+    let recip_alpha_f32_2 = vdivq_f32(alpha_scale, alpha_f32_2);
+    let recip_alpha_u16_2 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_2));
 
-    let alpha = vandq_u8(src_pixels, alpha_mask);
-    let rgb = vcombine_u8(vmovn_u16(pix0), vmovn_u16(pix1));
-    let dst_pixels = vbslq_u8(alpha_mask, alpha, rgb);
+    let alpha_f32_3 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip2q_u8(alpha_u16_hi, zero)));
+    let recip_alpha_f32_3 = vdivq_f32(alpha_scale, alpha_f32_3);
+    let recip_alpha_u16_3 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_3));
 
-    let dst_ptr = dst.as_mut_ptr() as *mut u128;
-    vstrq_p128(dst_ptr, transmute(dst_pixels));
+    let recip_alpha = uint16x8x2_t(
+        vcombine_u16(recip_alpha_u16_0, recip_alpha_u16_1),
+        vcombine_u16(recip_alpha_u16_2, recip_alpha_u16_3),
+    );
+
+    pixels.0 = mul_color_recip_alpha_u8x16(pixels.0, recip_alpha, zero);
+    pixels.0 = vandq_u8(pixels.0, nonzero_alpha_mask);
+    pixels.1 = mul_color_recip_alpha_u8x16(pixels.1, recip_alpha, zero);
+    pixels.1 = vandq_u8(pixels.1, nonzero_alpha_mask);
+    pixels.2 = mul_color_recip_alpha_u8x16(pixels.2, recip_alpha, zero);
+    pixels.2 = vandq_u8(pixels.2, nonzero_alpha_mask);
+
+    let dst_ptr = dst.as_mut_ptr() as *mut u8;
+    vst4q_u8(dst_ptr, pixels);
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+unsafe fn mul_color_recip_alpha_u8x16(
+    color: uint8x16_t,
+    recip_alpha: uint16x8x2_t,
+    zero: uint8x16_t,
+) -> uint8x16_t {
+    let color_u16_lo = vreinterpretq_u16_u8(vzip1q_u8(zero, color));
+    let color_u16_hi = vreinterpretq_u16_u8(vzip2q_u8(zero, color));
+
+    let res_u16_lo = neon_utils::mulhi_u16x8(color_u16_lo, recip_alpha.0);
+    let res_u16_hi = neon_utils::mulhi_u16x8(color_u16_hi, recip_alpha.1);
+    vcombine_u8(vmovn_u16(res_u16_lo), vmovn_u16(res_u16_hi))
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+unsafe fn divide_alpha_8_pixels(src: &[U8x4], dst: &mut [U8x4]) {
+    let zero_u8x8 = vdup_n_u8(0);
+    let zero_u8x16 = vdupq_n_u8(0);
+    let alpha_scale = vdupq_n_f32(255.0 * 256.0);
+    let mut pixels = neon_utils::load_deintrel_u8x8x4(src, 0);
+    let nonzero_alpha_mask = vmvn_u8(vceqz_u8(pixels.3));
+
+    let alpha_u16_lo = vzip1_u8(pixels.3, zero_u8x8);
+    let alpha_u16_hi = vzip2_u8(pixels.3, zero_u8x8);
+    let alpha_u16 = vcombine_u8(alpha_u16_lo, alpha_u16_hi);
+
+    let alpha_f32_0 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip1q_u8(alpha_u16, zero_u8x16)));
+    let recip_alpha_f32_0 = vdivq_f32(alpha_scale, alpha_f32_0);
+    let recip_alpha_u16_0 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_0));
+
+    let alpha_f32_1 = vcvtq_f32_u32(vreinterpretq_u32_u8(vzip2q_u8(alpha_u16, zero_u8x16)));
+    let recip_alpha_f32_1 = vdivq_f32(alpha_scale, alpha_f32_1);
+    let recip_alpha_u16_1 = vmovn_u32(vcvtaq_u32_f32(recip_alpha_f32_1));
+
+    let recip_alpha = vcombine_u16(recip_alpha_u16_0, recip_alpha_u16_1);
+
+    pixels.0 = mul_color_recip_alpha_u8x8(pixels.0, recip_alpha, zero_u8x8);
+    pixels.0 = vand_u8(pixels.0, nonzero_alpha_mask);
+    pixels.1 = mul_color_recip_alpha_u8x8(pixels.1, recip_alpha, zero_u8x8);
+    pixels.1 = vand_u8(pixels.1, nonzero_alpha_mask);
+    pixels.2 = mul_color_recip_alpha_u8x8(pixels.2, recip_alpha, zero_u8x8);
+    pixels.2 = vand_u8(pixels.2, nonzero_alpha_mask);
+
+    let dst_ptr = dst.as_mut_ptr() as *mut u8;
+    vst4_u8(dst_ptr, pixels);
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
+unsafe fn mul_color_recip_alpha_u8x8(
+    color: uint8x8_t,
+    recip_alpha: uint16x8_t,
+    zero: uint8x8_t,
+) -> uint8x8_t {
+    let color_u16_lo = vreinterpret_u16_u8(vzip1_u8(zero, color));
+    let color_u16_hi = vreinterpret_u16_u8(vzip2_u8(zero, color));
+    let color_u16 = vcombine_u16(color_u16_lo, color_u16_hi);
+
+    let res_u16 = neon_utils::mulhi_u16x8(color_u16, recip_alpha);
+    vmovn_u16(res_u16)
 }

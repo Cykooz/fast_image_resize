@@ -1,5 +1,4 @@
 use std::arch::aarch64::*;
-use std::intrinsics::transmute;
 
 use crate::neon_utils;
 use crate::pixels::U16x4;

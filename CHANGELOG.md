@@ -10,6 +10,7 @@
 - Fixed link to documentation page in `README.md` file.
 - Fixed error in implementation of `MulDiv::divide_alpha()` and `MulDiv::divide_alpha_inplace()`
   for `U16x4` pixels with optimisation with helps of `SSE4.1` and `AVX2`.
+- Improved optimisation of `MulDiv` with helps of `NEON SIMD` for `U8x4` pixels.
 
 ## [2.0.0] - 2022-10-28
 

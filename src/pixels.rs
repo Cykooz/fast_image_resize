@@ -1,5 +1,5 @@
 //! Contains types of pixels.
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::mem::size_of;
 use std::slice;
@@ -158,19 +158,19 @@ where
 }
 
 /// Generic type of pixel.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(C)]
 pub struct Pixel<T, C, const COUNT_OF_COMPONENTS: usize>(
     pub T,
     PhantomData<[C; COUNT_OF_COMPONENTS]>,
 )
 where
-    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
+    T: Sized + Copy + Clone + PartialEq + 'static,
     C: PixelComponent;
 
 impl<T, C, const COUNT_OF_COMPONENTS: usize> Pixel<T, C, COUNT_OF_COMPONENTS>
 where
-    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
+    T: Sized + Copy + Clone + PartialEq + 'static,
     C: PixelComponent,
 {
     #[inline(always)]
@@ -181,8 +181,8 @@ where
 
 impl<T, C, const COUNT_OF_COMPONENTS: usize> PixelExt for Pixel<T, C, COUNT_OF_COMPONENTS>
 where
-    Self: IntoPixelType,
-    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
+    Self: IntoPixelType + Debug,
+    T: Sized + Copy + Clone + PartialEq + 'static,
     C: PixelComponent,
 {
     type Component = C;
@@ -197,6 +197,15 @@ macro_rules! pixel_struct {
         impl IntoPixelType for $name {
             fn pixel_type() -> PixelType {
                 $pixel_type
+            }
+        }
+
+        impl Debug for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                let components_ptr = self as *const _ as *const $comp_type;
+                let components: &[$comp_type] =
+                    unsafe { slice::from_raw_parts(components_ptr, $comp_count) };
+                write!(f, "{}{:?}", stringify!($name), components)
             }
         }
     };

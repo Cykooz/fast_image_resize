@@ -38,6 +38,7 @@ macro_rules! constify_imm8 {
     };
 }
 
+#[cfg(target_arch = "aarch64")]
 macro_rules! constify_64_imm8 {
     ($imm8:expr, $expand:ident) => {
         #[allow(overflowing_literals)]

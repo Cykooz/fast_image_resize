@@ -12,6 +12,11 @@ pub unsafe fn load_u8x8<T>(buf: &[T], index: usize) -> uint8x8_t {
 }
 
 #[inline(always)]
+pub unsafe fn load_deintrel_u8x8x4<T>(buf: &[T], index: usize) -> uint8x8x4_t {
+    vld4_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
+}
+
+#[inline(always)]
 pub unsafe fn load_u8x16<T>(buf: &[T], index: usize) -> uint8x16_t {
     vld1q_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
 }
@@ -24,6 +29,11 @@ pub unsafe fn load_u8x16x2<T>(buf: &[T], index: usize) -> uint8x16x2_t {
 #[inline(always)]
 pub unsafe fn load_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t {
     vld1q_u8_x4(buf.get_unchecked(index..).as_ptr() as *const u8)
+}
+
+#[inline(always)]
+pub unsafe fn load_deintrel_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t {
+    vld4q_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
 }
 
 #[inline(always)]
