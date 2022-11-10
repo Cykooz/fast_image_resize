@@ -7,6 +7,8 @@
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x4` images.
 - Added optimisation for processing `U16x4` images by `MulDiv` with
   helps of `NEON SIMD` instructions.
+- Added full optimisation for convolution of `U8` images with helps of
+  `SSE4.1` instructions.
 - Fixed link to documentation page in `README.md` file.
 - Fixed error in implementation of `MulDiv::divide_alpha()` and `MulDiv::divide_alpha_inplace()`
   for `U16x4` pixels with optimisation with helps of `SSE4.1` and `AVX2`.
