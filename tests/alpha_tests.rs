@@ -164,6 +164,7 @@ mod multiply_alpha_u8x4 {
 mod multiply_alpha_u8x2 {
     use super::*;
 
+    const OPER: Oper = Oper::Mul;
     const SRC_PIXELS: [U8x2; 9] = [
         p2(255, 128),
         p2(128, 128),
@@ -190,13 +191,13 @@ mod multiply_alpha_u8x2 {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn avx2_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Avx2);
     }
 
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn sse4_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
     #[cfg(target_arch = "aarch64")]
@@ -207,7 +208,7 @@ mod multiply_alpha_u8x2 {
 
     #[test]
     fn native_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
     }
 }
 
