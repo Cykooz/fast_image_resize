@@ -7,6 +7,8 @@ use super::AlphaMulDiv;
 #[cfg(target_arch = "x86_64")]
 mod avx2;
 mod native;
+#[cfg(target_arch = "aarch64")]
+mod neon;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
 
@@ -21,6 +23,8 @@ impl AlphaMulDiv for U8x2 {
             CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha(src_image, dst_image) },
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_image, dst_image) },
+            #[cfg(target_arch = "aarch64")]
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_image, dst_image) },
             _ => native::multiply_alpha(src_image, dst_image),
         }
     }
@@ -31,6 +35,8 @@ impl AlphaMulDiv for U8x2 {
             CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha_inplace(image) },
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image) },
+            #[cfg(target_arch = "aarch64")]
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image) },
             _ => native::multiply_alpha_inplace(image),
         }
     }
@@ -45,6 +51,8 @@ impl AlphaMulDiv for U8x2 {
             CpuExtensions::Avx2 => unsafe { avx2::divide_alpha(src_image, dst_image) },
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha(src_image, dst_image) },
+            #[cfg(target_arch = "aarch64")]
+            CpuExtensions::Neon => unsafe { neon::divide_alpha(src_image, dst_image) },
             _ => native::divide_alpha(src_image, dst_image),
         }
     }
@@ -55,6 +63,8 @@ impl AlphaMulDiv for U8x2 {
             CpuExtensions::Avx2 => unsafe { avx2::divide_alpha_inplace(image) },
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha_inplace(image) },
+            #[cfg(target_arch = "aarch64")]
+            CpuExtensions::Neon => unsafe { neon::divide_alpha_inplace(image) },
             _ => native::divide_alpha_inplace(image),
         }
     }

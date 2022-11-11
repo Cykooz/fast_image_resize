@@ -87,8 +87,8 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
 
 fn bench_alpha(bench: &mut Bench) {
     let pixel_types = [
-        PixelType::U8x4,
         PixelType::U8x2,
+        PixelType::U8x4,
         PixelType::U16x2,
         PixelType::U16x4,
     ];

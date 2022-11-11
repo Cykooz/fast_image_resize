@@ -199,6 +199,12 @@ mod multiply_alpha_u8x2 {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
     }
 
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn neon_test() {
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
+    }
+
     #[test]
     fn native_test() {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
@@ -367,6 +373,12 @@ mod divide_alpha_u8x2 {
     #[test]
     fn sse4_test() {
         mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Sse4_1);
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn neon_test() {
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
     #[test]

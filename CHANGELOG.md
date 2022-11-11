@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Crate
+
+- Added optimisation for processing `U8x2` images by `MulDiv` with
+  helps of `NEON SIMD` instructions.
+
 ## [2.1.0] - 2022-11-11
 
 ### Crate
