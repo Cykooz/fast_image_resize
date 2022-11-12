@@ -14,3 +14,7 @@ env_logger = "0.9.1"
 anyhow = "1.0.65"
 clap-verbosity-flag = "2.0.0"
 once_cell = "1.15.0"
+
+
+[package.metadata.release]
+publish = false
