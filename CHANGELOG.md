@@ -5,6 +5,7 @@
 - Added optimisation for processing `U8x2` images by `MulDiv` with
   helps of `NEON SIMD` instructions.
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U8x2` images.
+- Added support of optimisation with helps of `NEON SIMD` for convolution of `U8` images.
 
 ## [2.1.0] - 2022-11-11
 

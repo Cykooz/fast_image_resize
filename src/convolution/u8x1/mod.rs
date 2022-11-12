@@ -8,6 +8,8 @@ use super::{Coefficients, Convolution};
 #[cfg(target_arch = "x86_64")]
 mod avx2;
 mod native;
+#[cfg(target_arch = "aarch64")]
+mod neon;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
 
@@ -24,6 +26,8 @@ impl Convolution for U8 {
             CpuExtensions::Avx2 => avx2::horiz_convolution(src_image, dst_image, offset, coeffs),
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => sse4::horiz_convolution(src_image, dst_image, offset, coeffs),
+            #[cfg(target_arch = "aarch64")]
+            CpuExtensions::Neon => neon::horiz_convolution(src_image, dst_image, offset, coeffs),
             _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
         }
     }

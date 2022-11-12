@@ -12,7 +12,7 @@ Supported pixel formats and available optimisations:
 
 | Format | Description                                                   | Native Rust | SSE4.1 | AVX2 | Neon |
 |:------:|:--------------------------------------------------------------|:-----------:|:------:|:----:|:----:|
-|   U8   | One `u8` component per pixel (e.g. L)                         |      +      |   +    |  +   |  -   |
+|   U8   | One `u8` component per pixel (e.g. L)                         |      +      |   +    |  +   |  +   |
 |  U8x2  | Two `u8` components per pixel (e.g. LA)                       |      +      |   +    |  +   |  +   |
 |  U8x3  | Three `u8` components per pixel (e.g. RGB)                    |      +      |   +    |  +   |  -   |
 |  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)        |      +      |   +    |  +   |  +   |

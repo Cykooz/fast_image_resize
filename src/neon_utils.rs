@@ -151,6 +151,11 @@ pub unsafe fn load_i16x8<T>(buf: &[T], index: usize) -> int16x8_t {
     vld1q_s16(buf.get_unchecked(index..).as_ptr() as *const i16)
 }
 
+#[inline(always)]
+pub unsafe fn load_i16x8x2<T>(buf: &[T], index: usize) -> int16x8x2_t {
+    vld1q_s16_x2(buf.get_unchecked(index..).as_ptr() as *const i16)
+}
+
 /// Moves 32-bit integer from `buf` to the least significant 32 bits of an uint8x16_t object,
 /// zero extending the upper bits.
 /// ```plain
