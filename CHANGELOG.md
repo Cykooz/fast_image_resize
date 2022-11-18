@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Crate
+
+- Added support of optimisation with helps of `NEON SIMD` for convolution of `U16` images.
+
 ## [2.2.0] - 2022-11-18
 
 ### Crate

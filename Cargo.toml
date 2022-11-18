@@ -26,10 +26,10 @@ thiserror = "1.0.37"
 
 [dev-dependencies]
 glassbench = "0.3.3"
-image = "0.24.4"
+image = "0.24.5"
 resize = "0.7.4"
 rgb = "0.8.34"
-png = "0.17.6"
+png = "0.17.7"
 nix = { version = "0.25.0", default-features = false, features = ["sched"] }
 testing = {path= "testing" }
 

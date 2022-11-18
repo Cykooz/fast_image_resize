@@ -57,6 +57,18 @@ pub unsafe fn load_deintrel_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t 
 }
 
 #[inline(always)]
+pub unsafe fn load_u16x1<T>(buf: &[T], index: usize) -> uint16x4_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
+    vcreate_u16(*ptr as u64)
+}
+
+#[inline(always)]
+pub unsafe fn load_u16x2<T>(buf: &[T], index: usize) -> uint16x4_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
+    vcreate_u16(*ptr as u64)
+}
+
+#[inline(always)]
 pub unsafe fn load_u16x4<T>(buf: &[T], index: usize) -> uint16x4_t {
     vld1_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
@@ -84,6 +96,12 @@ pub unsafe fn load_deintrel_u16x4x4<T>(buf: &[T], index: usize) -> uint16x4x4_t 
 #[inline(always)]
 pub unsafe fn load_deintrel_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
     vld4q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_i32x1<T>(buf: &[T], index: usize) -> int32x2_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
+    vcreate_s32(*ptr as u64)
 }
 
 #[inline(always)]
