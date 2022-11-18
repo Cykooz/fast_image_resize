@@ -94,9 +94,9 @@ unsafe fn horiz_convolution_four_rows(
             x += 16;
         }
 
-        let coeffs_by_8 = coeffs.chunks_exact(8);
+        let mut coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();
-        for k in coeffs_by_8 {
+        if let Some(k) = coeffs_by_8.next() {
             let coeffs_i16x8 = neon_utils::load_i16x8(k, 0);
             let coeff0 = vget_low_s16(coeffs_i16x8);
             let coeff1 = vget_high_s16(coeffs_i16x8);
@@ -115,37 +115,33 @@ unsafe fn horiz_convolution_four_rows(
             x += 8;
         }
 
-        let coeffs_by_4 = coeffs.chunks_exact(4);
+        let mut coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();
-        for k in coeffs_by_4 {
+        if let Some(k) = coeffs_by_4.next() {
             let coeffs_i16x4 = neon_utils::load_i16x4(k, 0);
-
             for i in 0..4 {
                 let source = neon_utils::load_u8x4(s_rows[i], x);
-                let pix = vreinterpret_s16_u8(vzip1_u8(source, zero_u8x8));
-                sss_a[i] = vmlal_s16(sss_a[i], pix, coeffs_i16x4);
+                sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, source, zero_u8x8);
             }
             x += 4;
         }
 
-        if !coeffs.is_empty() {
-            let mut four_coeffs = [0i16; 4];
-            four_coeffs
-                .iter_mut()
-                .zip(coeffs)
-                .for_each(|(d, s)| *d = *s);
-            let coeffs_i16x4 = neon_utils::load_i16x4(&four_coeffs, 0);
-
-            let mut four_pixels = [U8::new(0); 4];
-
+        let mut coeffs_by_2 = coeffs.chunks_exact(2);
+        coeffs = coeffs_by_2.remainder();
+        if let Some(k) = coeffs_by_2.next() {
+            let coeffs_i16x4 = neon_utils::load_i16x2(k, 0);
             for i in 0..4 {
-                four_pixels
-                    .iter_mut()
-                    .zip(s_rows[i].get_unchecked(x..))
-                    .for_each(|(d, s)| *d = *s);
-                let source = neon_utils::load_u8x4(&four_pixels, 0);
-                let pix = vreinterpret_s16_u8(vzip1_u8(source, zero_u8x8));
-                sss_a[i] = vmlal_s16(sss_a[i], pix, coeffs_i16x4);
+                let source = neon_utils::load_u8x2(s_rows[i], x);
+                sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, source, zero_u8x8);
+            }
+            x += 2;
+        }
+
+        if !coeffs.is_empty() {
+            let coeffs_i16x4 = neon_utils::load_i16x1(coeffs, 0);
+            for i in 0..4 {
+                let source = neon_utils::load_u8x1(s_rows[i], x);
+                sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, source, zero_u8x8);
             }
         }
 
@@ -214,9 +210,9 @@ unsafe fn horiz_convolution_row(
             x += 16;
         }
 
-        let coeffs_by_8 = coeffs.chunks_exact(8);
+        let mut coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();
-        for k in coeffs_by_8 {
+        if let Some(k) = coeffs_by_8.next() {
             let coeffs_i16x8 = neon_utils::load_i16x8(k, 0);
             let source = neon_utils::load_u8x8(src_row, x);
 
@@ -228,27 +224,28 @@ unsafe fn horiz_convolution_row(
             x += 8;
         }
 
-        let coeffs_by_4 = coeffs.chunks_exact(4);
+        let mut coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();
-        for k in coeffs_by_4 {
-            sss = conv_4_pixels(sss, k, src_row, x, zero_u8x8);
+        if let Some(k) = coeffs_by_4.next() {
+            let coeffs_i16x4 = neon_utils::load_i16x4(k, 0);
+            let source = neon_utils::load_u8x4(src_row, x);
+            sss = conv_4_pixels(sss, coeffs_i16x4, source, zero_u8x8);
             x += 4;
         }
 
+        let mut coeffs_by_2 = coeffs.chunks_exact(2);
+        coeffs = coeffs_by_2.remainder();
+        if let Some(k) = coeffs_by_2.next() {
+            let coeffs_i16x4 = neon_utils::load_i16x2(k, 0);
+            let source = neon_utils::load_u8x2(src_row, x);
+            sss = conv_4_pixels(sss, coeffs_i16x4, source, zero_u8x8);
+            x += 2;
+        }
+
         if !coeffs.is_empty() {
-            let mut four_coeffs = [0i16; 4];
-            four_coeffs
-                .iter_mut()
-                .zip(coeffs)
-                .for_each(|(d, s)| *d = *s);
-
-            let mut four_pixels = [U8::new(0); 4];
-            four_pixels
-                .iter_mut()
-                .zip(src_row.get_unchecked(x..))
-                .for_each(|(d, s)| *d = *s);
-
-            sss = conv_4_pixels(sss, &four_coeffs, &four_pixels, 0, zero_u8x8);
+            let coeffs_i16x4 = neon_utils::load_i16x1(coeffs, 0);
+            let source = neon_utils::load_u8x1(src_row, x);
+            sss = conv_4_pixels(sss, coeffs_i16x4, source, zero_u8x8);
         }
 
         let res_i32x2 = vadd_s32(vget_low_s32(sss), vget_high_s32(sss));
@@ -260,17 +257,11 @@ unsafe fn horiz_convolution_row(
 #[inline]
 #[target_feature(enable = "neon")]
 unsafe fn conv_4_pixels(
-    mut sss: int32x4_t,
-    coeffs: &[i16],
-    src_row: &[U8],
-    x: usize,
+    sss: int32x4_t,
+    coeffs_i16x4: int16x4_t,
+    source: uint8x8_t,
     zero_u8x8: uint8x8_t,
 ) -> int32x4_t {
-    let coeffs_i16x4 = neon_utils::load_i16x4(coeffs, 0);
-    let source = neon_utils::load_u8x4(src_row, x);
-
     let source_i16 = vreinterpret_s16_u8(vzip1_u8(source, zero_u8x8));
-    sss = vmlal_s16(sss, source_i16, coeffs_i16x4);
-
-    sss
+    vmlal_s16(sss, source_i16, coeffs_i16x4)
 }

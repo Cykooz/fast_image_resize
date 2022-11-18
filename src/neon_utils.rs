@@ -1,6 +1,18 @@
 use std::arch::aarch64::*;
 
 #[inline(always)]
+pub unsafe fn load_u8x1<T>(buf: &[T], index: usize) -> uint8x8_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u8;
+    vcreate_u8(*ptr as u64)
+}
+
+#[inline(always)]
+pub unsafe fn load_u8x2<T>(buf: &[T], index: usize) -> uint8x8_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
+    vcreate_u8(*ptr as u64)
+}
+
+#[inline(always)]
 pub unsafe fn load_u8x4<T>(buf: &[T], index: usize) -> uint8x8_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
     vcreate_u8(*ptr as u64)
@@ -162,6 +174,18 @@ pub unsafe fn store_i64x2x2<T>(buf: &mut [T], index: usize, v: int64x2x2_t) {
 #[inline(always)]
 pub unsafe fn store_i64x2x4<T>(buf: &mut [T], index: usize, v: int64x2x4_t) {
     vst1q_s64_x4(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut i64, v);
+}
+
+#[inline(always)]
+pub unsafe fn load_i16x1<T>(buf: &[T], index: usize) -> int16x4_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
+    vcreate_s16(*ptr as u64)
+}
+
+#[inline(always)]
+pub unsafe fn load_i16x2<T>(buf: &[T], index: usize) -> int16x4_t {
+    let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
+    vcreate_s16(*ptr as u64)
 }
 
 #[inline(always)]
