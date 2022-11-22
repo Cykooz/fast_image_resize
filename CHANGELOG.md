@@ -4,6 +4,7 @@
 
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U16` images.
 - Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x2` images.
+- Added support of optimisation with helps of `NEON SIMD` for convolution of `U16x3` images.
 - Improved optimisation of convolution with helps of `NEON SIMD` for `U8` images.
 
 ## [2.2.0] - 2022-11-18
