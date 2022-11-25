@@ -43,7 +43,8 @@ that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
 ## Some benchmarks
 
-[All benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks.md)
+- [All x86-64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks_x86-64.md)
+- [All arm64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks_arm64.md)
 
 Rust libraries used to compare of resizing speed:
 
@@ -177,7 +178,6 @@ fn main() {
 ### Resize with cropping
 
 ```rust
-use std::io::BufWriter;
 use std::num::NonZeroU32;
 
 use image::codecs::png::PngEncoder;
