@@ -1,7 +1,6 @@
 use std::arch::aarch64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::neon_utils;
 use crate::pixels::U8x3;
 use crate::{ImageView, ImageViewMut};
@@ -48,16 +47,11 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U8x3>,
-    dst_rows: FourRowsMut<U8x3>,
+    src_rows: [&[U8x3]; 4],
+    dst_rows: [&mut &mut [U8x3]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     precision: u8,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
-
     let initial = vdupq_n_s32(1 << (precision - 1));
     let zero_u8x8 = vdup_n_u8(0);
 
@@ -71,7 +65,7 @@ unsafe fn horiz_convolution_four_rows(
         for k in coeffs_by_8 {
             let coeffs_i16x8 = neon_utils::load_i16x8(k, 0);
             for i in 0..4 {
-                sss_a[i] = conv_8_pixels(sss_a[i], coeffs_i16x8, s_rows[i], x, zero_u8x8);
+                sss_a[i] = conv_8_pixels(sss_a[i], coeffs_i16x8, src_rows[i], x, zero_u8x8);
             }
             x += 8;
         }
@@ -81,7 +75,7 @@ unsafe fn horiz_convolution_four_rows(
         if let Some(k) = coeffs_by_4.next() {
             let coeffs_i16x4 = neon_utils::load_i16x4(k, 0);
             for i in 0..4 {
-                sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, s_rows[i], x, zero_u8x8);
+                sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, src_rows[i], x, zero_u8x8);
             }
             x += 4;
         }
@@ -99,7 +93,7 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 four_pixels
                     .iter_mut()
-                    .zip(s_rows[i].get_unchecked(x..))
+                    .zip(src_rows[i].get_unchecked(x..))
                     .for_each(|(d, s)| *d = *s);
                 sss_a[i] = conv_4_pixels(sss_a[i], coeffs_i16x4, &four_pixels, 0, zero_u8x8);
             }
@@ -116,7 +110,7 @@ unsafe fn horiz_convolution_four_rows(
         constify_imm8!(precision, call);
 
         for i in 0..4 {
-            store_pixel(sss_a[i], d_rows[i], dst_x, zero_u8x8);
+            store_pixel(sss_a[i], dst_rows[i], dst_x, zero_u8x8);
         }
     }
 }

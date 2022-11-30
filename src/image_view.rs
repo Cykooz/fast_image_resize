@@ -5,16 +5,6 @@ use std::slice;
 use crate::pixels::{GetCount, IntoPixelComponent, PixelComponent, PixelExt};
 use crate::{CropBoxError, DifferentDimensionsError, ImageBufferError, ImageRowsError, PixelType};
 
-pub(crate) type RowMut<'a, 'b, T> = &'a mut &'b mut [T];
-pub(crate) type TwoRows<'a, T> = (&'a [T], &'a [T]);
-pub(crate) type FourRows<'a, T> = (&'a [T], &'a [T], &'a [T], &'a [T]);
-pub(crate) type FourRowsMut<'a, 'b, T> = (
-    &'a mut &'b mut [T],
-    &'a mut &'b mut [T],
-    &'a mut &'b mut [T],
-    &'a mut &'b mut [T],
-);
-
 /// Parameters of crop box that may be used with [`ImageView`]
 /// and [`DynamicImageView`](crate::DynamicImageView)
 #[derive(Debug, Clone, Copy)]
@@ -211,12 +201,12 @@ where
         &'s self,
         start_y: u32,
         max_y: u32,
-    ) -> impl Iterator<Item = FourRows<'a, P>> + 's {
+    ) -> impl Iterator<Item = [&'a [P]; 4]> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
         let rows = self.rows.get(start_y..max_y).unwrap_or(&[]);
         rows.chunks_exact(4).map(|rows| match *rows {
-            [r0, r1, r2, r3] => (r0, r1, r2, r3),
+            [r0, r1, r2, r3] => [r0, r1, r2, r3],
             _ => unreachable!(),
         })
     }
@@ -226,12 +216,12 @@ where
         &'s self,
         start_y: u32,
         max_y: u32,
-    ) -> impl Iterator<Item = TwoRows<'a, P>> + 's {
+    ) -> impl Iterator<Item = [&'a [P]; 2]> + 's {
         let start_y = start_y as usize;
         let max_y = max_y.min(self.height.get()) as usize;
         let rows = self.rows.get(start_y..max_y).unwrap_or(&[]);
         rows.chunks_exact(2).map(|rows| match *rows {
-            [r0, r1] => (r0, r1),
+            [r0, r1] => [r0, r1],
             _ => unreachable!(),
         })
     }
@@ -370,15 +360,15 @@ where
     #[inline(always)]
     pub(crate) fn iter_4_rows_mut<'s>(
         &'s mut self,
-    ) -> impl Iterator<Item = FourRowsMut<'s, 'a, P>> {
+    ) -> impl Iterator<Item = [&'s mut &'a mut [P]; 4]> {
         self.rows.chunks_exact_mut(4).map(|rows| match rows {
-            [a, b, c, d] => (a, b, c, d),
+            [a, b, c, d] => [a, b, c, d],
             _ => unreachable!(),
         })
     }
 
     #[inline(always)]
-    pub(crate) fn get_row_mut<'s>(&'s mut self, y: u32) -> Option<RowMut<'s, 'a, P>> {
+    pub(crate) fn get_row_mut<'s>(&'s mut self, y: u32) -> Option<&'s mut &'a mut [P]> {
         self.rows.get_mut(y as usize)
     }
 

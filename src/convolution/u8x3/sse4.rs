@@ -2,7 +2,6 @@ use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x3;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -50,18 +49,14 @@ pub(crate) fn horiz_convolution(
 #[inline]
 #[target_feature(enable = "sse4.1")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<U8x3>,
-    dst_rows: FourRowsMut<U8x3>,
+    src_rows: [&[U8x3]; 4],
+    dst_rows: [&mut &mut [U8x3]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     precision: u8,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
     let zero = _mm_setzero_si128();
     let initial = _mm_set1_epi32(1 << (precision - 1));
-    let src_width = s_row0.len();
+    let src_width = src_rows[0].len();
 
     /*
         |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R |
@@ -109,7 +104,7 @@ unsafe fn horiz_convolution_8u4x(
                 let mmk0 = simd_utils::ptr_i16_to_set1_epi32(k, 0);
                 let mmk1 = simd_utils::ptr_i16_to_set1_epi32(k, 2);
                 for i in 0..4 {
-                    let source = simd_utils::loadu_si128(s_rows[i], x);
+                    let source = simd_utils::loadu_si128(src_rows[i], x);
                     let pix = _mm_shuffle_epi8(source, sh_lo);
                     let mut sss = sss_a[i];
                     sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk0));
@@ -136,7 +131,7 @@ unsafe fn horiz_convolution_8u4x(
                 let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
 
                 for i in 0..4 {
-                    let source = simd_utils::loadl_epi64(s_rows[i], x);
+                    let source = simd_utils::loadl_epi64(src_rows[i], x);
                     let pix = _mm_shuffle_epi8(source, sh_lo);
                     sss_a[i] = _mm_add_epi32(sss_a[i], _mm_madd_epi16(pix, mmk));
                 }
@@ -152,7 +147,7 @@ unsafe fn horiz_convolution_8u4x(
         for &k in coeffs {
             let mmk = _mm_set1_epi32(k as i32);
             for i in 0..4 {
-                let pix = simd_utils::mm_cvtepu8_epi32_u8x3(s_rows[i], x);
+                let pix = simd_utils::mm_cvtepu8_epi32_u8x3(src_rows[i], x);
                 sss_a[i] = _mm_add_epi32(sss_a[i], _mm_madd_epi16(pix, mmk));
             }
 
@@ -172,7 +167,7 @@ unsafe fn horiz_convolution_8u4x(
             let sss = _mm_packs_epi32(sss_a[i], zero);
             let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, zero)));
             let bytes = pixel.to_le_bytes();
-            d_rows[i].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+            dst_rows[i].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
         }
     }
 }

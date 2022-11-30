@@ -1,7 +1,6 @@
 use std::arch::aarch64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::neon_utils;
 use crate::pixels::U16;
 use crate::{ImageView, ImageViewMut};
@@ -48,16 +47,11 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U16>,
-    dst_rows: FourRowsMut<U16>,
+    src_rows: [&[U16]; 4],
+    dst_rows: [&mut &mut [U16]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
     precision: u8,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
-
     let initial = vdupq_n_s64(1i64 << (precision - 2));
     let zero_u16x4 = vdup_n_u16(0);
 
@@ -74,7 +68,7 @@ unsafe fn horiz_convolution_four_rows(
             let coeff1 = vget_high_s32(coeffs_i32x4);
 
             for i in 0..4 {
-                let source = neon_utils::load_u16x4(s_rows[i], x);
+                let source = neon_utils::load_u16x4(src_rows[i], x);
                 let mut sss = sss_a[i];
 
                 let pix_i32 = vreinterpret_s32_u16(vzip1_u16(source, zero_u16x4));
@@ -93,7 +87,7 @@ unsafe fn horiz_convolution_four_rows(
             let coeffs_i32x2 = neon_utils::load_i32x2(k, 0);
 
             for i in 0..4 {
-                let source = neon_utils::load_u16x2(s_rows[i], x);
+                let source = neon_utils::load_u16x2(src_rows[i], x);
                 let pix_i32 = vreinterpret_s32_u16(vzip1_u16(source, zero_u16x4));
                 sss_a[i] = vmlal_s32(sss_a[i], pix_i32, coeffs_i32x2);
             }
@@ -103,7 +97,7 @@ unsafe fn horiz_convolution_four_rows(
         if !coeffs.is_empty() {
             let coeffs_i32x2 = neon_utils::load_i32x1(coeffs, 0);
             for i in 0..4 {
-                let source = neon_utils::load_u16x1(s_rows[i], x);
+                let source = neon_utils::load_u16x1(src_rows[i], x);
                 let pix_i32 = vreinterpret_s32_u16(vzip1_u16(source, zero_u16x4));
                 sss_a[i] = vmlal_s32(sss_a[i], pix_i32, coeffs_i32x2);
             }
@@ -127,7 +121,7 @@ unsafe fn horiz_convolution_four_rows(
 
         for i in 0..4 {
             let res = vdupd_lane_s64::<0>(sss_a_i64[i]);
-            d_rows[i].get_unchecked_mut(dst_x).0 = vqmovns_u32(vqmovund_s64(res));
+            dst_rows[i].get_unchecked_mut(dst_x).0 = vqmovns_u32(vqmovund_s64(res));
         }
     }
 }

@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Crate
+
+- Improved speed of `MulDiv` implementation for `U8x4` images.
+
 ## [2.3.0] - 2022-11-25
 
 ### Crate

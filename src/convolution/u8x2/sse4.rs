@@ -1,7 +1,6 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x2;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -48,15 +47,11 @@ pub(crate) fn horiz_convolution(
 #[inline]
 #[target_feature(enable = "sse4.1")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U8x2>,
-    dst_rows: FourRowsMut<U8x2>,
+    src_rows: [&[U8x2]; 4],
+    dst_rows: [&mut &mut [U8x2]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     normalizer: &optimisations::Normalizer16,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
     let precision = normalizer.precision();
     let initial = _mm_set1_epi32(1 << (precision - 2));
 
@@ -96,7 +91,7 @@ unsafe fn horiz_convolution_four_rows(
             let mmk1 = simd_utils::ptr_i16_to_set1_epi64x(k, 4);
 
             for i in 0..4 {
-                let source = simd_utils::loadu_si128(s_rows[i], x);
+                let source = simd_utils::loadu_si128(src_rows[i], x);
                 let pix = _mm_shuffle_epi8(source, sh1);
                 let tmp_sum = _mm_add_epi32(sss[i], _mm_madd_epi16(pix, mmk0));
                 let pix = _mm_shuffle_epi8(source, sh2);
@@ -112,7 +107,7 @@ unsafe fn horiz_convolution_four_rows(
             let mmk = simd_utils::ptr_i16_to_set1_epi64x(k, 0);
 
             for i in 0..4 {
-                let source = simd_utils::loadl_epi64(s_rows[i], x);
+                let source = simd_utils::loadl_epi64(src_rows[i], x);
                 let pix = _mm_shuffle_epi8(source, sh1);
                 sss[i] = _mm_add_epi32(sss[i], _mm_madd_epi16(pix, mmk));
             }
@@ -126,7 +121,7 @@ unsafe fn horiz_convolution_four_rows(
             let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
 
             for i in 0..4 {
-                let source = simd_utils::loadl_epi32(s_rows[i], x);
+                let source = simd_utils::loadl_epi32(src_rows[i], x);
                 let pix = _mm_shuffle_epi8(source, sh1);
                 sss[i] = _mm_add_epi32(sss[i], _mm_madd_epi16(pix, mmk));
             }
@@ -137,14 +132,14 @@ unsafe fn horiz_convolution_four_rows(
             let mmk = _mm_set1_epi32(k as i32);
 
             for i in 0..4 {
-                let source = simd_utils::loadl_epi16(s_rows[i], x);
+                let source = simd_utils::loadl_epi16(src_rows[i], x);
                 let pix = _mm_shuffle_epi8(source, sh1);
                 sss[i] = _mm_add_epi32(sss[i], _mm_madd_epi16(pix, mmk));
             }
         }
 
         for i in 0..4 {
-            set_dst_pixel(sss[i], d_rows[i], dst_x, normalizer);
+            set_dst_pixel(sss[i], dst_rows[i], dst_x, normalizer);
         }
     }
 }

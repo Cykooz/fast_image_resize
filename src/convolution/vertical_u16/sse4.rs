@@ -77,13 +77,13 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for ((s_row0, s_row1), two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
-            let s_rows = [T::components(s_row0), T::components(s_row1)];
+        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+            let src_rows = src_rows.map(|row| T::components(row));
 
             for r in 0..2 {
                 let coeff_i64x2 = _mm_set1_epi64x(two_coeffs[r] as i64);
                 for x in 0..2 {
-                    let source = simd_utils::loadu_si128(s_rows[r], xx + x * 8);
+                    let source = simd_utils::loadu_si128(src_rows[r], xx + x * 8);
                     for i in 0..4 {
                         let c_i64x2 = _mm_shuffle_epi8(source, c_shuffles[i]);
                         sums[i][x] = _mm_add_epi64(sums[i][x], _mm_mul_epi32(c_i64x2, coeff_i64x2));
@@ -128,15 +128,15 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for ((s_row0, s_row1), two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
-            let s_rows = [T::components(s_row0), T::components(s_row1)];
+        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+            let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 _mm_set1_epi64x(two_coeffs[0] as i64),
                 _mm_set1_epi64x(two_coeffs[1] as i64),
             ];
 
             for r in 0..2 {
-                let source = simd_utils::loadu_si128(s_rows[r], xx);
+                let source = simd_utils::loadu_si128(src_rows[r], xx);
                 for i in 0..4 {
                     let c_i64x2 = _mm_shuffle_epi8(source, c_shuffles[i]);
                     sums[i] = _mm_add_epi64(sums[i], _mm_mul_epi32(c_i64x2, coeffs_i64[r]));
@@ -179,14 +179,14 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for ((s_row0, s_row1), two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
-            let s_rows = [T::components(s_row0), T::components(s_row1)];
+        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+            let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 _mm_set1_epi64x(two_coeffs[0] as i64),
                 _mm_set1_epi64x(two_coeffs[1] as i64),
             ];
             for r in 0..2 {
-                let comp_x4 = s_rows[r].get_unchecked(xx..xx + 4);
+                let comp_x4 = src_rows[r].get_unchecked(xx..xx + 4);
                 let c_i64x2 = _mm_set_epi64x(comp_x4[1] as i64, comp_x4[0] as i64);
                 c01 = _mm_add_epi64(c01, _mm_mul_epi32(c_i64x2, coeffs_i64[r]));
                 let c_i64x2 = _mm_set_epi64x(comp_x4[3] as i64, comp_x4[2] as i64);

@@ -1,7 +1,6 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U16x4;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -47,15 +46,11 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U16x4>,
-    dst_rows: FourRowsMut<U16x4>,
+    src_rows: [&[U16x4]; 4],
+    dst_rows: [&mut &mut [U16x4]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
     normalizer: &optimisations::Normalizer32,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
     let mut rg_buf = [0i64; 4];
@@ -114,8 +109,8 @@ unsafe fn horiz_convolution_four_rows(
 
             for i in 0..2 {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadu_si128(s_rows[i * 2 + 1], x),
-                    simd_utils::loadu_si128(s_rows[i * 2], x),
+                    simd_utils::loadu_si128(src_rows[i * 2 + 1], x),
+                    simd_utils::loadu_si128(src_rows[i * 2], x),
                 );
 
                 let mut sum = rg_sum[i];
@@ -140,8 +135,8 @@ unsafe fn horiz_convolution_four_rows(
 
             for i in 0..2 {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadl_epi64(s_rows[i * 2 + 1], x),
-                    simd_utils::loadl_epi64(s_rows[i * 2], x),
+                    simd_utils::loadl_epi64(src_rows[i * 2 + 1], x),
+                    simd_utils::loadl_epi64(src_rows[i * 2], x),
                 );
 
                 let mut sum = rg_sum[i];
@@ -160,7 +155,7 @@ unsafe fn horiz_convolution_four_rows(
             _mm256_storeu_si256((&mut rg_buf).as_mut_ptr() as *mut __m256i, rg_sum[i]);
             _mm256_storeu_si256((&mut ba_buf).as_mut_ptr() as *mut __m256i, ba_sum[i]);
 
-            let dst_pixel = d_rows[i * 2].get_unchecked_mut(dst_x);
+            let dst_pixel = dst_rows[i * 2].get_unchecked_mut(dst_x);
             dst_pixel.0 = [
                 normalizer.clip(rg_buf[0]),
                 normalizer.clip(rg_buf[1]),
@@ -168,7 +163,7 @@ unsafe fn horiz_convolution_four_rows(
                 normalizer.clip(ba_buf[1]),
             ];
 
-            let dst_pixel = d_rows[i * 2 + 1].get_unchecked_mut(dst_x);
+            let dst_pixel = dst_rows[i * 2 + 1].get_unchecked_mut(dst_x);
             dst_pixel.0 = [
                 normalizer.clip(rg_buf[2]),
                 normalizer.clip(rg_buf[3]),

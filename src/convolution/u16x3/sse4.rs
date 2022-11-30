@@ -2,7 +2,6 @@ use std::arch::x86_64::*;
 
 use crate::convolution::optimisations::CoefficientsI32Chunk;
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U16x3;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -48,15 +47,11 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "sse4.1")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<U16x3>,
-    dst_rows: FourRowsMut<U16x3>,
+    src_rows: [&[U16x3]; 4],
+    dst_rows: [&mut &mut [U16x3]; 4],
     coefficients_chunks: &[CoefficientsI32Chunk],
     normalizer: &optimisations::Normalizer32,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
     let mut rg_buf = [0i64; 2];
@@ -81,7 +76,7 @@ unsafe fn horiz_convolution_8u4x(
     let rg1_shuffle = _mm_set_epi8(-1, -1, -1, -1, -1, -1, 9, 8, -1, -1, -1, -1, -1, -1, 7, 6);
     let bb_shuffle = _mm_set_epi8(-1, -1, -1, -1, -1, -1, 11, 10, -1, -1, -1, -1, -1, -1, 5, 4);
 
-    let width = s_row0.len();
+    let width = src_rows[0].len();
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
@@ -101,7 +96,7 @@ unsafe fn horiz_convolution_8u4x(
                 let coeff_i64x2 = _mm_set_epi64x(k[1] as i64, k[0] as i64);
 
                 for i in 0..4 {
-                    let source = simd_utils::loadu_si128(s_rows[i], x);
+                    let source = simd_utils::loadu_si128(src_rows[i], x);
 
                     let rg0_i64x2 = _mm_shuffle_epi8(source, rg0_shuffle);
                     rg_sum[i] = _mm_add_epi64(rg_sum[i], _mm_mul_epi32(rg0_i64x2, coeff0_i64x2));
@@ -120,7 +115,7 @@ unsafe fn horiz_convolution_8u4x(
             let coeff_i64x2 = _mm_set1_epi64x(k as i64);
 
             for i in 0..4 {
-                let &pixel = s_rows[i].get_unchecked(x);
+                let &pixel = src_rows[i].get_unchecked(x);
                 let rg_i64x2 = _mm_set_epi64x(pixel.0[1] as i64, pixel.0[0] as i64);
                 rg_sum[i] = _mm_add_epi64(rg_sum[i], _mm_mul_epi32(rg_i64x2, coeff_i64x2));
                 let bb_i64x2 = _mm_set_epi64x(0, pixel.0[2] as i64);
@@ -132,7 +127,7 @@ unsafe fn horiz_convolution_8u4x(
         for i in 0..4 {
             _mm_storeu_si128((&mut rg_buf).as_mut_ptr() as *mut __m128i, rg_sum[i]);
             _mm_storeu_si128((&mut bb_buf).as_mut_ptr() as *mut __m128i, bb_sum[i]);
-            let dst_pixel = d_rows[i].get_unchecked_mut(dst_x);
+            let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0[0] = normalizer.clip(rg_buf[0] + half_error);
             dst_pixel.0[1] = normalizer.clip(rg_buf[1] + half_error);
             dst_pixel.0[2] = normalizer.clip(bb_buf[0] + bb_buf[1] + half_error);

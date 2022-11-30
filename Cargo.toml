@@ -96,9 +96,9 @@ opt-level = 3
 [profile.release]
 opt-level = 3
 #incremental = true
-#lto = true
-#codegen-units = 1
-#strip = true
+lto = true
+codegen-units = 1
+strip = true
 
 
 [profile.test]

@@ -7,29 +7,43 @@ pub(crate) fn multiply_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageV
     let dst_rows = dst_image.iter_rows_mut();
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
-        multiply_alpha_row(src_row, dst_row);
+        for (src_pixel, dst_pixel) in src_row.iter().zip(dst_row.iter_mut()) {
+            *dst_pixel = multiply_alpha_pixel(*src_pixel);
+        }
     }
 }
 
 pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        multiply_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        multiply_alpha_row_inplace(row);
     }
 }
 
 #[inline(always)]
 pub(crate) fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
     for (src_pixel, dst_pixel) in src_row.iter().zip(dst_row) {
-        let components: [u8; 4] = src_pixel.0.to_le_bytes();
-        let alpha = components[3];
-        dst_pixel.0 = u32::from_le_bytes([
-            mul_div_255(components[0], alpha),
-            mul_div_255(components[1], alpha),
-            mul_div_255(components[2], alpha),
-            alpha,
-        ]);
+        *dst_pixel = multiply_alpha_pixel(*src_pixel);
     }
+}
+
+#[inline(always)]
+pub(crate) fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
+    for pixel in row.iter_mut() {
+        *pixel = multiply_alpha_pixel(*pixel);
+    }
+}
+
+#[inline(always)]
+fn multiply_alpha_pixel(mut pixel: U8x4) -> U8x4 {
+    let components: [u8; 4] = pixel.0.to_le_bytes();
+    let alpha = components[3];
+    pixel.0 = u32::from_le_bytes([
+        mul_div_255(components[0], alpha),
+        mul_div_255(components[1], alpha),
+        mul_div_255(components[2], alpha),
+        alpha,
+    ]);
+    pixel
 }
 
 // Divide
@@ -46,26 +60,30 @@ pub(crate) fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageVie
 
 #[inline]
 pub(crate) fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        divide_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        row.iter_mut().for_each(|pixel| {
+            *pixel = divide_alpha_pixel(*pixel);
+        });
     }
 }
 
 #[inline(always)]
 pub(crate) fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
-    src_row
-        .iter()
-        .zip(dst_row)
-        .for_each(|(src_pixel, dst_pixel)| {
-            let components: [u8; 4] = src_pixel.0.to_le_bytes();
-            let alpha = components[3];
-            let recip_alpha = RECIP_ALPHA[alpha as usize];
-            dst_pixel.0 = u32::from_le_bytes([
-                div_and_clip(components[0], recip_alpha),
-                div_and_clip(components[1], recip_alpha),
-                div_and_clip(components[2], recip_alpha),
-                alpha,
-            ]);
-        });
+    for (src_pixel, dst_pixel) in src_row.iter().zip(dst_row) {
+        *dst_pixel = divide_alpha_pixel(*src_pixel);
+    }
+}
+
+#[inline(always)]
+fn divide_alpha_pixel(mut pixel: U8x4) -> U8x4 {
+    let components: [u8; 4] = pixel.0.to_le_bytes();
+    let alpha = components[3];
+    let recip_alpha = RECIP_ALPHA[alpha as usize];
+    pixel.0 = u32::from_le_bytes([
+        div_and_clip(components[0], recip_alpha),
+        div_and_clip(components[1], recip_alpha),
+        div_and_clip(components[2], recip_alpha),
+        alpha,
+    ]);
+    pixel
 }

@@ -1,7 +1,6 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{Coefficients, optimisations};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x2;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -53,13 +52,11 @@ pub(crate) fn horiz_convolution(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U8x2>,
-    dst_rows: FourRowsMut<U8x2>,
+    src_rows: [&[U8x2]; 4],
+    dst_rows: [&mut &mut [U8x2]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     normalizer: &optimisations::Normalizer16,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
     let precision = normalizer.precision();
     let initial = _mm256_set1_epi32(1 << (precision - 2));
 
@@ -102,8 +99,8 @@ unsafe fn horiz_convolution_four_rows(
             let mmk1 = simd_utils::ptr_i16_to_256set1_epi64x(k, 4);
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row0, x)),
-                simd_utils::loadu_si128(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadu_si128(src_rows[0], x)),
+                simd_utils::loadu_si128(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk0));
@@ -111,8 +108,8 @@ unsafe fn horiz_convolution_four_rows(
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk1));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row2, x)),
-                simd_utils::loadu_si128(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadu_si128(src_rows[2], x)),
+                simd_utils::loadu_si128(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk0));
@@ -129,15 +126,15 @@ unsafe fn horiz_convolution_four_rows(
             let mmk = simd_utils::ptr_i16_to_256set1_epi64x(k, 0);
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row0, x)),
-                simd_utils::loadl_epi64(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi64(src_rows[0], x)),
+                simd_utils::loadl_epi64(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row2, x)),
-                simd_utils::loadl_epi64(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi64(src_rows[2], x)),
+                simd_utils::loadl_epi64(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
@@ -152,15 +149,15 @@ unsafe fn horiz_convolution_four_rows(
             let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi32(s_row0, x)),
-                simd_utils::loadl_epi32(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi32(src_rows[0], x)),
+                simd_utils::loadl_epi32(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi32(s_row2, x)),
-                simd_utils::loadl_epi32(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi32(src_rows[2], x)),
+                simd_utils::loadl_epi32(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
@@ -174,15 +171,15 @@ unsafe fn horiz_convolution_four_rows(
 
             // [16] xx a0 xx b0 xx g0 xx r0 xx a0 xx b0 xx g0 xx r0
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi16(s_row0, x)),
-                simd_utils::loadl_epi16(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi16(src_rows[0], x)),
+                simd_utils::loadl_epi16(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi16(s_row2, x)),
-                simd_utils::loadl_epi16(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi16(src_rows[2], x)),
+                simd_utils::loadl_epi16(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
@@ -190,13 +187,13 @@ unsafe fn horiz_convolution_four_rows(
 
         let lo128 = _mm256_extracti128_si256::<0>(sss0);
         let hi128 = _mm256_extracti128_si256::<1>(sss0);
-        set_dst_pixel(lo128, d_row0, dst_x, normalizer);
-        set_dst_pixel(hi128, d_row1, dst_x, normalizer);
+        set_dst_pixel(lo128, dst_rows[0], dst_x, normalizer);
+        set_dst_pixel(hi128, dst_rows[1], dst_x, normalizer);
 
         let lo128 = _mm256_extracti128_si256::<0>(sss1);
         let hi128 = _mm256_extracti128_si256::<1>(sss1);
-        set_dst_pixel(lo128, d_row2, dst_x, normalizer);
-        set_dst_pixel(hi128, d_row3, dst_x, normalizer);
+        set_dst_pixel(lo128, dst_rows[2], dst_x, normalizer);
+        set_dst_pixel(hi128, dst_rows[3], dst_x, normalizer);
     }
 }
 

@@ -1,7 +1,6 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U16x2;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -46,15 +45,11 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U16x2>,
-    dst_rows: FourRowsMut<U16x2>,
+    src_rows: [&[U16x2]; 4],
+    dst_rows: [&mut &mut [U16x2]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
     normalizer: &optimisations::Normalizer32,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
     let mut ll_buf = [0i64; 4];
@@ -113,8 +108,8 @@ unsafe fn horiz_convolution_four_rows(
 
             for (i, sum) in ll_sum.iter_mut().enumerate() {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadu_si128(s_rows[i * 2 + 1], x),
-                    simd_utils::loadu_si128(s_rows[i * 2], x),
+                    simd_utils::loadu_si128(src_rows[i * 2 + 1], x),
+                    simd_utils::loadu_si128(src_rows[i * 2], x),
                 );
 
                 let pp_i64x4 = _mm256_shuffle_epi8(source, p0_shuffle);
@@ -140,8 +135,8 @@ unsafe fn horiz_convolution_four_rows(
 
             for (i, sum) in ll_sum.iter_mut().enumerate() {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadl_epi64(s_rows[i * 2 + 1], x),
-                    simd_utils::loadl_epi64(s_rows[i * 2], x),
+                    simd_utils::loadl_epi64(src_rows[i * 2 + 1], x),
+                    simd_utils::loadl_epi64(src_rows[i * 2], x),
                 );
 
                 let pp_i64x4 = _mm256_shuffle_epi8(source, p0_shuffle);
@@ -158,8 +153,8 @@ unsafe fn horiz_convolution_four_rows(
 
             for (i, sum) in ll_sum.iter_mut().enumerate() {
                 let source = _mm256_set_m128i(
-                    simd_utils::loadl_epi32(s_rows[i * 2 + 1], x),
-                    simd_utils::loadl_epi32(s_rows[i * 2], x),
+                    simd_utils::loadl_epi32(src_rows[i * 2 + 1], x),
+                    simd_utils::loadl_epi32(src_rows[i * 2], x),
                 );
 
                 let pp_i64x4 = _mm256_shuffle_epi8(source, p0_shuffle);
@@ -170,11 +165,11 @@ unsafe fn horiz_convolution_four_rows(
         // ll_sum.into_iter().enumerate() executes slowly than ll_sum.iter().enumerate()
         for (i, &ll) in ll_sum.iter().enumerate() {
             _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll);
-            let dst_pixel = d_rows[i * 2].get_unchecked_mut(dst_x);
+            let dst_pixel = dst_rows[i * 2].get_unchecked_mut(dst_x);
 
             dst_pixel.0 = [normalizer.clip(ll_buf[0]), normalizer.clip(ll_buf[1])];
 
-            let dst_pixel = d_rows[i * 2 + 1].get_unchecked_mut(dst_x);
+            let dst_pixel = dst_rows[i * 2 + 1].get_unchecked_mut(dst_x);
             dst_pixel.0 = [normalizer.clip(ll_buf[2]), normalizer.clip(ll_buf[3])];
         }
     }

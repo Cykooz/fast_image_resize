@@ -52,10 +52,24 @@ fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: Cp
             })
         },
     );
+
+    bench.task(
+        format!(
+            "Multiplies alpha inplace {:?} {:?}",
+            pixel_type, cpu_extensions
+        ),
+        |task| {
+            let mut data = get_src_image(width, height, pixel_type, pixel);
+            let mut view = data.view_mut();
+            task.iter(|| {
+                alpha_mul_div.multiply_alpha_inplace(&mut view).unwrap();
+            })
+        },
+    );
 }
 
 fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuExtensions) {
-    let width = NonZeroU32::new(4096).unwrap();
+    let width = NonZeroU32::new(4095).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let pixel: &[u8] = match pixel_type {
         PixelType::U8x4 => &[128, 64, 0, 128],
@@ -80,6 +94,20 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
                 alpha_mul_div
                     .divide_alpha(&src_view, &mut dst_view)
                     .unwrap();
+            })
+        },
+    );
+
+    bench.task(
+        format!(
+            "Divides alpha inplace {:?} {:?}",
+            pixel_type, cpu_extensions
+        ),
+        |task| {
+            let mut data = get_src_image(width, height, pixel_type, pixel);
+            let mut view = data.view_mut();
+            task.iter(|| {
+                alpha_mul_div.divide_alpha_inplace(&mut view).unwrap();
             })
         },
     );

@@ -1,7 +1,6 @@
 use std::arch::aarch64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::neon_utils;
 use crate::pixels::U8x2;
 use crate::{ImageView, ImageViewMut};
@@ -48,16 +47,11 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U8x2>,
-    dst_rows: FourRowsMut<U8x2>,
+    src_rows: [&[U8x2]; 4],
+    dst_rows: [&mut &mut [U8x2]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     precision: u8,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let s_rows = [s_row0, s_row1, s_row2, s_row3];
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
-    let d_rows = [d_row0, d_row1, d_row2, d_row3];
-
     let initial = vdupq_n_s32(1 << (precision - 2));
     let zero_u8x16 = vdupq_n_u8(0);
     let zero_u8x8 = vdup_n_u8(0);
@@ -79,7 +73,7 @@ unsafe fn horiz_convolution_four_rows(
             let coeff3 = vget_high_s16(coeff23);
 
             for i in 0..4 {
-                let source = neon_utils::load_u8x16(s_rows[i], x);
+                let source = neon_utils::load_u8x16(src_rows[i], x);
                 let mut sss = sss_a[i];
 
                 let source_i16 = vreinterpretq_s16_u8(vzip1q_u8(source, zero_u8x16));
@@ -105,7 +99,7 @@ unsafe fn horiz_convolution_four_rows(
             let coeff1 = vzip2_s16(coeffs_i16x4, coeffs_i16x4);
 
             for i in 0..4 {
-                let source = neon_utils::load_u8x8(s_rows[i], x);
+                let source = neon_utils::load_u8x8(src_rows[i], x);
                 let mut sss = sss_a[i];
 
                 let pix = vreinterpret_s16_u8(vzip1_u8(source, zero_u8x8));
@@ -133,7 +127,7 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 four_pixels
                     .iter_mut()
-                    .zip(s_rows[i].get_unchecked(x..))
+                    .zip(src_rows[i].get_unchecked(x..))
                     .for_each(|(d, s)| *d = *s);
                 let source = neon_utils::load_u8x8(&four_pixels, 0);
                 let mut sss = sss_a[i];
@@ -165,7 +159,7 @@ unsafe fn horiz_convolution_four_rows(
                 vqmovn_s32(sss),
                 vreinterpret_s16_u8(zero_u8x8),
             )));
-            d_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s);
+            dst_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s);
         }
     }
 }

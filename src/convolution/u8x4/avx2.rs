@@ -2,7 +2,6 @@ use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8x4;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -53,13 +52,11 @@ pub(crate) fn horiz_convolution(
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn horiz_convolution_8u4x(
-    src_rows: FourRows<U8x4>,
-    dst_rows: FourRowsMut<U8x4>,
+    src_rows: [&[U8x4]; 4],
+    dst_rows: [&mut &mut [U8x4]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     precision: u8,
 ) {
-    let (s_row0, s_row1, s_row2, s_row3) = src_rows;
-    let (d_row0, d_row1, d_row2, d_row3) = dst_rows;
     let zero = _mm256_setzero_si256();
     let initial = _mm256_set1_epi32(1 << (precision - 1));
 
@@ -89,8 +86,8 @@ unsafe fn horiz_convolution_8u4x(
             let mmk1 = simd_utils::ptr_i16_to_256set1_epi32(k, 2);
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row0, x)),
-                simd_utils::loadu_si128(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadu_si128(src_rows[0], x)),
+                simd_utils::loadu_si128(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk0));
@@ -98,8 +95,8 @@ unsafe fn horiz_convolution_8u4x(
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk1));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadu_si128(s_row2, x)),
-                simd_utils::loadu_si128(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadu_si128(src_rows[2], x)),
+                simd_utils::loadu_si128(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk0));
@@ -116,15 +113,15 @@ unsafe fn horiz_convolution_8u4x(
             let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row0, x)),
-                simd_utils::loadl_epi64(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi64(src_rows[0], x)),
+                simd_utils::loadl_epi64(src_rows[1], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let source = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::loadl_epi64(s_row2, x)),
-                simd_utils::loadl_epi64(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::loadl_epi64(src_rows[2], x)),
+                simd_utils::loadl_epi64(src_rows[3], x),
             );
             let pix = _mm256_shuffle_epi8(source, sh1);
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
@@ -138,14 +135,14 @@ unsafe fn horiz_convolution_8u4x(
 
             // [16] xx a0 xx b0 xx g0 xx r0 xx a0 xx b0 xx g0 xx r0
             let pix = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row0, x)),
-                simd_utils::mm_cvtepu8_epi32(s_row1, x),
+                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(src_rows[0], x)),
+                simd_utils::mm_cvtepu8_epi32(src_rows[1], x),
             );
             sss0 = _mm256_add_epi32(sss0, _mm256_madd_epi16(pix, mmk));
 
             let pix = _mm256_inserti128_si256::<1>(
-                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(s_row2, x)),
-                simd_utils::mm_cvtepu8_epi32(s_row3, x),
+                _mm256_castsi128_si256(simd_utils::mm_cvtepu8_epi32(src_rows[2], x)),
+                simd_utils::mm_cvtepu8_epi32(src_rows[3], x),
             );
             sss1 = _mm256_add_epi32(sss1, _mm256_madd_epi16(pix, mmk));
         }
@@ -162,13 +159,13 @@ unsafe fn horiz_convolution_8u4x(
         sss1 = _mm256_packs_epi32(sss1, zero);
         sss0 = _mm256_packus_epi16(sss0, zero);
         sss1 = _mm256_packus_epi16(sss1, zero);
-        *d_row0.get_unchecked_mut(dst_x) =
+        *dst_rows[0].get_unchecked_mut(dst_x) =
             transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
-        *d_row1.get_unchecked_mut(dst_x) =
+        *dst_rows[1].get_unchecked_mut(dst_x) =
             transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
-        *d_row2.get_unchecked_mut(dst_x) =
+        *dst_rows[2].get_unchecked_mut(dst_x) =
             transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
-        *d_row3.get_unchecked_mut(dst_x) =
+        *dst_rows[3].get_unchecked_mut(dst_x) =
             transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
     }
 }

@@ -52,9 +52,9 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
 
         let mut y: u32 = 0;
 
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            let components1 = T::components(s_row1);
-            let components2 = T::components(s_row2);
+        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+            let components1 = T::components(src_rows[0]);
+            let components2 = T::components(src_rows[1]);
 
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
@@ -159,9 +159,9 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
         let mut sss1 = initial; // right row
         let mut y: u32 = 0;
 
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            let components1 = T::components(s_row1);
-            let components2 = T::components(s_row2);
+        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+            let components1 = T::components(src_rows[0]);
+            let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 
@@ -211,9 +211,9 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
         let mut sss = initial;
         let mut y: u32 = 0;
 
-        for (s_row1, s_row2) in src_img.iter_2_rows(y_start, max_y) {
-            let components1 = T::components(s_row1);
-            let components2 = T::components(s_row2);
+        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+            let components1 = T::components(src_rows[0]);
+            let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
             let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
 

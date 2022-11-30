@@ -1,7 +1,6 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::image_view::{FourRows, FourRowsMut};
 use crate::pixels::U8;
 use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
@@ -48,13 +47,11 @@ pub(crate) fn horiz_convolution(
 #[inline]
 #[target_feature(enable = "sse4.1")]
 unsafe fn horiz_convolution_four_rows(
-    src_rows: FourRows<U8>,
-    dst_rows: FourRowsMut<U8>,
+    src_rows: [&[U8]; 4],
+    dst_rows: [&mut &mut [U8]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     normalizer: &optimisations::Normalizer16,
 ) {
-    let s_rows = [src_rows.0, src_rows.1, src_rows.2, src_rows.3];
-    let d_rows = [dst_rows.0, dst_rows.1, dst_rows.2, dst_rows.3];
     let zero = _mm_setzero_si128();
     let initial = 1 << (normalizer.precision() - 1);
     let mut buf = [0, 0, 0, 0, initial];
@@ -69,7 +66,7 @@ unsafe fn horiz_convolution_four_rows(
         for k in coeffs_by_8 {
             let coeffs_i16x8 = _mm_loadu_si128(k.as_ptr() as *const __m128i);
             for i in 0..4 {
-                let pixels_u8x8 = simd_utils::loadl_epi64(s_rows[i], x);
+                let pixels_u8x8 = simd_utils::loadl_epi64(src_rows[i], x);
                 let pixels_i16x8 = _mm_cvtepu8_epi16(pixels_u8x8);
                 result_i32x4[i] =
                     _mm_add_epi32(result_i32x4[i], _mm_madd_epi16(pixels_i16x8, coeffs_i16x8));
@@ -82,7 +79,7 @@ unsafe fn horiz_convolution_four_rows(
         if let Some(k) = coeffs_by_4.next() {
             let coeffs_i16x4 = simd_utils::loadl_epi64(k, 0);
             for i in 0..4 {
-                let pixels_u8x4 = simd_utils::loadl_epi32(s_rows[i], x);
+                let pixels_u8x4 = simd_utils::loadl_epi32(src_rows[i], x);
                 let pixels_i16x4 = _mm_cvtepu8_epi16(pixels_u8x4);
                 result_i32x4[i] =
                     _mm_add_epi32(result_i32x4[i], _mm_madd_epi16(pixels_i16x4, coeffs_i16x4));
@@ -98,14 +95,14 @@ unsafe fn horiz_convolution_four_rows(
         for &coeff in reminder4 {
             let coeff_i32 = coeff as i32;
             for i in 0..4 {
-                result_i32x4[i] += s_rows[i].get_unchecked(x).0.to_owned() as i32 * coeff_i32;
+                result_i32x4[i] += src_rows[i].get_unchecked(x).0.to_owned() as i32 * coeff_i32;
             }
             x += 1;
         }
 
         let result_u8x4 = result_i32x4.map(|v| normalizer.clip(v));
         for i in 0..4 {
-            d_rows[i].get_unchecked_mut(dst_x).0 = result_u8x4[i];
+            dst_rows[i].get_unchecked_mut(dst_x).0 = result_u8x4[i];
         }
     }
 }
