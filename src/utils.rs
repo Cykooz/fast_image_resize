@@ -2,8 +2,8 @@
 #[inline(always)]
 pub(crate) fn foreach_with_pre_reading<D, I>(
     mut iter: impl Iterator<Item = I>,
-    read_data: fn(src: I) -> D,
-    process_data: fn(data: D),
+    mut read_data: impl FnMut(I) -> D,
+    mut process_data: impl FnMut(D),
 ) {
     let mut next_data: D;
     if let Some(src) = iter.next() {
