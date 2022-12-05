@@ -35,9 +35,10 @@ impl Convolution for U8x3 {
     fn vert_convolution(
         src_image: &ImageView<Self>,
         dst_image: &mut ImageViewMut<Self>,
+        offset: u32,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     ) {
-        vert_convolution_u8(src_image, dst_image, coeffs, cpu_extensions);
+        vert_convolution_u8(src_image, dst_image, offset, coeffs, cpu_extensions);
     }
 }

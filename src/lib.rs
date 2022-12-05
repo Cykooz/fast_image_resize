@@ -15,6 +15,9 @@ pub use resizer::{CpuExtensions, ResizeAlg, Resizer};
 
 pub use crate::image::Image;
 
+#[macro_use]
+mod utils;
+
 mod alpha;
 mod color;
 mod convolution;
@@ -29,4 +32,5 @@ pub mod pixels;
 mod resizer;
 #[cfg(target_arch = "x86_64")]
 mod simd_utils;
-mod utils;
+#[cfg(feature = "for_test")]
+pub mod testing;

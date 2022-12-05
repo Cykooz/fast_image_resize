@@ -23,15 +23,18 @@ exclude = ["/data"]
 num-traits = "0.2.15"
 thiserror = "1.0.37"
 
+[features]
+for_test = []
 
 [dev-dependencies]
+fast_image_resize = { path = ".", features = ["for_test"] }
 glassbench = "0.3.3"
 image = "0.24.5"
 resize = "0.7.4"
 rgb = "0.8.34"
 png = "0.17.7"
-nix = { version = "0.25.0", default-features = false, features = ["sched"] }
-testing = {path= "testing" }
+nix = { version = "0.26.1", default-features = false, features = ["sched"] }
+testing = { path = "testing" }
 
 
 [[bench]]
@@ -107,8 +110,8 @@ opt-level = 3
 
 [package.metadata.release]
 pre-release-replacements = [
-    {file="CHANGELOG.md", search="Unreleased", replace="{{version}}"},
-    {file="CHANGELOG.md", search="ReleaseDate", replace="{{date}}"}
+    { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
+    { file = "CHANGELOG.md", search = "ReleaseDate", replace = "{{date}}" }
 ]
 
 # Header of next release in CHANGELOG.md:

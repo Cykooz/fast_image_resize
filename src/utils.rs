@@ -16,3 +16,13 @@ pub(crate) fn foreach_with_pre_reading<D, I>(
         process_data(next_data);
     }
 }
+
+macro_rules! test_log {
+    ($s:expr) => {
+        #[cfg(feature = "for_test")]
+        {
+            use crate::testing::log_message;
+            log_message($s);
+        }
+    };
+}

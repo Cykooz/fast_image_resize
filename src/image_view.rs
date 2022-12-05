@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::mem::ManuallyDrop;
 use std::num::NonZeroU32;
 use std::slice;
 
@@ -386,6 +387,31 @@ where
             .zip(src_view.iter_cropped_rows())
             .for_each(|(d, s)| d.copy_from_slice(s));
         Ok(())
+    }
+}
+
+impl<'a, P> From<ImageViewMut<'a, P>> for ImageView<'a, P>
+where
+    P: PixelExt,
+{
+    fn from(view: ImageViewMut<'a, P>) -> Self {
+        let rows = {
+            let mut old_rows = ManuallyDrop::new(view.rows);
+            let (ptr, length, capacity) =
+                (old_rows.as_mut_ptr(), old_rows.len(), old_rows.capacity());
+            unsafe { Vec::from_raw_parts(ptr as *mut &[P], length, capacity) }
+        };
+        ImageView {
+            width: view.width,
+            height: view.height,
+            crop_box: CropBox {
+                left: 0,
+                top: 0,
+                width: view.width,
+                height: view.height,
+            },
+            rows,
+        }
     }
 }
 

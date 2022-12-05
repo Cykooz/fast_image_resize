@@ -27,20 +27,24 @@ pub(crate) fn horiz_convolution(
 pub(crate) fn vert_convolution(
     src_image: &ImageView<I32>,
     dst_image: &mut ImageViewMut<I32>,
+    offset: u32,
     coeffs: Coefficients,
 ) {
     let coefficients_chunks = coeffs.get_chunks();
     let dst_rows = dst_image.iter_rows_mut();
+    let start_src_x = offset as usize;
     for (&coeffs_chunk, dst_row) in coefficients_chunks.iter().zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
-        for (x_src, dst_pixel) in dst_row.iter_mut().enumerate() {
+        let mut src_x = start_src_x;
+        for dst_pixel in dst_row.iter_mut() {
             let mut ss = 0.;
             let src_rows = src_image.iter_rows(first_y_src);
             for (src_row, &k) in src_rows.zip(coeffs_chunk.values) {
-                let src_pixel = unsafe { src_row.get_unchecked(x_src as usize) };
+                let src_pixel = unsafe { src_row.get_unchecked(src_x) };
                 ss += src_pixel.0 as f64 * k;
             }
             dst_pixel.0 = ss.round() as i32;
+            src_x += 1;
         }
     }
 }

@@ -9,16 +9,14 @@ use crate::{ImageView, ImageViewMut};
 pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
+    offset: u32,
     coeffs: Coefficients,
 ) {
-    // Check safety conditions
-    debug_assert_eq!(src_image.width(), dst_image.width());
-    debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
-
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
+    let start_src_x = offset as usize * T::count_of_components();
 
     let mut tmp_dst = vec![0i32; dst_image.width().get() as usize * T::count_of_components()];
     let tmp_buf = tmp_dst.as_mut_slice();
@@ -26,7 +24,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         tmp_buf.fill(initial);
         unsafe {
-            vert_convolution_into_one_row_i32(src_image, tmp_buf, coeffs_chunk);
+            vert_convolution_into_one_row_i32(src_image, tmp_buf, start_src_x, coeffs_chunk);
             let dst_comp = T::components_mut(dst_row);
             macro_rules! call {
                 ($imm8:expr) => {{
@@ -42,6 +40,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
 unsafe fn vert_convolution_into_one_row_i32<T: PixelExt<Component = u8>>(
     src_img: &ImageView<T>,
     dst_buf: &mut [i32],
+    start_src_x: usize,
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
 ) {
     let width = dst_buf.len();
@@ -55,74 +54,80 @@ unsafe fn vert_convolution_into_one_row_i32<T: PixelExt<Component = u8>>(
         let components = T::components(s_row);
         let coeff_i16x4 = vdup_n_s16(coeff);
 
-        let mut x: usize = 0;
-        while x < width.saturating_sub(63) {
-            let source = neon_utils::load_u8x16x4(components, x);
+        let mut dst_x: usize = 0;
+        let mut src_x = start_src_x;
+        while dst_x < width.saturating_sub(63) {
+            let source = neon_utils::load_u8x16x4(components, src_x);
 
             for s in [source.0, source.1, source.2, source.3] {
-                let mut accum = neon_utils::load_i32x4x4(dst_buf, x);
+                let mut accum = neon_utils::load_i32x4x4(dst_buf, dst_x);
                 let pix = vreinterpretq_s16_u8(vzip1q_u8(s, zero_u8x16));
                 accum.0 = vmlal_s16(accum.0, vget_low_s16(pix), coeff_i16x4);
                 accum.1 = vmlal_s16(accum.1, vget_high_s16(pix), coeff_i16x4);
                 let pix = vreinterpretq_s16_u8(vzip2q_u8(s, zero_u8x16));
                 accum.2 = vmlal_s16(accum.2, vget_low_s16(pix), coeff_i16x4);
                 accum.3 = vmlal_s16(accum.3, vget_high_s16(pix), coeff_i16x4);
-                neon_utils::store_i32x4x4(dst_buf, x, accum);
-                x += 16;
+                neon_utils::store_i32x4x4(dst_buf, dst_x, accum);
+                dst_x += 16;
+                src_x += 16;
             }
         }
 
-        if x < width.saturating_sub(31) {
-            let source = neon_utils::load_u8x16x2(components, x);
+        if dst_x < width.saturating_sub(31) {
+            let source = neon_utils::load_u8x16x2(components, src_x);
 
             for s in [source.0, source.1] {
-                let mut accum = neon_utils::load_i32x4x4(dst_buf, x);
+                let mut accum = neon_utils::load_i32x4x4(dst_buf, dst_x);
                 let pix = vreinterpretq_s16_u8(vzip1q_u8(s, zero_u8x16));
                 accum.0 = vmlal_s16(accum.0, vget_low_s16(pix), coeff_i16x4);
                 accum.1 = vmlal_s16(accum.1, vget_high_s16(pix), coeff_i16x4);
                 let pix = vreinterpretq_s16_u8(vzip2q_u8(s, zero_u8x16));
                 accum.2 = vmlal_s16(accum.2, vget_low_s16(pix), coeff_i16x4);
                 accum.3 = vmlal_s16(accum.3, vget_high_s16(pix), coeff_i16x4);
-                neon_utils::store_i32x4x4(dst_buf, x, accum);
-                x += 16;
+                neon_utils::store_i32x4x4(dst_buf, dst_x, accum);
+                dst_x += 16;
+                src_x += 16;
             }
         }
 
-        if x < width.saturating_sub(15) {
-            let s = neon_utils::load_u8x16(components, x);
-            let mut accum = neon_utils::load_i32x4x4(dst_buf, x);
+        if dst_x < width.saturating_sub(15) {
+            let s = neon_utils::load_u8x16(components, src_x);
+            let mut accum = neon_utils::load_i32x4x4(dst_buf, dst_x);
             let pix = vreinterpretq_s16_u8(vzip1q_u8(s, zero_u8x16));
             accum.0 = vmlal_s16(accum.0, vget_low_s16(pix), coeff_i16x4);
             accum.1 = vmlal_s16(accum.1, vget_high_s16(pix), coeff_i16x4);
             let pix = vreinterpretq_s16_u8(vzip2q_u8(s, zero_u8x16));
             accum.2 = vmlal_s16(accum.2, vget_low_s16(pix), coeff_i16x4);
             accum.3 = vmlal_s16(accum.3, vget_high_s16(pix), coeff_i16x4);
-            neon_utils::store_i32x4x4(dst_buf, x, accum);
-            x += 16;
+            neon_utils::store_i32x4x4(dst_buf, dst_x, accum);
+            dst_x += 16;
+            src_x += 16;
         }
 
-        if x < width.saturating_sub(7) {
-            let s = vcombine_u8(neon_utils::load_u8x8(components, x), zero_u8x8);
-            let mut accum = neon_utils::load_i32x4x2(dst_buf, x);
+        if dst_x < width.saturating_sub(7) {
+            let s = vcombine_u8(neon_utils::load_u8x8(components, src_x), zero_u8x8);
+            let mut accum = neon_utils::load_i32x4x2(dst_buf, dst_x);
             let pix = vreinterpretq_s16_u8(vzip1q_u8(s, zero_u8x16));
             accum.0 = vmlal_s16(accum.0, vget_low_s16(pix), coeff_i16x4);
             accum.1 = vmlal_s16(accum.1, vget_high_s16(pix), coeff_i16x4);
-            neon_utils::store_i32x4x2(dst_buf, x, accum);
-            x += 8;
+            neon_utils::store_i32x4x2(dst_buf, dst_x, accum);
+            dst_x += 8;
+            src_x += 8;
         }
 
-        if x < width.saturating_sub(3) {
-            let s = neon_utils::create_u8x16_from_one_u32(components, x);
-            let mut accum = neon_utils::load_i32x4(dst_buf, x);
+        if dst_x < width.saturating_sub(3) {
+            let s = neon_utils::create_u8x16_from_one_u32(components, src_x);
+            let mut accum = neon_utils::load_i32x4(dst_buf, dst_x);
             let pix = vreinterpretq_s16_u8(vzip1q_u8(s, zero_u8x16));
             accum = vmlal_s16(accum, vget_low_s16(pix), coeff_i16x4);
-            neon_utils::store_i32x4(dst_buf, x, accum);
-            x += 4
+            neon_utils::store_i32x4(dst_buf, dst_x, accum);
+            dst_x += 4;
+            src_x += 4;
         }
 
         let coeff = coeff as i32;
-        let tmp_tail = dst_buf.iter_mut().skip(x);
-        let comp_tail = components.iter().skip(x);
+        let tmp_tail = dst_buf.iter_mut().skip(dst_x);
+        let comp_tail = components.iter().skip(src_x);
         for (accum, &comp) in tmp_tail.zip(comp_tail) {
             *accum += coeff * comp as i32;
         }

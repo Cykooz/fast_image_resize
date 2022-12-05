@@ -20,9 +20,10 @@ impl Convolution for I32 {
     fn vert_convolution(
         src_image: &ImageView<Self>,
         dst_image: &mut ImageViewMut<Self>,
+        offset: u32,
         coeffs: Coefficients,
         _cpu_extensions: CpuExtensions,
     ) {
-        native::vert_convolution(src_image, dst_image, coeffs);
+        native::vert_convolution(src_image, dst_image, offset, coeffs);
     }
 }

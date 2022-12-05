@@ -3,8 +3,8 @@ use std::fmt::Debug;
 
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView, FilterType, Image,
-    PixelType, ResizeAlg, Resizer,
+    testing as fr_testing, CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView,
+    FilterType, Image, PixelType, ResizeAlg, Resizer,
 };
 use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
 
@@ -81,6 +81,165 @@ fn resize_to_same_size_after_cropping() {
         .collect();
     let dst_buffer = dst_image.into_vec();
     assert!(matches!(cropped_buffer.cmp(&dst_buffer), Ordering::Equal));
+}
+
+/// In this test, we check that resizer won't use horizontal convolution
+/// if width of destination image is equal to width of cropped source image.
+fn resize_to_same_width<const C: usize>(
+    pixel_type: PixelType,
+    cpu_extensions: CpuExtensions,
+    create_pixel: fn(v: u8) -> [u8; C],
+) {
+    fr_testing::clear_log();
+    let width = nonzero(100);
+    let height = nonzero(80);
+    let src_width = nonzero(120);
+    let src_height = nonzero(100);
+    // Image columns are made up of pixels of the same color.
+    let buffer: Vec<u8> = (0..12000)
+        .flat_map(|v| create_pixel((v % 120) as u8))
+        .collect();
+    let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
+    let mut src_view = src_image.view();
+    src_view
+        .set_crop_box(CropBox {
+            left: 10,
+            top: 0,
+            width,
+            height: src_height,
+        })
+        .unwrap();
+
+    let mut dst_image = Image::new(width, height, pixel_type);
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(cpu_extensions);
+    }
+    resizer
+        .resize(&src_view, &mut dst_image.view_mut())
+        .unwrap();
+    let expected_result: Vec<u8> = (0..8000u32)
+        .flat_map(|v| create_pixel((10 + v % 100) as u8))
+        .collect();
+    let dst_buffer = dst_image.into_vec();
+    assert!(
+        matches!(expected_result.cmp(&dst_buffer), Ordering::Equal),
+        "Resizing result is not equal to expected ones ({:?}, {:?})",
+        pixel_type,
+        cpu_extensions
+    );
+
+    assert!(fr_testing::logs_contain(
+        "compute vertical convolution coefficients"
+    ));
+    assert!(!fr_testing::logs_contain(
+        "compute horizontal convolution coefficients"
+    ));
+}
+
+/// In this test, we check that resizer won't use vertical convolution
+/// if height of destination image is equal to height of cropped source image.
+fn resize_to_same_height<const C: usize>(
+    pixel_type: PixelType,
+    cpu_extensions: CpuExtensions,
+    create_pixel: fn(v: u8) -> [u8; C],
+) {
+    fr_testing::clear_log();
+    let width = nonzero(100);
+    let height = nonzero(80);
+    let src_width = nonzero(120);
+    let src_height = nonzero(100);
+    // Image rows are made up of pixels of the same color.
+    let buffer: Vec<u8> = (0..12000)
+        .flat_map(|v| create_pixel((v / 120) as u8))
+        .collect();
+    let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
+    let mut src_view = src_image.view();
+    src_view
+        .set_crop_box(CropBox {
+            left: 0,
+            top: 10,
+            width: src_width,
+            height,
+        })
+        .unwrap();
+
+    let mut dst_image = Image::new(width, height, pixel_type);
+    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    unsafe {
+        resizer.set_cpu_extensions(cpu_extensions);
+    }
+    resizer
+        .resize(&src_view, &mut dst_image.view_mut())
+        .unwrap();
+    let expected_result: Vec<u8> = (0..8000u32)
+        .flat_map(|v| create_pixel((10 + v / 100) as u8))
+        .collect();
+    let dst_buffer = dst_image.into_vec();
+    assert!(
+        matches!(expected_result.cmp(&dst_buffer), Ordering::Equal),
+        "Resizing result is not equal to expected ones ({:?}, {:?})",
+        pixel_type,
+        cpu_extensions
+    );
+
+    assert!(!fr_testing::logs_contain(
+        "compute vertical convolution coefficients"
+    ));
+    assert!(fr_testing::logs_contain(
+        "compute horizontal convolution coefficients"
+    ));
+}
+
+#[test]
+fn resize_to_same_width_after_cropping() {
+    let mut cpu_extensions_vec = vec![CpuExtensions::None];
+    #[cfg(target_arch = "x86_64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    }
+    #[cfg(target_arch = "aarch64")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    for cpu_extensions in cpu_extensions_vec {
+        if !cpu_extensions.is_supported() {
+            continue;
+        }
+        resize_to_same_width(PixelType::U8, cpu_extensions, |v| [v]);
+        resize_to_same_width(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
+        resize_to_same_width(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
+        resize_to_same_width(PixelType::U8x4, cpu_extensions, |v| [v; 4]);
+        resize_to_same_width(PixelType::U16, cpu_extensions, |v| [v, 0]);
+        resize_to_same_width(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
+        resize_to_same_width(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
+        resize_to_same_width(PixelType::U16x4, cpu_extensions, |v| {
+            [v, 0, v, 0, v, 0, v, 0]
+        });
+        resize_to_same_height(PixelType::U8, cpu_extensions, |v| [v]);
+        resize_to_same_height(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
+        resize_to_same_height(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
+        resize_to_same_height(PixelType::U8x4, cpu_extensions, |v| [v; 4]);
+        resize_to_same_height(PixelType::U16, cpu_extensions, |v| [v, 0]);
+        resize_to_same_height(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
+        resize_to_same_height(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
+        resize_to_same_height(PixelType::U16x4, cpu_extensions, |v| {
+            [v, 0, v, 0, v, 0, v, 0]
+        });
+    }
+    resize_to_same_width(PixelType::I32, CpuExtensions::None, |v| {
+        (v as i32).to_le_bytes()
+    });
+    resize_to_same_width(PixelType::F32, CpuExtensions::None, |v| {
+        (v as f32).to_le_bytes()
+    });
+    resize_to_same_height(PixelType::I32, CpuExtensions::None, |v| {
+        (v as i32).to_le_bytes()
+    });
+    resize_to_same_height(PixelType::F32, CpuExtensions::None, |v| {
+        (v as f32).to_le_bytes()
+    });
 }
 
 trait ResizeTest<const CC: usize> {

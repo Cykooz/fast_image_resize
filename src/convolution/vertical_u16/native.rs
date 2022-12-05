@@ -6,16 +6,14 @@ use crate::{ImageView, ImageViewMut};
 pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
+    offset: u32,
     coeffs: Coefficients,
 ) {
-    // Check safety conditions
-    debug_assert_eq!(src_image.width(), dst_image.width());
-    debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
-
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let precision = normalizer.precision();
     let initial: i64 = 1 << (precision - 1);
+    let x_src = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     let coeffs_chunks_iter = coefficients_chunks.into_iter();
@@ -29,7 +27,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
             &normalizer,
             initial,
             dst_components,
-            0,
+            x_src,
             first_y_src,
             ks,
         );
@@ -46,7 +44,7 @@ pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
     first_y_src: u32,
     ks: &[i32],
 ) -> usize {
-    for dst_component in dst_components.iter_mut().skip(x_src) {
+    for dst_component in dst_components.iter_mut() {
         let mut ss = initial;
         let src_rows = src_image.iter_rows(first_y_src);
         for (&k, src_row) in ks.iter().zip(src_rows) {

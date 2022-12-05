@@ -14,16 +14,21 @@ pub(crate) mod sse4;
 pub(crate) fn vert_convolution_u8<T: PixelExt<Component = u8>>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
+    offset: u32,
     coeffs: Coefficients,
     cpu_extensions: CpuExtensions,
 ) {
+    // Check safety conditions
+    debug_assert!(src_image.width().get() - offset >= dst_image.width().get());
+    debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
+
     match cpu_extensions {
         #[cfg(target_arch = "x86_64")]
-        CpuExtensions::Avx2 => avx2::vert_convolution(src_image, dst_image, coeffs),
+        CpuExtensions::Avx2 => avx2::vert_convolution(src_image, dst_image, offset, coeffs),
         #[cfg(target_arch = "x86_64")]
-        CpuExtensions::Sse4_1 => sse4::vert_convolution(src_image, dst_image, coeffs),
+        CpuExtensions::Sse4_1 => sse4::vert_convolution(src_image, dst_image, offset, coeffs),
         #[cfg(target_arch = "aarch64")]
-        CpuExtensions::Neon => neon::vert_convolution(src_image, dst_image, coeffs),
-        _ => native::vert_convolution(src_image, dst_image, coeffs),
+        CpuExtensions::Neon => neon::vert_convolution(src_image, dst_image, offset, coeffs),
+        _ => native::vert_convolution(src_image, dst_image, offset, coeffs),
     }
 }

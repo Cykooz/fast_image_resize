@@ -269,41 +269,44 @@ fn resample_convolution<P>(
     let dst_height = dst_image.height();
     let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
 
-    let need_horizontal = dst_width != src_image.width() || crop_box.width != src_image.width();
-    let need_vertical = dst_height != src_image.height() || crop_box.height != src_image.height();
-
-    let mut vert_coeffs = convolution::precompute_coefficients(
-        src_image.height(),
-        crop_box.top as f64,
-        crop_box.top as f64 + crop_box.height.get() as f64,
-        dst_height,
-        filter_fn,
-        filter_support,
-    );
-
-    if need_horizontal {
-        let horiz_coeffs = convolution::precompute_coefficients(
+    let need_horizontal = dst_width != crop_box.width;
+    let horiz_coeffs = need_horizontal.then(|| {
+        test_log!("compute horizontal convolution coefficients");
+        convolution::precompute_coefficients(
             src_image.width(),
             crop_box.left as f64,
             crop_box.left as f64 + crop_box.width.get() as f64,
             dst_width,
             filter_fn,
             filter_support,
-        );
+        )
+    });
 
-        // First used row in the source image
-        let y_first = vert_coeffs.bounds[0].start;
+    let need_vertical = dst_height != crop_box.height;
+    let vert_coeffs = need_vertical.then(|| {
+        test_log!("compute vertical convolution coefficients");
+        convolution::precompute_coefficients(
+            src_image.height(),
+            crop_box.top as f64,
+            crop_box.top as f64 + crop_box.height.get() as f64,
+            dst_height,
+            filter_fn,
+            filter_support,
+        )
+    });
 
-        if need_vertical {
+    match (horiz_coeffs, vert_coeffs) {
+        (Some(horiz_coeffs), Some(mut vert_coeffs)) => {
+            let y_first = vert_coeffs.bounds[0].start;
             // Last used row in the source image
             let last_y_bound = vert_coeffs.bounds.last().unwrap();
             let y_last = last_y_bound.start + last_y_bound.size;
-
             let temp_height = NonZeroU32::new(y_last - y_first).unwrap();
             let mut temp_image = get_temp_image_from_buffer(temp_buffer, dst_width, temp_height);
+            let mut tmp_dst_view = temp_image.dst_view();
             P::horiz_convolution(
                 src_image,
-                &mut temp_image.dst_view(),
+                &mut tmp_dst_view,
                 y_first,
                 horiz_coeffs,
                 cpu_extensions,
@@ -315,16 +318,32 @@ fn resample_convolution<P>(
                 .iter_mut()
                 .for_each(|b| b.start -= y_first);
             P::vert_convolution(
-                &temp_image.src_view(),
+                &tmp_dst_view.into(),
                 dst_image,
+                0,
                 vert_coeffs,
                 cpu_extensions,
             );
-        } else {
-            P::horiz_convolution(src_image, dst_image, y_first, horiz_coeffs, cpu_extensions);
         }
-    } else if need_vertical {
-        P::vert_convolution(src_image, dst_image, vert_coeffs, cpu_extensions);
+        (Some(horiz_coeffs), None) => {
+            P::horiz_convolution(
+                src_image,
+                dst_image,
+                crop_box.top,
+                horiz_coeffs,
+                cpu_extensions,
+            );
+        }
+        (None, Some(vert_coeffs)) => {
+            P::vert_convolution(
+                src_image,
+                dst_image,
+                crop_box.left,
+                vert_coeffs,
+                cpu_extensions,
+            );
+        }
+        _ => {}
     }
 }
 

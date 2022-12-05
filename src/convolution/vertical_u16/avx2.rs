@@ -8,17 +8,19 @@ use crate::{ImageView, ImageViewMut};
 pub(crate) fn vert_convolution<T>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
+    offset: u32,
     coeffs: Coefficients,
 ) where
     T: PixelExt<Component = u16>,
 {
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
+    let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(src_image, dst_row, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u16(src_image, dst_row, src_x, coeffs_chunk, &normalizer);
         }
     }
 }
@@ -27,16 +29,15 @@ pub(crate) fn vert_convolution<T>(
 pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
+    mut src_x: usize,
     coeffs_chunk: optimisations::CoefficientsI32Chunk,
     normalizer: &optimisations::Normalizer32,
 ) where
     T: PixelExt<Component = u16>,
 {
-    let mut xx: usize = 0;
-    let src_width = src_img.width().get() as usize * T::count_of_components();
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
-    let dst_components = T::components_mut(dst_row);
+    let mut dst_u16 = T::components_mut(dst_row);
 
     /*
         |R    G    B   | |R    G    B   | |R    G   | - |B   | |R    G    B   | |R    G    B   | |R   |
@@ -86,15 +87,16 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
     let initial = _mm256_set1_epi64x(1 << (precision - 1));
     let mut comp_buf = [0i64; 4];
 
-    // 16 components in one register - 1 = 15
-    while xx < src_width.saturating_sub(15) {
+    // 16 components in one register
+    let mut dst_chunks_16 = dst_u16.chunks_exact_mut(16);
+    for dst_chunk in &mut dst_chunks_16 {
         // 16 components / 4 per register = 4 registers
         let mut sum = [initial; 4];
 
         for (s_row, &coeff) in src_img.iter_rows(y_start).zip(coeffs) {
             let components = T::components(s_row);
             let coeff_i64x4 = _mm256_set1_epi64x(coeff as i64);
-            let source = simd_utils::loadu_si256(components, xx);
+            let source = simd_utils::loadu_si256(components, src_x);
             for i in 0..4 {
                 let comp_i64x4 = _mm256_shuffle_epi8(source, shuffles[i]);
                 sum[i] = _mm256_add_epi64(sum[i], _mm256_mul_epi32(comp_i64x4, coeff_i64x4));
@@ -102,28 +104,34 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         }
 
         for i in 0..4 {
-            _mm256_storeu_si256((&mut comp_buf).as_mut_ptr() as *mut __m256i, sum[i]);
-            let component = dst_components.get_unchecked_mut(xx + i * 2);
+            _mm256_storeu_si256(comp_buf.as_mut_ptr() as *mut __m256i, sum[i]);
+            let component = dst_chunk.get_unchecked_mut(i * 2);
             *component = normalizer.clip(comp_buf[0]);
-            let component = dst_components.get_unchecked_mut(xx + i * 2 + 1);
+            let component = dst_chunk.get_unchecked_mut(i * 2 + 1);
             *component = normalizer.clip(comp_buf[1]);
-            let component = dst_components.get_unchecked_mut(xx + i * 2 + 8);
+            let component = dst_chunk.get_unchecked_mut(i * 2 + 8);
             *component = normalizer.clip(comp_buf[2]);
-            let component = dst_components.get_unchecked_mut(xx + i * 2 + 9);
+            let component = dst_chunk.get_unchecked_mut(i * 2 + 9);
             *component = normalizer.clip(comp_buf[3]);
         }
 
-        xx += 16;
+        src_x += 16;
     }
 
-    if xx < src_width {
+    dst_u16 = dst_chunks_16.into_remainder();
+    if !dst_u16.is_empty() {
         // 16 components / 4 per register = 4 registers
         let mut sum = [initial; 4];
         let mut buf = [0u16; 16];
 
         for (s_row, &coeff) in src_img.iter_rows(y_start).zip(coeffs) {
             let components = T::components(s_row);
-            for (i, &v) in components.get_unchecked(xx..).iter().enumerate() {
+            for (i, &v) in components
+                .get_unchecked(src_x..)
+                .iter()
+                .take(dst_u16.len())
+                .enumerate()
+            {
                 buf[i] = v;
             }
             let coeff_i64x4 = _mm256_set1_epi64x(coeff as i64);
@@ -135,7 +143,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         }
 
         for i in 0..4 {
-            _mm256_storeu_si256((&mut comp_buf).as_mut_ptr() as *mut __m256i, sum[i]);
+            _mm256_storeu_si256(comp_buf.as_mut_ptr() as *mut __m256i, sum[i]);
             let component = buf.get_unchecked_mut(i * 2);
             *component = normalizer.clip(comp_buf[0]);
             let component = buf.get_unchecked_mut(i * 2 + 1);
@@ -145,11 +153,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
             let component = buf.get_unchecked_mut(i * 2 + 9);
             *component = normalizer.clip(comp_buf[3]);
         }
-        for (i, v) in dst_components
-            .get_unchecked_mut(xx..)
-            .iter_mut()
-            .enumerate()
-        {
+        for (i, v) in dst_u16.iter_mut().enumerate() {
             *v = buf[i];
         }
     }

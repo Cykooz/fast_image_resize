@@ -39,6 +39,7 @@ where
     fn vert_convolution(
         src_image: &ImageView<Self>,
         dst_image: &mut ImageViewMut<Self>,
+        offset: u32,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     );

@@ -6,25 +6,23 @@ use crate::{ImageView, ImageViewMut};
 pub(crate) fn vert_convolution<T>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
+    offset: u32,
     coeffs: Coefficients,
 ) where
     T: PixelExt<Component = u8>,
 {
-    // Check safety conditions
-    debug_assert_eq!(src_image.width(), dst_image.width());
-    debug_assert_eq!(coeffs.bounds.len(), dst_image.height().get() as usize);
-
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
+    let src_x_initial = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     let coeffs_chunks_iter = coefficients_chunks.into_iter();
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
         let ks = coeffs_chunk.values;
-        let mut x_src: usize = 0;
+        let mut x_src = src_x_initial;
         let dst_components = T::components_mut(dst_row);
         let (head, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<u32>() };
 
@@ -75,7 +73,7 @@ pub(crate) fn vert_convolution<T>(
 }
 
 #[inline(always)]
-fn convolution_by_u8<T>(
+pub(crate) fn convolution_by_u8<T>(
     src_image: &ImageView<T>,
     normalizer: &optimisations::Normalizer16,
     initial: i32,
