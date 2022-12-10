@@ -12,9 +12,8 @@ pub(crate) fn multiply_alpha(src_image: &ImageView<U16x4>, dst_image: &mut Image
 }
 
 pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        multiply_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        multiply_alpha_row_inplace(row);
     }
 }
 
@@ -24,6 +23,20 @@ pub(crate) fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
         let components: [u16; 4] = src_pixel.0;
         let alpha = components[3];
         dst_pixel.0 = [
+            mul_div_65535(components[0], alpha),
+            mul_div_65535(components[1], alpha),
+            mul_div_65535(components[2], alpha),
+            alpha,
+        ];
+    }
+}
+
+#[inline(always)]
+pub(crate) fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
+    for pixel in row {
+        let components: [u16; 4] = pixel.0;
+        let alpha = components[3];
+        pixel.0 = [
             mul_div_65535(components[0], alpha),
             mul_div_65535(components[1], alpha),
             mul_div_65535(components[2], alpha),
@@ -46,9 +59,8 @@ pub(crate) fn divide_alpha(src_image: &ImageView<U16x4>, dst_image: &mut ImageVi
 
 #[inline]
 pub(crate) fn divide_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        divide_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        divide_alpha_row_inplace(row);
     }
 }
 
@@ -68,4 +80,19 @@ pub(crate) fn divide_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
                 alpha,
             ];
         });
+}
+
+#[inline(always)]
+pub(crate) fn divide_alpha_row_inplace(row: &mut [U16x4]) {
+    row.iter_mut().for_each(|pixel| {
+        let components: [u16; 4] = pixel.0;
+        let alpha = components[3];
+        let recip_alpha = RECIP_ALPHA16[alpha as usize];
+        pixel.0 = [
+            div_and_clip16(components[0], recip_alpha),
+            div_and_clip16(components[1], recip_alpha),
+            div_and_clip16(components[2], recip_alpha),
+            alpha,
+        ];
+    });
 }

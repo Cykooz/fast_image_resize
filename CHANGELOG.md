@@ -2,7 +2,7 @@
 
 ### Crate
 
-- Improved speed of `MulDiv` implementation for `U8x2` and `U8x4` images.
+- Improved speed of `MulDiv` implementation for `U8x2`, `U8x4` and `U16x4` images.
 - Excluded possibility of unnecessary operations during resize 
   of cropped image by convolution algorithm.
 
