@@ -12,9 +12,8 @@ pub(crate) fn multiply_alpha(src_image: &ImageView<U8x2>, dst_image: &mut ImageV
 }
 
 pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x2>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        multiply_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        multiply_alpha_row_inplace(row);
     }
 }
 
@@ -24,6 +23,15 @@ pub(crate) fn multiply_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
         let components: [u8; 2] = src_pixel.0.to_le_bytes();
         let alpha = components[1];
         dst_pixel.0 = u16::from_le_bytes([mul_div_255(components[0], alpha), alpha]);
+    }
+}
+
+#[inline(always)]
+pub(crate) fn multiply_alpha_row_inplace(row: &mut [U8x2]) {
+    for pixel in row {
+        let components: [u8; 2] = pixel.0.to_le_bytes();
+        let alpha = components[1];
+        pixel.0 = u16::from_le_bytes([mul_div_255(components[0], alpha), alpha]);
     }
 }
 
