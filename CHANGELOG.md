@@ -7,6 +7,8 @@
   helps of `NEON SIMD` instructions.
 - Excluded possibility of unnecessary operations during resize 
   of cropped image by convolution algorithm.
+- Added implementation `From` trait to convert `ImageViewMut` into `ImageView`.
+- Added implementation `From` trait to convert `DynamicImageViewMut` into `DynamicImageView`.
 
 ## [2.3.0] - 2022-11-25
 
