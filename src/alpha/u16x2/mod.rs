@@ -7,6 +7,8 @@ use super::AlphaMulDiv;
 #[cfg(target_arch = "x86_64")]
 mod avx2;
 mod native;
+#[cfg(target_arch = "aarch64")]
+mod neon;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
 

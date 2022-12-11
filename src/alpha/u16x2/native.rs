@@ -12,9 +12,8 @@ pub(crate) fn multiply_alpha(src_image: &ImageView<U16x2>, dst_image: &mut Image
 }
 
 pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        multiply_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        multiply_alpha_row_inplace(row);
     }
 }
 
@@ -24,6 +23,15 @@ pub(crate) fn multiply_alpha_row(src_row: &[U16x2], dst_row: &mut [U16x2]) {
         let components: [u16; 2] = src_pixel.0;
         let alpha = components[1];
         dst_pixel.0 = [mul_div_65535(components[0], alpha), alpha];
+    }
+}
+
+#[inline(always)]
+pub(crate) fn multiply_alpha_row_inplace(row: &mut [U16x2]) {
+    for pixel in row {
+        let components: [u16; 2] = pixel.0;
+        let alpha = components[1];
+        pixel.0 = [mul_div_65535(components[0], alpha), alpha];
     }
 }
 
@@ -41,9 +49,8 @@ pub(crate) fn divide_alpha(src_image: &ImageView<U16x2>, dst_image: &mut ImageVi
 
 #[inline]
 pub(crate) fn divide_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
-    for dst_row in image.iter_rows_mut() {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        divide_alpha_row(src_row, dst_row);
+    for row in image.iter_rows_mut() {
+        divide_alpha_row_inplace(row);
     }
 }
 
@@ -58,4 +65,14 @@ pub(crate) fn divide_alpha_row(src_row: &[U16x2], dst_row: &mut [U16x2]) {
             let recip_alpha = RECIP_ALPHA16[alpha as usize];
             dst_pixel.0 = [div_and_clip16(components[0], recip_alpha), alpha];
         });
+}
+
+#[inline(always)]
+pub(crate) fn divide_alpha_row_inplace(row: &mut [U16x2]) {
+    for pixel in row {
+        let components: [u16; 2] = pixel.0;
+        let alpha = components[1];
+        let recip_alpha = RECIP_ALPHA16[alpha as usize];
+        pixel.0 = [div_and_clip16(components[0], recip_alpha), alpha];
+    }
 }

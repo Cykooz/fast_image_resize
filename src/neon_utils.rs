@@ -129,6 +129,16 @@ pub unsafe fn load_deintrel_u16x4x4<T>(buf: &[T], index: usize) -> uint16x4x4_t 
 }
 
 #[inline(always)]
+pub unsafe fn load_deintrel_u16x4x2<T>(buf: &[T], index: usize) -> uint16x4x2_t {
+    vld2_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
+pub unsafe fn load_deintrel_u16x8x2<T>(buf: &[T], index: usize) -> uint16x8x2_t {
+    vld2q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
+}
+
+#[inline(always)]
 pub unsafe fn load_deintrel_u16x8x3<T>(buf: &[T], index: usize) -> uint16x8x3_t {
     vld3q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
@@ -305,6 +315,23 @@ pub unsafe fn mul_color_to_alpha_u8x8(
     vqmovn_u16(res_u16)
 }
 
+#[inline(always)]
+pub unsafe fn multiply_color_to_alpha_u16x8(color: uint16x8_t, alpha: uint16x8_t) -> uint16x8_t {
+    let rounder = vdupq_n_u32(0x8000);
+    let color_lo_u32 = vmlal_u16(rounder, vget_low_u16(color), vget_low_u16(alpha));
+    let color_hi_u32 = vmlal_high_u16(rounder, color, alpha);
+    let color_lo_u16 = vaddhn_u32(color_lo_u32, vshrq_n_u32::<16>(color_lo_u32));
+    let color_hi_u16 = vaddhn_u32(color_hi_u32, vshrq_n_u32::<16>(color_hi_u32));
+    vcombine_u16(color_lo_u16, color_hi_u16)
+}
+
+#[inline(always)]
+pub unsafe fn multiply_color_to_alpha_u16x4(color: uint16x4_t, alpha: uint16x4_t) -> uint16x4_t {
+    let rounder = vdupq_n_u32(0x8000);
+    let color_u32 = vmlal_u16(rounder, color, alpha);
+    vaddhn_u32(color_u32, vshrq_n_u32::<16>(color_u32))
+}
+
 #[inline]
 #[target_feature(enable = "neon")]
 pub unsafe fn mul_color_recip_alpha_u8x16(
@@ -330,7 +357,6 @@ pub unsafe fn mul_color_recip_alpha_u8x8(
     let color_u16_lo = vreinterpret_u16_u8(vzip1_u8(zero, color));
     let color_u16_hi = vreinterpret_u16_u8(vzip2_u8(zero, color));
     let color_u16 = vcombine_u16(color_u16_lo, color_u16_hi);
-
     let res_u16 = mulhi_u16x8(color_u16, recip_alpha);
     vmovn_u16(res_u16)
 }

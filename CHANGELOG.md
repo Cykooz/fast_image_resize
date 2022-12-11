@@ -2,7 +2,9 @@
 
 ### Crate
 
-- Improved speed of `MulDiv` implementation for `U8x2`, `U8x4` and `U16x4` images.
+- Improved speed of `MulDiv` implementation for `U8x2`, `U8x4`, `U16x2` and `U16x4` images.
+- Added optimisation for processing `U16x2` images by `MulDiv` with
+  helps of `NEON SIMD` instructions.
 - Excluded possibility of unnecessary operations during resize 
   of cropped image by convolution algorithm.
 

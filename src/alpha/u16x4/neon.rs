@@ -41,9 +41,9 @@ unsafe fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
-            pixels.0 = multiply_color_to_alpha_u16x8(pixels.0, pixels.3);
-            pixels.1 = multiply_color_to_alpha_u16x8(pixels.1, pixels.3);
-            pixels.2 = multiply_color_to_alpha_u16x8(pixels.2, pixels.3);
+            pixels.0 = neon_utils::multiply_color_to_alpha_u16x8(pixels.0, pixels.3);
+            pixels.1 = neon_utils::multiply_color_to_alpha_u16x8(pixels.1, pixels.3);
+            pixels.2 = neon_utils::multiply_color_to_alpha_u16x8(pixels.2, pixels.3);
             vst4q_u16(dst_ptr, pixels);
         },
     );
@@ -55,9 +55,9 @@ unsafe fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
     let mut src_dst = src_chunks.zip(&mut dst_chunks);
     if let Some((src, dst)) = src_dst.next() {
         let mut pixels = neon_utils::load_deintrel_u16x4x4(src, 0);
-        pixels.0 = multiply_color_to_alpha_u16x4(pixels.0, pixels.3);
-        pixels.1 = multiply_color_to_alpha_u16x4(pixels.1, pixels.3);
-        pixels.2 = multiply_color_to_alpha_u16x4(pixels.2, pixels.3);
+        pixels.0 = neon_utils::multiply_color_to_alpha_u16x4(pixels.0, pixels.3);
+        pixels.1 = neon_utils::multiply_color_to_alpha_u16x4(pixels.1, pixels.3);
+        pixels.2 = neon_utils::multiply_color_to_alpha_u16x4(pixels.2, pixels.3);
         let dst_ptr = dst.as_mut_ptr() as *mut u16;
         vst4_u16(dst_ptr, pixels);
     }
@@ -79,9 +79,9 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
-            pixels.0 = multiply_color_to_alpha_u16x8(pixels.0, pixels.3);
-            pixels.1 = multiply_color_to_alpha_u16x8(pixels.1, pixels.3);
-            pixels.2 = multiply_color_to_alpha_u16x8(pixels.2, pixels.3);
+            pixels.0 = neon_utils::multiply_color_to_alpha_u16x8(pixels.0, pixels.3);
+            pixels.1 = neon_utils::multiply_color_to_alpha_u16x8(pixels.1, pixels.3);
+            pixels.2 = neon_utils::multiply_color_to_alpha_u16x8(pixels.2, pixels.3);
             vst4q_u16(dst_ptr, pixels);
         },
     );
@@ -90,9 +90,9 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
     let mut chunks = reminder.chunks_exact_mut(4);
     if let Some(chunk) = chunks.next() {
         let mut pixels = neon_utils::load_deintrel_u16x4x4(chunk, 0);
-        pixels.0 = multiply_color_to_alpha_u16x4(pixels.0, pixels.3);
-        pixels.1 = multiply_color_to_alpha_u16x4(pixels.1, pixels.3);
-        pixels.2 = multiply_color_to_alpha_u16x4(pixels.2, pixels.3);
+        pixels.0 = neon_utils::multiply_color_to_alpha_u16x4(pixels.0, pixels.3);
+        pixels.1 = neon_utils::multiply_color_to_alpha_u16x4(pixels.1, pixels.3);
+        pixels.2 = neon_utils::multiply_color_to_alpha_u16x4(pixels.2, pixels.3);
         let dst_ptr = chunk.as_mut_ptr() as *mut u16;
         vst4_u16(dst_ptr, pixels);
     }
@@ -101,23 +101,6 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
     if !reminder.is_empty() {
         native::multiply_alpha_row_inplace(reminder);
     }
-}
-
-#[inline(always)]
-unsafe fn multiply_color_to_alpha_u16x8(color: uint16x8_t, alpha: uint16x8_t) -> uint16x8_t {
-    let rounder = vdupq_n_u32(0x8000);
-    let color_lo_u32 = vmlal_u16(rounder, vget_low_u16(color), vget_low_u16(alpha));
-    let color_hi_u32 = vmlal_high_u16(rounder, color, alpha);
-    let color_lo_u32 = vaddhn_u32(color_lo_u32, vshrq_n_u32::<16>(color_lo_u32));
-    let color_hi_u32 = vaddhn_u32(color_hi_u32, vshrq_n_u32::<16>(color_hi_u32));
-    vcombine_u16(color_lo_u32, color_hi_u32)
-}
-
-#[inline(always)]
-unsafe fn multiply_color_to_alpha_u16x4(color: uint16x4_t, alpha: uint16x4_t) -> uint16x4_t {
-    let rounder = vdupq_n_u32(0x8000);
-    let color_u32 = vmlal_u16(rounder, color, alpha);
-    vaddhn_u32(color_u32, vshrq_n_u32::<16>(color_u32))
 }
 
 // Divide
