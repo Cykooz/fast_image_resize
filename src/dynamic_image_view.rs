@@ -213,3 +213,21 @@ pub fn change_type_of_pixel_components_dyn(
     );
     Ok(())
 }
+
+impl<'a> From<DynamicImageViewMut<'a>> for DynamicImageView<'a> {
+    fn from(dyn_view: DynamicImageViewMut<'a>) -> Self {
+        use DynamicImageViewMut::*;
+        match dyn_view {
+            U8(typed_view) => DynamicImageView::U8(typed_view.into()),
+            U8x2(typed_view) => DynamicImageView::U8x2(typed_view.into()),
+            U8x3(typed_view) => DynamicImageView::U8x3(typed_view.into()),
+            U8x4(typed_view) => DynamicImageView::U8x4(typed_view.into()),
+            U16(typed_view) => DynamicImageView::U16(typed_view.into()),
+            U16x2(typed_view) => DynamicImageView::U16x2(typed_view.into()),
+            U16x3(typed_view) => DynamicImageView::U16x3(typed_view.into()),
+            U16x4(typed_view) => DynamicImageView::U16x4(typed_view.into()),
+            I32(typed_view) => DynamicImageView::I32(typed_view.into()),
+            F32(typed_view) => DynamicImageView::F32(typed_view.into()),
+        }
+    }
+}

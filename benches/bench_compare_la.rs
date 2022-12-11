@@ -60,11 +60,12 @@ pub fn bench_downscale_la(bench: &mut Bench) {
                     }
                     _ => {
                         task.iter(|| {
+                            let mut premultiplied_view = premultiplied_src_image.view_mut();
                             mul_div
-                                .multiply_alpha(&src_view, &mut premultiplied_src_image.view_mut())
+                                .multiply_alpha(&src_view, &mut premultiplied_view)
                                 .unwrap();
                             fast_resizer
-                                .resize(&premultiplied_src_image.view(), &mut dst_view)
+                                .resize(&premultiplied_view.into(), &mut dst_view)
                                 .unwrap();
                             mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
                         });
