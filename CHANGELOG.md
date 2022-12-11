@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [2.4.0] - 2022-12-11
 
 ### Crate
 
