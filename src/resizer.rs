@@ -16,6 +16,8 @@ pub enum CpuExtensions {
     Avx2,
     #[cfg(target_arch = "aarch64")]
     Neon,
+    #[cfg(target_arch = "wasm32")]
+    Wasm32,
 }
 
 impl CpuExtensions {
@@ -28,6 +30,8 @@ impl CpuExtensions {
             Self::Sse4_1 => is_x86_feature_detected!("sse4.1"),
             #[cfg(target_arch = "aarch64")]
             Self::Neon => true,
+            #[cfg(target_arch = "wasm32")]
+            Self::Wasm32 => true,
             Self::None => true,
         }
     }
@@ -54,8 +58,16 @@ impl Default for CpuExtensions {
             Self::None
         }
     }
+    #[cfg(target_arch = "wasm32")]
+    fn default() -> Self {
+        Self::Wasm32
+    }
 
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    #[cfg(not(any(
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "wasm32"
+    )))]
     fn default() -> Self {
         Self::None
     }

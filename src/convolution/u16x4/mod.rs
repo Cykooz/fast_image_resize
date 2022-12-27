@@ -28,6 +28,10 @@ impl Convolution for U16x4 {
             CpuExtensions::Sse4_1 => sse4::horiz_convolution(src_image, dst_image, offset, coeffs),
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => neon::horiz_convolution(src_image, dst_image, offset, coeffs),
+            #[cfg(target_arch = "wasm32")]
+            CpuExtensions::Wasm32 => {
+                native::horiz_convolution(src_image, dst_image, offset, coeffs)
+            }
             _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
         }
     }
