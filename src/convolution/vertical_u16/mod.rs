@@ -10,6 +10,8 @@ pub(crate) mod native;
 mod neon;
 #[cfg(target_arch = "x86_64")]
 pub(crate) mod sse4;
+#[cfg(target_arch = "wasm32")]
+pub(crate) mod wasm32;
 
 pub(crate) fn vert_convolution_u16<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
@@ -30,7 +32,7 @@ pub(crate) fn vert_convolution_u16<T: PixelExt<Component = u16>>(
         #[cfg(target_arch = "aarch64")]
         CpuExtensions::Neon => neon::vert_convolution(src_image, dst_image, offset, coeffs),
         #[cfg(target_arch = "wasm32")]
-        CpuExtensions::Wasm32 => native::vert_convolution(src_image, dst_image, offset, coeffs),
+        CpuExtensions::Wasm32 => wasm32::vert_convolution(src_image, dst_image, offset, coeffs),
         _ => native::vert_convolution(src_image, dst_image, offset, coeffs),
     }
 }

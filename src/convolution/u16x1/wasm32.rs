@@ -4,10 +4,6 @@ use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::U16;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
-/*
-use std::fs;
-use std::path::Path;
-*/
 
 #[inline]
 pub(crate) fn horiz_convolution(
@@ -47,7 +43,6 @@ pub(crate) fn horiz_convolution(
 /// - length of all rows in dst_rows must be equal
 /// - coefficients_chunks.len() == dst_rows.0.len()
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
-#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_four_rows(
     src_rows: [&[U16]; 4],
     dst_rows: [&mut &mut [U16]; 4],
@@ -63,28 +58,28 @@ unsafe fn horiz_convolution_four_rows(
         |0001| |0203| |0405| |0607| |0809| |1011| |1213| |1415|
 
         Shuffle to extract L0 and L1 as i64:
-        -1, -1, -1, -1, -1, -1, 3, 2, -1, -1, -1, -1, -1, -1, 1, 0
+        0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L2 and L3 as i64:
-        -1, -1, -1, -1, -1, -1, 7, 6, -1, -1, -1, -1, -1, -1, 5, 4
+        4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L4 and L5 as i64:
-        -1, -1, -1, -1, -1, -1, 11, 10, -1, -1, -1, -1, -1, -1, 9, 8
+        8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L6 and L7 as i64:
-        -1, -1, -1, -1, -1, -1, 15, 14, -1, -1, -1, -1, -1, -1, 13, 12
+        12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1
     */
 
-    let l0l1_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 3, 2, -1, -1, -1, -1, -1, -1, 1, 0);
-    let l2l3_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 7, 6, -1, -1, -1, -1, -1, -1, 5, 4);
-    let l4l5_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 11, 10, -1, -1, -1, -1, -1, -1, 9, 8);
+    let l0l1_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    let l2l3_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
+    let l4l5_shuffle = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
     let l6l7_shuffle = i8x16(
-        -1, -1, -1, -1, -1, -1, 15, 14, -1, -1, -1, -1, -1, -1, 13, 12,
+        12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
-        let mut ll_sum: [v128; 4] = [i64x2(0i64, 0i64); 4];
+        let mut ll_sum: [v128; 4] = [i64x2_splat(0i64); 4];
 
         let mut coeffs = coeffs_chunk.values;
 
@@ -174,20 +169,12 @@ unsafe fn horiz_convolution_four_rows(
 /// - bounds.len() == dst_row.len()
 /// - coefficients_chunks.len() == dst_row.len()
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
-#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_one_row(
     src_row: &[U16],
     dst_row: &mut [U16],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
     normalizer: &optimisations::Normalizer32,
 ) {
-    /*
-    let file = "wasm32";
-    let file_exists = Path::new(file).exists();
-    if file_exists {
-        fs::write(file, format!("src_row: {:?}", src_row)).unwrap();
-    }
-    */
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
     let mut ll_buf = [0i64; 2];
@@ -197,28 +184,28 @@ unsafe fn horiz_convolution_one_row(
         |0001| |0203| |0405| |0607| |0809| |1011| |1213| |1415|
 
         Shuffle to extract L0 and L1 as i64:
-        -1, -1, -1, -1, -1, -1, 0, 1, -1, -1, -1, -1, -1, -1, 2, 3
+        0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L2 and L3 as i64:
-        -1, -1, -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 6, 7
+        4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L4 and L5 as i64:
-        -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11
+        8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1
 
         Shuffle to extract L6 and L7 as i64:
-        -1, -1, -1, -1, -1, -1, 12, 13, -1, -1, -1, -1, -1, -1, 14, 15
+        12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1
     */
 
-    let l01_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 0, 1, -1, -1, -1, -1, -1, -1, 0, 1);
-    let l23_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 6, 7);
-    let l45_shuffle = i8x16(-1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1, 10, 11);
+    let l01_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    let l23_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
+    let l45_shuffle = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
     let l67_shuffle = i8x16(
-        -1, -1, -1, -1, -1, -1, 12, 13, -1, -1, -1, -1, -1, -1, 14, 15,
+        12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
-        let mut ll_sum = i64x2(0, 0);
+        let mut ll_sum = i64x2_splat(0);
         let mut coeffs = coeffs_chunk.values;
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
@@ -281,7 +268,7 @@ unsafe fn horiz_convolution_one_row(
         if let Some(&k) = coeffs.first() {
             let coeff01_i64x2 = i64x2(k as i64, 0);
             let pixel = (*src_row.get_unchecked(x)).0 as i64;
-            let source = i64x2(0, pixel);
+            let source = i64x2(pixel, 0);
             ll_sum = i64x2_add(ll_sum, i64x2_mul(source, coeff01_i64x2));
         }
 
@@ -289,9 +276,4 @@ unsafe fn horiz_convolution_one_row(
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = normalizer.clip(ll_buf[0] + ll_buf[1] + half_error);
     }
-    /*
-    if file_exists {
-        fs::write(file, format!("dst_row: {:?}", dst_row)).unwrap();
-    }
-    */
 }

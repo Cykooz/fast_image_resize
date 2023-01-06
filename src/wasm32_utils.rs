@@ -30,21 +30,11 @@ pub unsafe fn loadl_i16<T>(buf: &[T], index: usize) -> v128 {
 }
 
 #[inline(always)]
-pub fn i8x16_shuffle(a: v128, b: v128) -> v128 {
-    u8x16_swizzle(a, v128_and(b, i8x16_splat(-113)))
-}
-
-#[inline(always)]
 pub unsafe fn ptr_i16_to_set1_i64(buf: &[i16], index: usize) -> v128 {
-    i64x2(*(buf.get_unchecked(index..).as_ptr() as *const i64), 0)
+    i64x2_splat(*(buf.get_unchecked(index..).as_ptr() as *const i64))
 }
 
 #[inline(always)]
 pub unsafe fn ptr_i16_to_set1_i32(buf: &[i16], index: usize) -> v128 {
-    i32x4(
-        *(buf.get_unchecked(index..).as_ptr() as *const i32),
-        0,
-        0,
-        0,
-    )
+    i32x4_splat(*(buf.get_unchecked(index..).as_ptr() as *const i32))
 }
