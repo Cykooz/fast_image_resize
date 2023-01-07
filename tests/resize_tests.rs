@@ -376,6 +376,10 @@ fn downscale_u8() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -400,6 +404,10 @@ fn upscale_u8() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -423,6 +431,10 @@ fn downscale_u8x2() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -452,6 +464,10 @@ fn upscale_u8x2() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -479,6 +495,10 @@ fn downscale_u8x3() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -508,6 +528,10 @@ fn upscale_u8x3() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -535,6 +559,10 @@ fn downscale_u8x4() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -569,6 +597,10 @@ fn upscale_u8x4() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(

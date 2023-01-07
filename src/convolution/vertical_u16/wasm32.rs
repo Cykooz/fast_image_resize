@@ -6,8 +6,6 @@ use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::PixelExt;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
-use std::fs;
-use std::path::Path;
 
 pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     src_image: &ImageView<T>,
@@ -34,9 +32,6 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
     coeffs_chunk: CoefficientsI32Chunk,
     normalizer: &optimisations::Normalizer32,
 ) {
-    let file = "vwasm32";
-    let mut debugout = String::new();
-    let file_exists = Path::new(file).exists();
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
@@ -115,13 +110,6 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         for x in 0..2 {
             for sum in sums {
                 v128_store((&mut c_buf).as_mut_ptr() as *mut v128, sum[x]);
-                if !file_exists {
-                    debugout += &format!(
-                        "119: {:?} {:?}\n",
-                        i64x2_extract_lane::<0>(sum[x]),
-                        i64x2_extract_lane::<1>(sum[x])
-                    );
-                }
                 *dst_ptr = normalizer.clip(c_buf[0]);
                 dst_ptr = dst_ptr.add(1);
                 *dst_ptr = normalizer.clip(c_buf[1]);
@@ -176,13 +164,6 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
             // sums[i] = _mm_srl_epi64(sums[i] , precision_i64);
             // _mm_packus_epi32(sums[i] , sums[i] );
             v128_store((&mut c_buf).as_mut_ptr() as *mut v128, sum);
-            if !file_exists {
-                debugout += &format!(
-                    "176: {:?} {:?}\n",
-                    i64x2_extract_lane::<0>(sum),
-                    i64x2_extract_lane::<1>(sum)
-                );
-            }
             *dst_ptr = normalizer.clip(c_buf[0]);
             dst_ptr = dst_ptr.add(1);
             *dst_ptr = normalizer.clip(c_buf[1]);
@@ -231,33 +212,16 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
 
         let mut dst_ptr = dst_chunk.as_mut_ptr();
         v128_store((&mut c_buf).as_mut_ptr() as *mut v128, c01);
-        if !file_exists {
-            debugout += &format!(
-                "227: {:?} {:?}\n",
-                i64x2_extract_lane::<0>(c01),
-                i64x2_extract_lane::<1>(c01)
-            );
-        }
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);
         dst_ptr = dst_ptr.add(1);
         v128_store((&mut c_buf).as_mut_ptr() as *mut v128, c23);
-        if !file_exists {
-            debugout += &format!(
-                "236: {:?} {:?}\n",
-                i64x2_extract_lane::<0>(c23),
-                i64x2_extract_lane::<1>(c23)
-            );
-        }
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);
 
         src_x += 4;
-    }
-    if !file_exists {
-        fs::write(file, debugout).unwrap();
     }
 
     dst_u16 = dst_chunks_4.into_remainder();
