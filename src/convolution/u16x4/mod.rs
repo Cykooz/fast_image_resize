@@ -12,6 +12,8 @@ mod native;
 mod neon;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
+#[cfg(target_arch = "wasm32")]
+mod wasm32;
 
 impl Convolution for U16x4 {
     fn horiz_convolution(
@@ -30,7 +32,7 @@ impl Convolution for U16x4 {
             CpuExtensions::Neon => neon::horiz_convolution(src_image, dst_image, offset, coeffs),
             #[cfg(target_arch = "wasm32")]
             CpuExtensions::Wasm32 => {
-                native::horiz_convolution(src_image, dst_image, offset, coeffs)
+                wasm32::horiz_convolution(src_image, dst_image, offset, coeffs)
             }
             _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),
         }
