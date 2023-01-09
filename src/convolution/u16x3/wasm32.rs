@@ -71,9 +71,9 @@ unsafe fn horiz_convolution_8u4x(
 
     */
 
-    let rg0_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
-    let rg1_shuffle = i8x16(6, 7, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1);
-    let bb_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
+    const RG0_SHUFFLE: v128 = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    const RG1_SHUFFLE: v128 = i8x16(6, 7, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1);
+    const BB_SHUFFLE: v128 = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
 
     let width = src_rows[0].len();
 
@@ -97,13 +97,13 @@ unsafe fn horiz_convolution_8u4x(
                 for i in 0..4 {
                     let source = wasm32_utils::load_v128(src_rows[i], x);
 
-                    let rg0_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+                    let rg0_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
                     rg_sum[i] = i64x2_add(rg_sum[i], i64x2_mul(rg0_i64x2, coeff0_i64x2));
 
-                    let rg1_i64x2 = i8x16_swizzle(source, rg1_shuffle);
+                    let rg1_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
                     rg_sum[i] = i64x2_add(rg_sum[i], i64x2_mul(rg1_i64x2, coeff1_i64x2));
 
-                    let bb_i64x2 = i8x16_swizzle(source, bb_shuffle);
+                    let bb_i64x2 = i8x16_swizzle(source, BB_SHUFFLE);
                     bb_sum[i] = i64x2_add(bb_sum[i], i64x2_mul(bb_i64x2, coeff_i64x2));
                 }
                 x += 2;
@@ -164,9 +164,9 @@ unsafe fn horiz_convolution_8u(
 
     */
 
-    let rg0_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
-    let rg1_shuffle = i8x16(6, 7, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1);
-    let bb_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
+    const RG0_SHUFFLE: v128 = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    const RG1_SHUFFLE: v128 = i8x16(6, 7, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1, -1, -1);
+    const BB_SHUFFLE: v128 = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
     let mut rg_buf = [0i64; 2];
     let mut bb_buf = [0i64; 2];
 
@@ -192,13 +192,13 @@ unsafe fn horiz_convolution_8u(
 
                 let source = wasm32_utils::load_v128(src_row, x);
 
-                let rg0_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+                let rg0_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
                 rg_sum = i64x2_add(rg_sum, i64x2_mul(rg0_i64x2, coeff0_i64x2));
 
-                let rg1_i64x2 = i8x16_swizzle(source, rg1_shuffle);
+                let rg1_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
                 rg_sum = i64x2_add(rg_sum, i64x2_mul(rg1_i64x2, coeff1_i64x2));
 
-                let bb_i64x2 = i8x16_swizzle(source, bb_shuffle);
+                let bb_i64x2 = i8x16_swizzle(source, BB_SHUFFLE);
                 bb_sum = i64x2_add(bb_sum, i64x2_mul(bb_i64x2, coeff_i64x2));
                 x += 2;
             }

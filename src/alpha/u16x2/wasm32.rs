@@ -82,9 +82,9 @@ unsafe fn multiplies_alpha_4_pixels(pixels: v128) -> v128 {
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
     */
-    let factor_mask = i8x16(2, 3, 2, 3, 6, 7, 6, 7, 10, 11, 10, 11, 14, 15, 14, 15);
+    const FACTOR_MASK: v128 = i8x16(2, 3, 2, 3, 6, 7, 6, 7, 10, 11, 10, 11, 14, 15, 14, 15);
 
-    let factor_pixels = u8x16_swizzle(pixels, factor_mask);
+    let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
     let src_i32_lo = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero);
@@ -196,12 +196,12 @@ unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
     */
-    let alpha32_sh = i8x16(2, 3, -1, -1, 6, 7, -1, -1, 10, 11, -1, -1, 14, 15, -1, -1);
+    const ALPHA32_SH: v128 = i8x16(2, 3, -1, -1, 6, 7, -1, -1, 10, 11, -1, -1, 14, 15, -1, -1);
 
-    let alpha_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, alpha32_sh));
+    let alpha_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH));
     let luma_f32x4 = f32x4_convert_i32x4(v128_and(pixels, luma_mask));
     let scaled_luma_f32x4 = f32x4_mul(luma_f32x4, alpha_max);
-    let divided_luma_u32x4 = u32x4_trunc_sat_f32x4(f32x4_min(
+    let divided_luma_u32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(scaled_luma_f32x4, alpha_f32x4),
         alpha_scale_max,
     ));

@@ -81,9 +81,9 @@ unsafe fn multiply_alpha_2_pixels(pixels: v128) -> v128 {
        |R0   G0   B0   A0  | |R1   G1   B1   A1  |
        |0001 0203 0405 0607| |0809 1011 1213 1415|
     */
-    let factor_mask = i8x16(6, 7, 6, 7, 6, 7, 6, 7, 14, 15, 14, 15, 14, 15, 14, 15);
+    const FACTOR_MASK: v128 = i8x16(6, 7, 6, 7, 6, 7, 6, 7, 14, 15, 14, 15, 14, 15, 14, 15);
 
-    let factor_pixels = u8x16_swizzle(pixels, factor_mask);
+    let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
     let src_i32_lo = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero);
@@ -191,13 +191,13 @@ unsafe fn divide_alpha_2_pixels(pixels: v128) -> v128 {
        |R0   G0   B0   A0  | |R1   G1   B1   A1  |
        |0001 0203 0405 0607| |0809 1011 1213 1415|
     */
-    let alpha32_sh0 = i8x16(6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1);
-    let alpha32_sh1 = i8x16(
+    const ALPHA32_SH0: v128 = i8x16(6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1);
+    const ALPHA32_SH1: v128 = i8x16(
         14, 15, -1, -1, 14, 15, -1, -1, 14, 15, -1, -1, 14, 15, -1, -1,
     );
 
-    let alpha0_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, alpha32_sh0));
-    let alpha1_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, alpha32_sh1));
+    let alpha0_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH0));
+    let alpha1_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH1));
 
     let pix0_f32x4 = f32x4_convert_i32x4(i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero));
     let pix1_f32x4 = f32x4_convert_i32x4(i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero));
@@ -205,11 +205,11 @@ unsafe fn divide_alpha_2_pixels(pixels: v128) -> v128 {
     let scaled_pix0_f32x4 = f32x4_mul(pix0_f32x4, alpha_max);
     let scaled_pix1_f32x4 = f32x4_mul(pix1_f32x4, alpha_max);
 
-    let divided_pix0_i32x4 = u32x4_trunc_sat_f32x4(f32x4_min(
+    let divided_pix0_i32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(scaled_pix0_f32x4, alpha0_f32x4),
         alpha_scale_max,
     ));
-    let divided_pix1_i32x4 = u32x4_trunc_sat_f32x4(f32x4_min(
+    let divided_pix1_i32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(scaled_pix1_f32x4, alpha1_f32x4),
         alpha_scale_max,
     ));

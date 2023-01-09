@@ -70,7 +70,7 @@ unsafe fn horiz_convolution_8u4x(
         R: |-1 03| |-1 00|
     */
     #[rustfmt::skip]
-    let sh_lo = i8x16(
+    const SH_LO: v128 = i8x16(
         0, -1, 3, -1, 1, -1, 4, -1, 2, -1, 5, -1, -1, -1, -1, -1
     );
     /*
@@ -80,7 +80,7 @@ unsafe fn horiz_convolution_8u4x(
         R: |-1 09| |-1 06|
     */
     #[rustfmt::skip]
-    let sh_hi = i8x16(
+    const SH_HI: v128 = i8x16(
         6, -1, 9, -1, 7, -1, 10, -1, 8, -1, 11, -1, -1, -1, -1, -1
     );
 
@@ -104,10 +104,10 @@ unsafe fn horiz_convolution_8u4x(
                 let mmk1 = wasm32_utils::ptr_i16_to_set1_i32(k, 2);
                 for i in 0..4 {
                     let source = wasm32_utils::load_v128(src_rows[i], x);
-                    let pix = i8x16_swizzle(source, sh_lo);
+                    let pix = i8x16_swizzle(source, SH_LO);
                     let mut sss = sss_a[i];
                     sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk0));
-                    let pix = i8x16_swizzle(source, sh_hi);
+                    let pix = i8x16_swizzle(source, SH_HI);
                     sss_a[i] = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk1));
                 }
 
@@ -131,7 +131,7 @@ unsafe fn horiz_convolution_8u4x(
 
                 for i in 0..4 {
                     let source = wasm32_utils::loadl_i64(src_rows[i], x);
-                    let pix = i8x16_swizzle(source, sh_lo);
+                    let pix = i8x16_swizzle(source, SH_LO);
                     sss_a[i] = i32x4_add(sss_a[i], i32x4_dot_i16x8(pix, mmk));
                 }
 
@@ -184,19 +184,19 @@ unsafe fn horiz_convolution_8u(
     precision: u8,
 ) {
     #[rustfmt::skip]
-    let pix_sh1 = i8x16(
+    const PIX_SH1: v128 = i8x16(
         0, -1, 3, -1, 1, -1, 4, -1, 2, -1, 5, -1, -1, -1, -1, -1
     );
     #[rustfmt::skip]
-    let coef_sh1 = i8x16(
+    const COEF_SH1: v128 = i8x16(
         0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3
     );
     #[rustfmt::skip]
-    let pix_sh2 = i8x16(
+    const PIX_SH2: v128 = i8x16(
         6, -1, 9, -1, 7, -1, 10, -1, 8, -1, 11, -1, -1, -1, -1, -1
     );
     #[rustfmt::skip]
-    let coef_sh2 = i8x16(
+    const COEF_SH2: v128 = i8x16(
         4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7
     );
     /*
@@ -231,12 +231,12 @@ unsafe fn horiz_convolution_8u(
                 let ksource = wasm32_utils::loadl_i64(k, 0);
                 let source = wasm32_utils::load_v128(src_row, x);
 
-                let pix = i8x16_swizzle(source, pix_sh1);
-                let mmk = i8x16_swizzle(ksource, coef_sh1);
+                let pix = i8x16_swizzle(source, PIX_SH1);
+                let mmk = i8x16_swizzle(ksource, COEF_SH1);
                 sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk));
 
-                let pix = i8x16_swizzle(source, pix_sh2);
-                let mmk = i8x16_swizzle(ksource, coef_sh2);
+                let pix = i8x16_swizzle(source, PIX_SH2);
+                let mmk = i8x16_swizzle(ksource, COEF_SH2);
                 sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk));
 
                 x += 4;
@@ -257,7 +257,7 @@ unsafe fn horiz_convolution_8u(
             for k in coeffs_by_2 {
                 let mmk = wasm32_utils::ptr_i16_to_set1_i32(k, 0);
                 let source = wasm32_utils::loadl_i64(src_row, x);
-                let pix = i8x16_swizzle(source, pix_sh1);
+                let pix = i8x16_swizzle(source, PIX_SH1);
                 sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk));
 
                 x += 2;

@@ -75,9 +75,9 @@ unsafe fn multiplies_alpha_8_pixels(pixels: v128) -> v128 {
        |L  A | |L  A | |L  A | |L  A | |L  A | |L  A | |L  A | |L  A |
        |00 01| |02 03| |04 05| |06 07| |08 09| |10 11| |12 13| |14 15|
     */
-    let factor_mask = i8x16(1, 1, 3, 3, 5, 5, 7, 7, 9, 9, 11, 11, 13, 13, 15, 15);
+    const FACTOR_MASK: v128 = i8x16(1, 1, 3, 3, 5, 5, 7, 7, 9, 9, 11, 11, 13, 13, 15, 15);
 
-    let factor_pixels = i8x16_swizzle(pixels, factor_mask);
+    let factor_pixels = i8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
     let src_i16_lo =
@@ -196,8 +196,8 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U8x2]) {
 unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
     let alpha_mask = i16x8_splat(0xff00u16 as i16);
     let luma_mask = i16x8_splat(0xff);
-    let alpha32_sh_lo = i8x16(1, -1, -1, -1, 3, -1, -1, -1, 5, -1, -1, -1, 7, -1, -1, -1);
-    let alpha32_sh_hi = i8x16(
+    const ALPHA32_SH_LO: v128 = i8x16(1, -1, -1, -1, 3, -1, -1, -1, 5, -1, -1, -1, 7, -1, -1, -1);
+    const ALPHA32_SH_HI: v128 = i8x16(
         9, -1, -1, -1, 11, -1, -1, -1, 13, -1, -1, -1, 15, -1, -1, -1,
     );
     let alpha_scale = f32x4_splat(255.0 * 256.0);
@@ -207,15 +207,15 @@ unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
     // and other potential test cases will (probably?) break.
     let alpha_scale_max = f32x4_splat(2147483648f32);
 
-    let alpha_lo_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_lo));
+    let alpha_lo_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, ALPHA32_SH_LO));
     // trunc_sat will always round down. Adding f32x4_nearest would match _mm_cvtps_ep32 exactly,
     // but would add extra instructions.
-    let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_min(
+    let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(alpha_scale, alpha_lo_f32),
         alpha_scale_max,
     ));
-    let alpha_hi_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_hi));
-    let scaled_alpha_hi_u32 = u32x4_trunc_sat_f32x4(f32x4_min(
+    let alpha_hi_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, ALPHA32_SH_HI));
+    let scaled_alpha_hi_u32 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(alpha_scale, alpha_hi_f32),
         alpha_scale_max,
     ));

@@ -72,10 +72,10 @@ unsafe fn horiz_convolution_four_rows(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1
     */
 
-    let rg0_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
-    let rg1_shuffle = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
-    let ba0_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
-    let ba1_shuffle = i8x16(
+    const RG0_SHUFFLE: v128 = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    const RG1_SHUFFLE: v128 = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
+    const BA0_SHUFFLE: v128 = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
+    const BA1_SHUFFLE: v128 = i8x16(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
@@ -96,16 +96,16 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 let source = wasm32_utils::load_v128(src_rows[i], x);
                 let mut sum = rg_sum[i];
-                let rg_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+                let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
                 sum = i64x2_add(sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
-                let rg_i64x2 = i8x16_swizzle(source, rg1_shuffle);
+                let rg_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
                 sum = i64x2_add(sum, i64x2_mul(rg_i64x2, coeff1_i64x2));
                 rg_sum[i] = sum;
 
                 let mut sum = ba_sum[i];
-                let ba_i64x2 = i8x16_swizzle(source, ba0_shuffle);
+                let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
                 sum = i64x2_add(sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
-                let ba_i64x2 = i8x16_swizzle(source, ba1_shuffle);
+                let ba_i64x2 = i8x16_swizzle(source, BA1_SHUFFLE);
                 sum = i64x2_add(sum, i64x2_mul(ba_i64x2, coeff1_i64x2));
                 ba_sum[i] = sum;
             }
@@ -116,9 +116,9 @@ unsafe fn horiz_convolution_four_rows(
             let coeff0_i64x2 = i64x2_splat(k as i64);
             for i in 0..4 {
                 let source = wasm32_utils::loadl_i64(src_rows[i], x);
-                let rg_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+                let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
                 rg_sum[i] = i64x2_add(rg_sum[i], i64x2_mul(rg_i64x2, coeff0_i64x2));
-                let ba_i64x2 = i8x16_swizzle(source, ba0_shuffle);
+                let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
                 ba_sum[i] = i64x2_add(ba_sum[i], i64x2_mul(ba_i64x2, coeff0_i64x2));
             }
         }
@@ -171,10 +171,10 @@ unsafe fn horiz_convolution_one_row(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1
     */
 
-    let rg0_shuffle = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
-    let rg1_shuffle = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
-    let ba0_shuffle = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
-    let ba1_shuffle = i8x16(
+    const RG0_SHUFFLE: v128 = i8x16(0, 1, -1, -1, -1, -1, -1, -1, 2, 3, -1, -1, -1, -1, -1, -1);
+    const RG1_SHUFFLE: v128 = i8x16(8, 9, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1, -1, -1, -1, -1);
+    const BA0_SHUFFLE: v128 = i8x16(4, 5, -1, -1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
+    const BA1_SHUFFLE: v128 = i8x16(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
@@ -193,14 +193,14 @@ unsafe fn horiz_convolution_one_row(
 
             let source = wasm32_utils::load_v128(src_row, x);
 
-            let rg_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+            let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
             rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
-            let rg_i64x2 = i8x16_swizzle(source, rg1_shuffle);
+            let rg_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
             rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff1_i64x2));
 
-            let ba_i64x2 = i8x16_swizzle(source, ba0_shuffle);
+            let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
             ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
-            let ba_i64x2 = i8x16_swizzle(source, ba1_shuffle);
+            let ba_i64x2 = i8x16_swizzle(source, BA1_SHUFFLE);
             ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff1_i64x2));
 
             x += 2;
@@ -209,9 +209,9 @@ unsafe fn horiz_convolution_one_row(
         if let Some(&k) = coeffs.first() {
             let coeff0_i64x2 = i64x2_splat(k as i64);
             let source = wasm32_utils::loadl_i64(src_row, x);
-            let rg_i64x2 = i8x16_swizzle(source, rg0_shuffle);
+            let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
             rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
-            let ba_i64x2 = i8x16_swizzle(source, ba0_shuffle);
+            let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
             ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
         }
 

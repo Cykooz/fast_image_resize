@@ -70,12 +70,12 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
 unsafe fn multiply_alpha_4_pixels(pixels: v128) -> v128 {
     let zero = i64x2_splat(0);
     let half = i16x8_splat(128);
+    let max_alpha = i32x4_splat(MAX_A);
 
     const MAX_A: i32 = 0xff000000u32 as i32;
-    let max_alpha = i32x4_splat(MAX_A);
-    let factor_mask = i8x16(3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
+    const FACTOR_MASK: v128 = i8x16(3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
 
-    let factor_pixels = u8x16_swizzle(pixels, factor_mask);
+    let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
     let pix1 =
@@ -193,16 +193,16 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
 unsafe fn divide_alpha_4_pixels(src_pixels: v128) -> v128 {
     let zero = i64x2_splat(0);
     let alpha_mask = i32x4_splat(0xff000000u32 as i32);
-    let shuffle1 = i8x16(0, 1, 0, 1, 0, 1, 0, 1, 4, 5, 4, 5, 4, 5, 4, 5);
-    let shuffle2 = i8x16(8, 9, 8, 9, 8, 9, 8, 9, 12, 13, 12, 13, 12, 13, 12, 13);
+    const SHUFFLE1: v128 = i8x16(0, 1, 0, 1, 0, 1, 0, 1, 4, 5, 4, 5, 4, 5, 4, 5);
+    const SHUFFLE2: v128 = i8x16(8, 9, 8, 9, 8, 9, 8, 9, 12, 13, 12, 13, 12, 13, 12, 13);
     let alpha_scale = f32x4_splat(255.0 * 256.0);
     let alpha_scale_max = f32x4_splat(2147483648f32);
 
     let alpha_f32 = f32x4_convert_i32x4(u32x4_shr(src_pixels, 24));
     let scaled_alpha_f32 = f32x4_div(alpha_scale, alpha_f32);
-    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_min(scaled_alpha_f32, alpha_scale_max));
-    let mma0 = u8x16_swizzle(scaled_alpha_u32, shuffle1);
-    let mma1 = u8x16_swizzle(scaled_alpha_u32, shuffle2);
+    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_pmin(scaled_alpha_f32, alpha_scale_max));
+    let mma0 = u8x16_swizzle(scaled_alpha_u32, SHUFFLE1);
+    let mma1 = u8x16_swizzle(scaled_alpha_u32, SHUFFLE2);
 
     let pix0 =
         u8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(zero, src_pixels);
