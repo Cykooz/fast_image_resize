@@ -203,6 +203,10 @@ fn resize_to_same_width_after_cropping() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         if !cpu_extensions.is_supported() {
             continue;

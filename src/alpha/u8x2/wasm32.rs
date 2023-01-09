@@ -3,8 +3,6 @@ use std::arch::wasm32::*;
 use crate::pixels::U8x2;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
-use std::fs;
-use std::path::Path;
 
 use super::native;
 
@@ -128,9 +126,6 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
     let src_remainder = src_chunks.remainder();
     let mut dst_chunks = dst_row.chunks_exact_mut(8);
     let src_dst = src_chunks.zip(&mut dst_chunks);
-    let file = "wasm32";
-    let mut debugout = String::new();
-    let file_exists = Path::new(file).exists();
     foreach_with_pre_reading(
         src_dst,
         |(src, dst)| {
@@ -140,13 +135,6 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
         },
         |(mut pixels, dst_ptr)| {
             pixels = divide_alpha_8_pixels(pixels);
-            if !file_exists {
-                debugout += &format!(
-                    "142: {:?} {:?}\n",
-                    i64x2_extract_lane::<0>(pixels),
-                    i64x2_extract_lane::<1>(pixels)
-                );
-            }
             v128_store(dst_ptr, pixels);
         },
     );
@@ -162,22 +150,12 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
         let mut dst_pixels = [U8x2::new(0); 8];
         let mut pixels = v128_load(src_pixels.as_ptr() as *const v128);
         pixels = divide_alpha_8_pixels(pixels);
-        if !file_exists {
-            debugout += &format!(
-                "164: {:?} {:?}\n",
-                i64x2_extract_lane::<0>(pixels),
-                i64x2_extract_lane::<1>(pixels)
-            );
-        }
         v128_store(dst_pixels.as_mut_ptr() as *mut v128, pixels);
 
         dst_pixels
             .iter()
             .zip(dst_reminder)
             .for_each(|(s, d)| *d = *s);
-    }
-    if !file_exists {
-        fs::write(file, debugout).unwrap();
     }
 }
 
@@ -223,17 +201,24 @@ unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
         9, -1, -1, -1, 11, -1, -1, -1, 13, -1, -1, -1, 15, -1, -1, -1,
     );
     let alpha_scale = f32x4_splat(255.0 * 256.0);
-    // Tests pass without capping inf from dividing by zero, but scaled values will not match sse4.
-    let alpha_max = f32x4_splat(2147483648f32);
+    // sse4 _mm_cvtps_ep32 converts inf to i32::MIN or 2147483648f32 u32.
+    // wasm32 u32x4_trunc_sat_f32x4 converts inf to u32::MAX.
+    // Tests pass without capping inf from dividing by zero, but scaled values will not match sse4,
+    // and other potential test cases will (probably?) break.
+    let alpha_scale_max = f32x4_splat(2147483648f32);
 
     let alpha_lo_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_lo));
     // trunc_sat will always round down. Adding f32x4_nearest would match _mm_cvtps_ep32 exactly,
     // but would add extra instructions.
-    let scaled_alpha_lo_u32 =
-        u32x4_trunc_sat_f32x4(f32x4_min(f32x4_div(alpha_scale, alpha_lo_f32), alpha_max));
+    let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_min(
+        f32x4_div(alpha_scale, alpha_lo_f32),
+        alpha_scale_max,
+    ));
     let alpha_hi_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_hi));
-    let scaled_alpha_hi_u32 =
-        u32x4_trunc_sat_f32x4(f32x4_min(f32x4_div(alpha_scale, alpha_hi_f32), alpha_max));
+    let scaled_alpha_hi_u32 = u32x4_trunc_sat_f32x4(f32x4_min(
+        f32x4_div(alpha_scale, alpha_hi_f32),
+        alpha_scale_max,
+    ));
     let scaled_alpha_u16 = u16x8_narrow_i32x4(scaled_alpha_lo_u32, scaled_alpha_hi_u32);
 
     let luma_u16 = v128_and(pixels, luma_mask);

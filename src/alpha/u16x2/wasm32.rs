@@ -191,6 +191,7 @@ unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
     let alpha_mask = i32x4_splat(0xffff0000u32 as i32);
     let luma_mask = i32x4_splat(0xffff);
     let alpha_max = f32x4_splat(65535.0);
+    let alpha_scale_max = f32x4_splat(2147483648f32);
     /*
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
@@ -200,7 +201,10 @@ unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
     let alpha_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, alpha32_sh));
     let luma_f32x4 = f32x4_convert_i32x4(v128_and(pixels, luma_mask));
     let scaled_luma_f32x4 = f32x4_mul(luma_f32x4, alpha_max);
-    let divided_luma_u32x4 = u32x4_trunc_sat_f32x4(f32x4_div(scaled_luma_f32x4, alpha_f32x4));
+    let divided_luma_u32x4 = u32x4_trunc_sat_f32x4(f32x4_min(
+        f32x4_div(scaled_luma_f32x4, alpha_f32x4),
+        alpha_scale_max,
+    ));
 
     let alpha = v128_and(pixels, alpha_mask);
     u8x16_shuffle::<0, 1, 18, 19, 4, 5, 22, 23, 8, 9, 26, 27, 12, 13, 30, 31>(
