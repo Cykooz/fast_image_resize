@@ -154,6 +154,12 @@ mod multiply_alpha_u8x4 {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+    }
+
     #[test]
     fn native_test() {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
@@ -264,6 +270,12 @@ mod multiply_alpha_u16x2 {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+    }
+
     #[test]
     fn native_test() {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
@@ -304,6 +316,14 @@ mod multiply_alpha_u16x4 {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
     }
 
+    /*
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+    }
+    */
+
     #[test]
     fn native_test() {
         mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
@@ -340,6 +360,12 @@ mod divide_alpha_u8x4 {
     #[test]
     fn neon_test() {
         mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Neon);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
     }
 
     #[test]
@@ -463,6 +489,12 @@ mod divide_alpha_u16x2 {
         mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Neon);
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+    }
+
     #[test]
     fn native_test() {
         mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::None);
@@ -507,6 +539,14 @@ mod divide_alpha_u16x4 {
     fn neon_test() {
         mul_div_alpha_test(OPER, SRC_PIXELS, SIMD_RES_PIXELS, CpuExtensions::Neon);
     }
+
+    /*
+    #[cfg(target_arch = "wasm32")]
+    #[test]
+    fn wasm32_test() {
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+    }
+    */
 
     #[test]
     fn native_test() {

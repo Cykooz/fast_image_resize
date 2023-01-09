@@ -57,7 +57,14 @@ pub unsafe fn i32x4_extend_low_ptr_u8x3(buf: &[U8x3], index: usize) -> v128 {
 }
 
 #[inline(always)]
-pub unsafe fn i32_v128_from_u8(buf: &[u8], index: usize) -> v128 {
+pub unsafe fn i32x4_v128_from_u8(buf: &[u8], index: usize) -> v128 {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const i32;
     i32x4(*ptr, 0, 0, 0)
+}
+
+#[inline(always)]
+pub unsafe fn u16x8_mul_hi(a: v128, b: v128) -> v128 {
+    let lo = u32x4_extmul_low_u16x8(a, b);
+    let hi = u32x4_extmul_high_u16x8(a, b);
+    i16x8_shuffle::<1, 3, 5, 7, 9, 11, 13, 15>(lo, hi)
 }

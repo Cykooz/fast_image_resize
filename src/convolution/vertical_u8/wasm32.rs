@@ -243,8 +243,8 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             // Load two coefficients at once
             let mmk = wasm32_utils::ptr_i16_to_set1_i32(coeffs, y as usize);
 
-            let source1 = wasm32_utils::i32_v128_from_u8(components1, src_x); // top line
-            let source2 = wasm32_utils::i32_v128_from_u8(components2, src_x); // bottom line
+            let source1 = wasm32_utils::i32x4_v128_from_u8(components1, src_x); // top line
+            let source2 = wasm32_utils::i32x4_v128_from_u8(components2, src_x); // bottom line
 
             let source = i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(
                 source1, source2,

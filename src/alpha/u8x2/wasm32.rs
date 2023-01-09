@@ -216,130 +216,31 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U8x2]) {
 
 #[inline]
 unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
-    let mut file: String = "wasm328".to_string();
-    let mut debugout = String::new();
-    //let file_exists = Path::new(file).exists();
-    while Path::new(&file).exists() {
-        file += "a";
-    }
-    debugout += &format!(
-        "pixels: {:?} {:?}\n",
-        i64x2_extract_lane::<0>(pixels),
-        i64x2_extract_lane::<1>(pixels)
-    );
     let alpha_mask = i16x8_splat(0xff00u16 as i16);
     let luma_mask = i16x8_splat(0xff);
-    //let scaled_max = f32x4_splat(1073741824f32);
     let alpha32_sh_lo = i8x16(1, -1, -1, -1, 3, -1, -1, -1, 5, -1, -1, -1, 7, -1, -1, -1);
     let alpha32_sh_hi = i8x16(
         9, -1, -1, -1, 11, -1, -1, -1, 13, -1, -1, -1, 15, -1, -1, -1,
     );
     let alpha_scale = f32x4_splat(255.0 * 256.0);
+    // Tests pass without capping inf from dividing by zero, but scaled values will not match sse4.
+    let alpha_max = f32x4_splat(2147483648f32);
 
-    let alpha_lo_f32 = f32x4_convert_i32x4(i8x16_swizzle(pixels, alpha32_sh_lo));
-    debugout += &format!(
-        "alpha_lo_f32: {:?} {:?} {:?} {:?}\n",
-        f32x4_extract_lane::<0>(alpha_lo_f32),
-        f32x4_extract_lane::<1>(alpha_lo_f32),
-        f32x4_extract_lane::<2>(alpha_lo_f32),
-        f32x4_extract_lane::<3>(alpha_lo_f32)
-    );
+    let alpha_lo_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_lo));
+    // trunc_sat will always round down. Adding f32x4_nearest would match _mm_cvtps_ep32 exactly,
+    // but would add extra instructions.
     let scaled_alpha_lo_u32 =
-        u32x4_trunc_sat_f32x4(f32x4_nearest(f32x4_div(alpha_scale, alpha_lo_f32)));
-    debugout += &format!(
-        "scaled_alpha_lo_u32: {:?} {:?} {:?} {:?}\n",
-        u32x4_extract_lane::<0>(scaled_alpha_lo_u32),
-        u32x4_extract_lane::<1>(scaled_alpha_lo_u32),
-        u32x4_extract_lane::<2>(scaled_alpha_lo_u32),
-        u32x4_extract_lane::<3>(scaled_alpha_lo_u32)
-    );
-    debugout += &format!(
-        "as_u16: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
-        u16x8_extract_lane::<0>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<1>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<2>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<3>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<4>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<5>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<6>(scaled_alpha_lo_u32),
-        u16x8_extract_lane::<7>(scaled_alpha_lo_u32),
-    );
+        u32x4_trunc_sat_f32x4(f32x4_min(f32x4_div(alpha_scale, alpha_lo_f32), alpha_max));
     let alpha_hi_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, alpha32_sh_hi));
-    debugout += &format!(
-        "alpha_hi_f32: {:?} {:?} {:?} {:?}\n",
-        f32x4_extract_lane::<0>(alpha_hi_f32),
-        f32x4_extract_lane::<1>(alpha_hi_f32),
-        f32x4_extract_lane::<2>(alpha_hi_f32),
-        f32x4_extract_lane::<3>(alpha_hi_f32)
-    );
     let scaled_alpha_hi_u32 =
-        u32x4_trunc_sat_f32x4(f32x4_nearest(f32x4_div(alpha_scale, alpha_hi_f32)));
-    debugout += &format!(
-        "scaled_alpha_hi_f32: {:?} {:?} {:?} {:?}\n",
-        f32x4_extract_lane::<0>(f32x4_nearest(f32x4_div(alpha_scale, alpha_hi_f32))),
-        f32x4_extract_lane::<1>(f32x4_nearest(f32x4_div(alpha_scale, alpha_hi_f32))),
-        f32x4_extract_lane::<2>(f32x4_nearest(f32x4_div(alpha_scale, alpha_hi_f32))),
-        f32x4_extract_lane::<3>(f32x4_nearest(f32x4_div(alpha_scale, alpha_hi_f32)))
-    );
-    debugout += &format!(
-        "scaled_alpha_hi_u32: {:?} {:?} {:?} {:?}\n",
-        u32x4_extract_lane::<0>(scaled_alpha_hi_u32),
-        u32x4_extract_lane::<1>(scaled_alpha_hi_u32),
-        u32x4_extract_lane::<2>(scaled_alpha_hi_u32),
-        u32x4_extract_lane::<3>(scaled_alpha_hi_u32),
-    );
-    debugout += &format!(
-        "as_u16: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
-        u16x8_extract_lane::<0>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<1>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<2>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<3>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<4>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<5>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<6>(scaled_alpha_hi_u32),
-        u16x8_extract_lane::<7>(scaled_alpha_hi_u32)
-    );
+        u32x4_trunc_sat_f32x4(f32x4_min(f32x4_div(alpha_scale, alpha_hi_f32), alpha_max));
     let scaled_alpha_u16 = u16x8_narrow_i32x4(scaled_alpha_lo_u32, scaled_alpha_hi_u32);
-    debugout += &format!(
-        "scaled_alpha_u16: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
-        u16x8_extract_lane::<0>(scaled_alpha_u16),
-        u16x8_extract_lane::<1>(scaled_alpha_u16),
-        u16x8_extract_lane::<2>(scaled_alpha_u16),
-        u16x8_extract_lane::<3>(scaled_alpha_u16),
-        u16x8_extract_lane::<4>(scaled_alpha_u16),
-        u16x8_extract_lane::<5>(scaled_alpha_u16),
-        u16x8_extract_lane::<6>(scaled_alpha_u16),
-        u16x8_extract_lane::<7>(scaled_alpha_u16),
-    );
 
     let luma_u16 = v128_and(pixels, luma_mask);
-    debugout += &format!(
-        "luma_u16: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
-        u16x8_extract_lane::<0>(luma_u16),
-        u16x8_extract_lane::<1>(luma_u16),
-        u16x8_extract_lane::<2>(luma_u16),
-        u16x8_extract_lane::<3>(luma_u16),
-        u16x8_extract_lane::<4>(luma_u16),
-        u16x8_extract_lane::<5>(luma_u16),
-        u16x8_extract_lane::<6>(luma_u16),
-        u16x8_extract_lane::<7>(luma_u16),
-    );
     let scaled_luma_u16 = u16x8_mul(luma_u16, scaled_alpha_u16);
     let scaled_luma_u16 = u16x8_shr(scaled_luma_u16, 8);
-    debugout += &format!(
-        "scaled_luma_u16: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
-        u16x8_extract_lane::<0>(scaled_luma_u16),
-        u16x8_extract_lane::<1>(scaled_luma_u16),
-        u16x8_extract_lane::<2>(scaled_luma_u16),
-        u16x8_extract_lane::<3>(scaled_luma_u16),
-        u16x8_extract_lane::<4>(scaled_luma_u16),
-        u16x8_extract_lane::<5>(scaled_luma_u16),
-        u16x8_extract_lane::<6>(scaled_luma_u16),
-        u16x8_extract_lane::<7>(scaled_luma_u16),
-    );
 
     let alpha = v128_and(pixels, alpha_mask);
-    fs::write(file, debugout).unwrap();
     u8x16_shuffle::<0, 17, 2, 19, 4, 21, 6, 23, 8, 25, 10, 27, 12, 29, 14, 31>(
         scaled_luma_u16,
         alpha,

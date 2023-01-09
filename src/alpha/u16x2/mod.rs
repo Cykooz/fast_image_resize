@@ -11,6 +11,8 @@ mod native;
 mod neon;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
+#[cfg(target_arch = "wasm32")]
+mod wasm32;
 
 impl AlphaMulDiv for U16x2 {
     fn multiply_alpha(
@@ -25,6 +27,8 @@ impl AlphaMulDiv for U16x2 {
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_image, dst_image) },
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_image, dst_image) },
+            #[cfg(target_arch = "wasm32")]
+            CpuExtensions::Wasm32 => unsafe { wasm32::multiply_alpha(src_image, dst_image) },
             _ => native::multiply_alpha(src_image, dst_image),
         }
     }
@@ -37,6 +41,8 @@ impl AlphaMulDiv for U16x2 {
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image) },
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image) },
+            #[cfg(target_arch = "wasm32")]
+            CpuExtensions::Wasm32 => unsafe { wasm32::multiply_alpha_inplace(image) },
             _ => native::multiply_alpha_inplace(image),
         }
     }
@@ -53,6 +59,8 @@ impl AlphaMulDiv for U16x2 {
             CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha(src_image, dst_image) },
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => unsafe { neon::divide_alpha(src_image, dst_image) },
+            #[cfg(target_arch = "wasm32")]
+            CpuExtensions::Wasm32 => unsafe { wasm32::divide_alpha(src_image, dst_image) },
             _ => native::divide_alpha(src_image, dst_image),
         }
     }
@@ -65,6 +73,8 @@ impl AlphaMulDiv for U16x2 {
             CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha_inplace(image) },
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => unsafe { neon::divide_alpha_inplace(image) },
+            #[cfg(target_arch = "wasm32")]
+            CpuExtensions::Wasm32 => unsafe { wasm32::divide_alpha_inplace(image) },
             _ => native::divide_alpha_inplace(image),
         }
     }
