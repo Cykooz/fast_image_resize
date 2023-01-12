@@ -150,6 +150,9 @@ impl Resizer {
         P: Convolution,
     {
         if dst_image.copy_from_view(src_image).is_ok() {
+            // If `copy_from_view()` has returned `Ok` then
+            // the size of the destination image is equal to
+            // the size of the cropped source image.
             return;
         }
         match self.algorithm {
@@ -211,6 +214,8 @@ impl Resizer {
     }
 }
 
+/// Create inner image container from part of given buffer.
+/// Buffer may be expanded if it size is less than required for image.
 fn get_temp_image_from_buffer<P: PixelExt>(
     buffer: &mut Vec<u8>,
     width: NonZeroU32,
