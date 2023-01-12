@@ -68,3 +68,9 @@ pub unsafe fn u16x8_mul_hi(a: v128, b: v128) -> v128 {
     let hi = u32x4_extmul_high_u16x8(a, b);
     i16x8_shuffle::<1, 3, 5, 7, 9, 11, 13, 15>(lo, hi)
 }
+
+#[inline(always)]
+pub unsafe fn i64x2_mul_lo(a: v128, b: v128) -> v128 {
+    const SHUFFLE: v128 = i8x16(0, 1, 2, 3, 8, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1, -1);
+    i64x2_extmul_low_i32x4(i8x16_swizzle(a, SHUFFLE), i8x16_swizzle(b, SHUFFLE))
+}

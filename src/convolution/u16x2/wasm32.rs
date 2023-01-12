@@ -98,16 +98,16 @@ unsafe fn horiz_convolution_four_rows(
                 let source = wasm32_utils::load_v128(src_rows[i], x);
 
                 let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff0_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
 
                 let p_i64x2 = i8x16_swizzle(source, P1_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff1_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff1_i64x2));
 
                 let p_i64x2 = i8x16_swizzle(source, P2_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff2_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff2_i64x2));
 
                 let p_i64x2 = i8x16_swizzle(source, P3_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff3_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff3_i64x2));
 
                 ll_sum[i] = sum;
             }
@@ -126,10 +126,10 @@ unsafe fn horiz_convolution_four_rows(
                 let source = wasm32_utils::loadl_i64(src_rows[i], x);
 
                 let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff0_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
 
                 let p_i64x2 = i8x16_swizzle(source, P1_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(p_i64x2, coeff1_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff1_i64x2));
 
                 ll_sum[i] = sum;
             }
@@ -141,7 +141,7 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 let source = wasm32_utils::loadl_i32(src_rows[i], x);
                 let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-                ll_sum[i] = i64x2_add(ll_sum[i], i64x2_mul(p_i64x2, coeff0_i64x2));
+                ll_sum[i] = i64x2_add(ll_sum[i], wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
             }
         }
 
@@ -210,16 +210,16 @@ unsafe fn horiz_convolution_one_row(
             let source = wasm32_utils::load_v128(src_row, x);
 
             let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff0_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
 
             let p_i64x2 = i8x16_swizzle(source, P1_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff1_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff1_i64x2));
 
             let p_i64x2 = i8x16_swizzle(source, P2_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff2_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff2_i64x2));
 
             let p_i64x2 = i8x16_swizzle(source, P3_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff3_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff3_i64x2));
 
             x += 4;
         }
@@ -234,10 +234,10 @@ unsafe fn horiz_convolution_one_row(
             let source = wasm32_utils::loadl_i64(src_row, x);
 
             let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff0_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
 
             let p_i64x2 = i8x16_swizzle(source, P1_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff1_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff1_i64x2));
 
             x += 2;
         }
@@ -247,7 +247,7 @@ unsafe fn horiz_convolution_one_row(
             let source = wasm32_utils::loadl_i32(src_row, x);
 
             let p_i64x2 = i8x16_swizzle(source, P0_SHUFFLE);
-            ll_sum = i64x2_add(ll_sum, i64x2_mul(p_i64x2, coeff0_i64x2));
+            ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(p_i64x2, coeff0_i64x2));
         }
 
         v128_store((&mut ll_buf).as_mut_ptr() as *mut v128, ll_sum);

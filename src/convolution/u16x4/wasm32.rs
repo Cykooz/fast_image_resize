@@ -97,16 +97,16 @@ unsafe fn horiz_convolution_four_rows(
                 let source = wasm32_utils::load_v128(src_rows[i], x);
                 let mut sum = rg_sum[i];
                 let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2));
                 let rg_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(rg_i64x2, coeff1_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff1_i64x2));
                 rg_sum[i] = sum;
 
                 let mut sum = ba_sum[i];
                 let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
                 let ba_i64x2 = i8x16_swizzle(source, BA1_SHUFFLE);
-                sum = i64x2_add(sum, i64x2_mul(ba_i64x2, coeff1_i64x2));
+                sum = i64x2_add(sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff1_i64x2));
                 ba_sum[i] = sum;
             }
             x += 2;
@@ -117,9 +117,9 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 let source = wasm32_utils::loadl_i64(src_rows[i], x);
                 let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-                rg_sum[i] = i64x2_add(rg_sum[i], i64x2_mul(rg_i64x2, coeff0_i64x2));
+                rg_sum[i] = i64x2_add(rg_sum[i], wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2));
                 let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
-                ba_sum[i] = i64x2_add(ba_sum[i], i64x2_mul(ba_i64x2, coeff0_i64x2));
+                ba_sum[i] = i64x2_add(ba_sum[i], wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
             }
         }
 
@@ -194,14 +194,14 @@ unsafe fn horiz_convolution_one_row(
             let source = wasm32_utils::load_v128(src_row, x);
 
             let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-            rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
+            rg_sum = i64x2_add(rg_sum, wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2));
             let rg_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
-            rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff1_i64x2));
+            rg_sum = i64x2_add(rg_sum, wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff1_i64x2));
 
             let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
-            ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
+            ba_sum = i64x2_add(ba_sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
             let ba_i64x2 = i8x16_swizzle(source, BA1_SHUFFLE);
-            ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff1_i64x2));
+            ba_sum = i64x2_add(ba_sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff1_i64x2));
 
             x += 2;
         }
@@ -210,9 +210,9 @@ unsafe fn horiz_convolution_one_row(
             let coeff0_i64x2 = i64x2_splat(k as i64);
             let source = wasm32_utils::loadl_i64(src_row, x);
             let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-            rg_sum = i64x2_add(rg_sum, i64x2_mul(rg_i64x2, coeff0_i64x2));
+            rg_sum = i64x2_add(rg_sum, wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2));
             let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
-            ba_sum = i64x2_add(ba_sum, i64x2_mul(ba_i64x2, coeff0_i64x2));
+            ba_sum = i64x2_add(ba_sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
         }
 
         v128_store((&mut rg_buf).as_mut_ptr() as *mut v128, rg_sum);
