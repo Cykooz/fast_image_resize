@@ -9,23 +9,26 @@ pub unsafe fn load_v128<T>(buf: &[T], index: usize) -> v128 {
 
 #[inline(always)]
 pub unsafe fn loadl_i64<T>(buf: &[T], index: usize) -> v128 {
-    let v = v128_load(buf.get_unchecked(index..).as_ptr() as *const v128);
-    let k = i8x16(0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1);
-    i8x16_swizzle(v, k)
+    let i = buf.get_unchecked(index..).as_ptr() as *const i64;
+    let v = i64x2(*i, 0);
+    const K: v128 = i8x16(0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1);
+    i8x16_swizzle(v, K)
 }
 
 #[inline(always)]
 pub unsafe fn loadl_i32<T>(buf: &[T], index: usize) -> v128 {
-    let v = v128_load(buf.get_unchecked(index..).as_ptr() as *const v128);
-    let k = i8x16(0, 1, 2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-    i8x16_swizzle(v, k)
+    let i = buf.get_unchecked(index..).as_ptr() as *const i32;
+    let v = i32x4(*i, 0, 0, 0);
+    const K: v128 = i8x16(0, 1, 2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+    i8x16_swizzle(v, K)
 }
 
 #[inline(always)]
 pub unsafe fn loadl_i16<T>(buf: &[T], index: usize) -> v128 {
-    let v = v128_load(buf.get_unchecked(index..).as_ptr() as *const v128);
-    let k = i8x16(0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-    i8x16_swizzle(v, k)
+    let i = buf.get_unchecked(index..).as_ptr() as *const i16;
+    let v = i16x8(*i, 0, 0, 0, 0, 0, 0, 0);
+    const K: v128 = i8x16(0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+    i8x16_swizzle(v, K)
 }
 
 #[inline(always)]
@@ -46,8 +49,8 @@ pub unsafe fn i32x4_extend_low_ptr_u8(buf: &[u8], index: usize) -> v128 {
 
 #[inline(always)]
 pub unsafe fn i32x4_extend_low_ptr_u8x4(buf: &[U8x4], index: usize) -> v128 {
-    let v: i32 = transmute(buf.get_unchecked(index).0);
-    u32x4_extend_low_u16x8(i16x8_extend_low_u8x16(i32x4(v, 0, 0, 0)))
+    let v: u32 = transmute(buf.get_unchecked(index).0);
+    u32x4_extend_low_u16x8(i16x8_extend_low_u8x16(u32x4(v, 0, 0, 0)))
 }
 
 #[inline(always)]
