@@ -25,6 +25,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
     }
 }
 
+#[target_feature(enable = "simd128")]
 pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],

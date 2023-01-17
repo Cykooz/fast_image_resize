@@ -47,6 +47,7 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_8u4x(
     src_rows: [&[U8x3]; 4],
     dst_rows: [&mut &mut [U8x3]; 4],
@@ -177,6 +178,7 @@ unsafe fn horiz_convolution_8u4x(
 /// - max(bound.start + bound.size for bound in bounds) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_8u(
     src_row: &[U8x3],
     dst_row: &mut [U8x3],

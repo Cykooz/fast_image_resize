@@ -44,6 +44,7 @@ pub(crate) fn horiz_convolution(
 /// - coefficients_chunks.len() == dst_rows.0.len()
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
+#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_four_rows(
     src_rows: [&[U16x4]; 4],
     dst_rows: [&mut &mut [U16x4]; 4],
@@ -117,9 +118,15 @@ unsafe fn horiz_convolution_four_rows(
             for i in 0..4 {
                 let source = wasm32_utils::loadl_i64(src_rows[i], x);
                 let rg_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-                rg_sum[i] = i64x2_add(rg_sum[i], wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2));
+                rg_sum[i] = i64x2_add(
+                    rg_sum[i],
+                    wasm32_utils::i64x2_mul_lo(rg_i64x2, coeff0_i64x2),
+                );
                 let ba_i64x2 = i8x16_swizzle(source, BA0_SHUFFLE);
-                ba_sum[i] = i64x2_add(ba_sum[i], wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
+                ba_sum[i] = i64x2_add(
+                    ba_sum[i],
+                    wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2),
+                );
             }
         }
 
@@ -143,6 +150,7 @@ unsafe fn horiz_convolution_four_rows(
 /// - max(bound.start + bound.size for bound in bounds) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn horiz_convolution_one_row(
     src_row: &[U16x4],
     dst_row: &mut [U16x4],

@@ -201,14 +201,14 @@ unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
         9, -1, -1, -1, 11, -1, -1, -1, 13, -1, -1, -1, 15, -1, -1, -1,
     );
     let alpha_scale = f32x4_splat(255.0 * 256.0);
-    // sse4 _mm_cvtps_ep32 converts inf to i32::MIN or 2147483648f32 u32.
-    // wasm32 u32x4_trunc_sat_f32x4 converts inf to u32::MAX.
+    // sse4 _mm_cvtps_epi32 converts inf to i32::MIN or 2147483648f32 u32.
+    // wasm32 u32x4_trunc_sat_f32x4 on AVX systems converts inf to u32::MAX.
     // Tests pass without capping inf from dividing by zero, but scaled values will not match sse4,
     // and other potential test cases will (probably?) break.
     let alpha_scale_max = f32x4_splat(2147483648f32);
 
     let alpha_lo_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, ALPHA32_SH_LO));
-    // trunc_sat will always round down. Adding f32x4_nearest would match _mm_cvtps_ep32 exactly,
+    // trunc_sat will always round down. Adding f32x4_nearest would match _mm_cvtps_epi32 exactly,
     // but would add extra instructions.
     let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(alpha_scale, alpha_lo_f32),

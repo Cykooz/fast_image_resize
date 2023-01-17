@@ -25,6 +25,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     }
 }
 
+#[target_feature(enable = "simd128")]
 unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
@@ -85,7 +86,8 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
                     let source = wasm32_utils::load_v128(src_rows[r], src_x + x * 8);
                     for i in 0..4 {
                         let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
-                        sums[i][x] = i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                        sums[i][x] =
+                            i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
                     }
                 }
             }
@@ -101,7 +103,8 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
                 let source = wasm32_utils::load_v128(components, src_x + x * 8);
                 for i in 0..4 {
                     let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
-                    sums[i][x] = i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                    sums[i][x] =
+                        i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
                 }
             }
         }
@@ -140,7 +143,8 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
                 let source = wasm32_utils::load_v128(src_rows[r], src_x);
                 for i in 0..4 {
                     let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
-                    sums[i] = i64x2_add(sums[i], wasm32_utils::i64x2_mul_lo(c_i64x2, coeffs_i64[r]));
+                    sums[i] =
+                        i64x2_add(sums[i], wasm32_utils::i64x2_mul_lo(c_i64x2, coeffs_i64[r]));
                 }
             }
             y += 2;
