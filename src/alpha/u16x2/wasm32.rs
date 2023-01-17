@@ -73,11 +73,14 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x2]) {
 
 #[inline]
 unsafe fn multiplies_alpha_4_pixels(pixels: v128) -> v128 {
-    let zero = i64x2_splat(0);
-    let half = i32x4_splat(0x8000);
+    const HALF: v128 = i32x4(0x8000, 0x8000, 0x8000, 0x8000);
 
-    const MAX_A: i32 = 0xffff0000u32 as i32;
-    let max_alpha = i32x4_splat(MAX_A);
+    const MAX_ALPHA: v128 = i32x4(
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+    );
     /*
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
@@ -85,17 +88,17 @@ unsafe fn multiplies_alpha_4_pixels(pixels: v128) -> v128 {
     const FACTOR_MASK: v128 = i8x16(2, 3, 2, 3, 6, 7, 6, 7, 10, 11, 10, 11, 14, 15, 14, 15);
 
     let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
-    let factor_pixels = v128_or(factor_pixels, max_alpha);
+    let factor_pixels = v128_or(factor_pixels, MAX_ALPHA);
 
-    let src_i32_lo = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero);
-    let factors = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(factor_pixels, zero);
-    let src_i32_lo = i32x4_add(i32x4_mul(src_i32_lo, factors), half);
+    let src_u32_lo = u32x4_extend_low_u16x8(pixels);
+    let factors = u32x4_extend_low_u16x8(factor_pixels);
+    let src_i32_lo = i32x4_add(i32x4_mul(src_u32_lo, factors), HALF);
     let dst_i32_lo = i32x4_add(src_i32_lo, u32x4_shr(src_i32_lo, 16));
     let dst_i32_lo = u32x4_shr(dst_i32_lo, 16);
 
-    let src_i32_hi = i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero);
-    let factors = i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(factor_pixels, zero);
-    let src_i32_hi = i32x4_add(i32x4_mul(src_i32_hi, factors), half);
+    let src_u32_hi = u32x4_extend_high_u16x8(pixels);
+    let factors = u32x4_extend_high_u16x8(factor_pixels);
+    let src_i32_hi = i32x4_add(i32x4_mul(src_u32_hi, factors), HALF);
     let dst_i32_hi = i32x4_add(src_i32_hi, u32x4_shr(src_i32_hi, 16));
     let dst_i32_hi = u32x4_shr(dst_i32_hi, 16);
 
@@ -188,10 +191,15 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U16x2]) {
 
 #[inline]
 unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
-    let alpha_mask = i32x4_splat(0xffff0000u32 as i32);
-    let luma_mask = i32x4_splat(0xffff);
-    let alpha_max = f32x4_splat(65535.0);
-    let alpha_scale_max = f32x4_splat(2147483648f32);
+    const ALPHA_MASK: v128 = i32x4(
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+        0xffff0000u32 as i32,
+    );
+    const LUMA_MASK: v128 = i32x4(0xffff, 0xffff, 0xffff, 0xffff);
+    const ALPHA_MAX: v128 = f32x4(65535.0, 65535.0, 65535.0, 65535.0);
+    const ALPHA_SCALE_MAX: v128 = f32x4(2147483648f32, 2147483648f32, 2147483648f32, 2147483648f32);
     /*
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
@@ -199,14 +207,14 @@ unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
     const ALPHA32_SH: v128 = i8x16(2, 3, -1, -1, 6, 7, -1, -1, 10, 11, -1, -1, 14, 15, -1, -1);
 
     let alpha_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH));
-    let luma_f32x4 = f32x4_convert_i32x4(v128_and(pixels, luma_mask));
-    let scaled_luma_f32x4 = f32x4_mul(luma_f32x4, alpha_max);
+    let luma_f32x4 = f32x4_convert_i32x4(v128_and(pixels, LUMA_MASK));
+    let scaled_luma_f32x4 = f32x4_mul(luma_f32x4, ALPHA_MAX);
     let divided_luma_u32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
         f32x4_div(scaled_luma_f32x4, alpha_f32x4),
-        alpha_scale_max,
+        ALPHA_SCALE_MAX,
     ));
 
-    let alpha = v128_and(pixels, alpha_mask);
+    let alpha = v128_and(pixels, ALPHA_MASK);
     u8x16_shuffle::<0, 1, 18, 19, 4, 5, 22, 23, 8, 9, 26, 27, 12, 13, 30, 31>(
         divided_luma_u32x4,
         alpha,

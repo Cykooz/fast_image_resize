@@ -51,14 +51,14 @@ unsafe fn horiz_convolution_four_rows(
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     normalizer: &optimisations::Normalizer16,
 ) {
-    let zero = i64x2_splat(0);
+    const ZERO: v128 = i64x2(0, 0);
     let initial = 1 << (normalizer.precision() - 1);
     let mut buf = [0, 0, 0, 0, initial];
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
         let mut x = coeffs_chunk.start as usize;
-        let mut result_i32x4 = [zero, zero, zero, zero];
+        let mut result_i32x4 = [ZERO, ZERO, ZERO, ZERO];
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
         let reminder8 = coeffs_by_8.remainder();
@@ -118,14 +118,14 @@ unsafe fn horiz_convolution_row(
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     normalizer: &optimisations::Normalizer16,
 ) {
-    let zero = i64x2_splat(0);
+    const ZERO: v128 = i64x2(0, 0);
     let initial = 1 << (normalizer.precision() - 1);
     let mut buf = [0, 0, 0, 0, initial];
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let coeffs = coeffs_chunk.values;
         let mut x = coeffs_chunk.start as usize;
-        let mut result_i32x4 = zero;
+        let mut result_i32x4 = ZERO;
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
         let reminder8 = coeffs_by_8.remainder();

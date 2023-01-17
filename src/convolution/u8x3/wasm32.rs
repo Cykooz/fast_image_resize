@@ -53,7 +53,7 @@ unsafe fn horiz_convolution_8u4x(
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
     precision: u8,
 ) {
-    let zero = i64x2_splat(0);
+    const ZERO: v128 = i64x2(0, 0);
     let initial = i32x4_splat(1 << (precision - 1));
     let src_width = src_rows[0].len();
 
@@ -163,8 +163,8 @@ unsafe fn horiz_convolution_8u4x(
         constify_imm8!(precision, call);
 
         for i in 0..4 {
-            let sss = i16x8_narrow_i32x4(sss_a[i], zero);
-            let pixel: u32 = transmute(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, zero)));
+            let sss = i16x8_narrow_i32x4(sss_a[i], ZERO);
+            let pixel: u32 = transmute(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, ZERO)));
             let bytes = pixel.to_le_bytes();
             dst_rows[i].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
         }

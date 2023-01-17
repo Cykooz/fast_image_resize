@@ -51,6 +51,7 @@ unsafe fn horiz_convolution_8u4x(
     coefficients_chunks: &[CoefficientsI32Chunk],
     normalizer: &optimisations::Normalizer32,
 ) {
+    const ZERO: v128 = i64x2(0, 0);
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
     let mut rg_buf = [0i64; 2];
@@ -79,8 +80,8 @@ unsafe fn horiz_convolution_8u4x(
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
-        let mut rg_sum = [i8x16_splat(0); 4];
-        let mut bb_sum = [i8x16_splat(0); 4];
+        let mut rg_sum = [ZERO; 4];
+        let mut bb_sum = [ZERO; 4];
 
         let mut coeffs = coeffs_chunk.values;
         let end_x = x + coeffs.len();
@@ -98,13 +99,20 @@ unsafe fn horiz_convolution_8u4x(
                     let source = wasm32_utils::load_v128(src_rows[i], x);
 
                     let rg0_i64x2 = i8x16_swizzle(source, RG0_SHUFFLE);
-                    rg_sum[i] = i64x2_add(rg_sum[i], wasm32_utils::i64x2_mul_lo(rg0_i64x2, coeff0_i64x2));
+                    rg_sum[i] = i64x2_add(
+                        rg_sum[i],
+                        wasm32_utils::i64x2_mul_lo(rg0_i64x2, coeff0_i64x2),
+                    );
 
                     let rg1_i64x2 = i8x16_swizzle(source, RG1_SHUFFLE);
-                    rg_sum[i] = i64x2_add(rg_sum[i], wasm32_utils::i64x2_mul_lo(rg1_i64x2, coeff1_i64x2));
+                    rg_sum[i] = i64x2_add(
+                        rg_sum[i],
+                        wasm32_utils::i64x2_mul_lo(rg1_i64x2, coeff1_i64x2),
+                    );
 
                     let bb_i64x2 = i8x16_swizzle(source, BB_SHUFFLE);
-                    bb_sum[i] = i64x2_add(bb_sum[i], wasm32_utils::i64x2_mul_lo(bb_i64x2, coeff_i64x2));
+                    bb_sum[i] =
+                        i64x2_add(bb_sum[i], wasm32_utils::i64x2_mul_lo(bb_i64x2, coeff_i64x2));
                 }
                 x += 2;
             }

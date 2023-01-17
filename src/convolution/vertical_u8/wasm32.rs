@@ -32,6 +32,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
     normalizer: &optimisations::Normalizer16,
 ) {
+    const ZERO: v128 = i64x2(0, 0);
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
@@ -111,8 +112,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             let source1 = wasm32_utils::load_v128(components, src_x); // top line
 
             let source = i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(
-                source1,
-                i64x2_splat(0),
+                source1, ZERO,
             );
             let pix = i16x8_extend_low_u8x16(source);
             sss0 = i32x4_add(sss0, i32x4_dot_i16x8(pix, mmk));
@@ -128,8 +128,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             let source1 = wasm32_utils::load_v128(components, src_x + 16); // top line
 
             let source = i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(
-                source1,
-                i64x2_splat(0),
+                source1, ZERO,
             );
             let pix = i16x8_extend_low_u8x16(source);
             sss4 = i32x4_add(sss4, i32x4_dot_i16x8(pix, mmk));
@@ -206,8 +205,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             let source1 = wasm32_utils::loadl_i64(components, src_x); // top line
 
             let source = i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(
-                source1,
-                i64x2_splat(0),
+                source1, ZERO,
             );
             let pix = i16x8_extend_low_u8x16(source);
             sss0 = i32x4_add(sss0, i32x4_dot_i16x8(pix, mmk));
