@@ -75,12 +75,7 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x2]) {
 unsafe fn multiplies_alpha_4_pixels(pixels: v128) -> v128 {
     const HALF: v128 = i32x4(0x8000, 0x8000, 0x8000, 0x8000);
 
-    const MAX_ALPHA: v128 = i32x4(
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-    );
+    const MAX_ALPHA: v128 = u32x4(0xffff0000u32, 0xffff0000u32, 0xffff0000u32, 0xffff0000u32);
     /*
        |L0   A0  | |L1   A1  | |L2   A2  | |L3   A3  |
        |0001 0203| |0405 0607| |0809 1011| |1213 1415|
@@ -191,12 +186,7 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U16x2]) {
 
 #[inline]
 unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
-    const ALPHA_MASK: v128 = i32x4(
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-        0xffff0000u32 as i32,
-    );
+    const ALPHA_MASK: v128 = u32x4(0xffff0000u32, 0xffff0000u32, 0xffff0000u32, 0xffff0000u32);
     const LUMA_MASK: v128 = i32x4(0xffff, 0xffff, 0xffff, 0xffff);
     const ALPHA_MAX: v128 = f32x4(65535.0, 65535.0, 65535.0, 65535.0);
     const ALPHA_SCALE_MAX: v128 = f32x4(2147483648f32, 2147483648f32, 2147483648f32, 2147483648f32);

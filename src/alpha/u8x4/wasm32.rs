@@ -70,9 +70,9 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
 unsafe fn multiply_alpha_4_pixels(pixels: v128) -> v128 {
     let zero = i64x2_splat(0);
     let half = i16x8_splat(128);
-    let max_alpha = i32x4_splat(MAX_A);
+    const MAX_A: u32 = 0xff000000u32;
+    let max_alpha = u32x4_splat(MAX_A);
 
-    const MAX_A: i32 = 0xff000000u32 as i32;
     const FACTOR_MASK: v128 = i8x16(3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
 
     let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
