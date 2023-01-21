@@ -1,7 +1,5 @@
 use std::num::NonZeroU32;
 
-use glassbench::*;
-
 use fast_image_resize::MulDiv;
 use fast_image_resize::PixelType;
 use fast_image_resize::{CpuExtensions, Image};
@@ -23,7 +21,13 @@ fn get_src_image(
     Image::from_vec_u8(width, height, buffer, pixel_type).unwrap()
 }
 
-fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuExtensions) {
+fn multiplies_alpha(
+    bench_group: &mut utils::BenchGroup,
+    pixel_type: PixelType,
+    cpu_extensions: CpuExtensions,
+    ext_name: &str,
+) {
+    let sample_size = 100;
     let width = NonZeroU32::new(4096).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let pixel: &[u8] = match pixel_type {
@@ -42,10 +46,13 @@ fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: Cp
         alpha_mul_div.set_cpu_extensions(cpu_extensions);
     }
 
-    bench.task(
-        format!("Multiplies alpha {:?} {:?}", pixel_type, cpu_extensions),
-        |task| {
-            task.iter(|| {
+    utils::bench(
+        bench_group,
+        sample_size,
+        format!("Multiplies alpha {:?}", pixel_type),
+        ext_name,
+        |bencher| {
+            bencher.iter(|| {
                 alpha_mul_div
                     .multiply_alpha(&src_view, &mut dst_view)
                     .unwrap();
@@ -53,22 +60,29 @@ fn multiplies_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: Cp
         },
     );
 
-    bench.task(
-        format!(
-            "Multiplies alpha inplace {:?} {:?}",
-            pixel_type, cpu_extensions
-        ),
-        |task| {
-            let mut data = get_src_image(width, height, pixel_type, pixel);
-            let mut view = data.view_mut();
-            task.iter(|| {
+    let src_image = get_src_image(width, height, pixel_type, pixel);
+    utils::bench(
+        bench_group,
+        sample_size,
+        format!("Multiplies alpha inplace {:?}", pixel_type),
+        ext_name,
+        |bencher| {
+            let mut image = src_image.copy();
+            let mut view = image.view_mut();
+            bencher.iter(|| {
                 alpha_mul_div.multiply_alpha_inplace(&mut view).unwrap();
             })
         },
     );
 }
 
-fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuExtensions) {
+fn divides_alpha(
+    bench_group: &mut utils::BenchGroup,
+    pixel_type: PixelType,
+    cpu_extensions: CpuExtensions,
+    ext_name: &str,
+) {
+    let sample_size = 100;
     let width = NonZeroU32::new(4095).unwrap();
     let height = NonZeroU32::new(2048).unwrap();
     let pixel: &[u8] = match pixel_type {
@@ -87,10 +101,13 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
         alpha_mul_div.set_cpu_extensions(cpu_extensions);
     }
 
-    bench.task(
-        format!("Divides alpha {:?} {:?}", pixel_type, cpu_extensions),
-        |task| {
-            task.iter(|| {
+    utils::bench(
+        bench_group,
+        sample_size,
+        format!("Divides alpha {:?}", pixel_type),
+        ext_name,
+        |bencher| {
+            bencher.iter(|| {
                 alpha_mul_div
                     .divide_alpha(&src_view, &mut dst_view)
                     .unwrap();
@@ -98,50 +115,52 @@ fn divides_alpha(bench: &mut Bench, pixel_type: PixelType, cpu_extensions: CpuEx
         },
     );
 
-    bench.task(
-        format!(
-            "Divides alpha inplace {:?} {:?}",
-            pixel_type, cpu_extensions
-        ),
-        |task| {
-            let mut data = get_src_image(width, height, pixel_type, pixel);
-            let mut view = data.view_mut();
-            task.iter(|| {
+    let src_image = get_src_image(width, height, pixel_type, pixel);
+    utils::bench(
+        bench_group,
+        sample_size,
+        format!("Divides alpha inplace {:?}", pixel_type),
+        ext_name,
+        |bencher| {
+            let mut image = src_image.copy();
+            let mut view = image.view_mut();
+            bencher.iter(|| {
                 alpha_mul_div.divide_alpha_inplace(&mut view).unwrap();
             })
         },
     );
 }
 
-fn bench_alpha(bench: &mut Bench) {
+fn bench_alpha(bench_group: &mut utils::BenchGroup) {
     let pixel_types = [
         PixelType::U8x2,
         PixelType::U8x4,
         PixelType::U16x2,
         PixelType::U16x4,
     ];
-    let mut cpu_extensions = vec![CpuExtensions::None];
+    let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
     #[cfg(target_arch = "x86_64")]
     {
-        cpu_extensions.push(CpuExtensions::Sse4_1);
-        cpu_extensions.push(CpuExtensions::Avx2);
+        cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
+        cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
     }
     #[cfg(target_arch = "aarch64")]
     {
-        cpu_extensions.push(CpuExtensions::Neon);
+        cpu_ext_and_name.push((CpuExtensions::Neon, "neon"));
     }
     for pixel_type in pixel_types {
-        for &extensions in cpu_extensions.iter() {
-            println!("Mul {:?} {:?}", pixel_type, extensions);
-            multiplies_alpha(bench, pixel_type, extensions);
+        for &(cpu_ext, ext_name) in cpu_ext_and_name.iter() {
+            multiplies_alpha(bench_group, pixel_type, cpu_ext, ext_name);
         }
     }
     for pixel_type in pixel_types {
-        for &extensions in cpu_extensions.iter() {
-            println!("Div {:?} {:?}", pixel_type, extensions);
-            divides_alpha(bench, pixel_type, extensions);
+        for &(cpu_ext, ext_name) in cpu_ext_and_name.iter() {
+            divides_alpha(bench_group, pixel_type, cpu_ext, ext_name);
         }
     }
 }
 
-bench_main!("Bench Alpha", bench_alpha,);
+fn main() {
+    let res = utils::run_bench(bench_alpha, "Bench Alpha");
+    println!("{}", utils::build_md_table(&res));
+}

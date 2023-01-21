@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+## Benchmarks
+
+- Benchmark framework `glassbench` replaced by `criterion`.
+- Added report with results of benchmarks for `wasm32-wasi` target.
+
 ## [2.4.0] - 2022-12-11
 
 ### Crate

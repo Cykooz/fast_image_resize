@@ -1,13 +1,12 @@
-## Benchmarks of fast_image_resize crate
+## Benchmarks of fast_image_resize crate for arm64 architecture
 
 Environment:
 
-- CPU: AMD Ryzen 9 5950X
-- RAM: DDR4 3800 MHz
+- CPU: Neoverse-N1 2GHz (Oracle Cloud Compute, VM.Standard.A1.Flex)
 - Ubuntu 22.04 (linux 5.15.0)
-- Rust 1.65
+- Rust 1.66.1
+- criterion = "0.4"
 - fast_image_resize = "2.4.0"
-- glassbench = "0.3.3"
 
 Other Rust libraries used to compare of resizing speed:
 
@@ -30,13 +29,14 @@ Pipeline:
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  20.66  |  82.74   |   141.56   |  199.96  |
-| resize     |    -    |  48.75   |   97.42    |  145.70  |
-| fir rust   |  0.28   |  39.57   |   67.00    |  98.50   |
-| fir sse4.1 |  0.28   |   9.63   |   14.13    |  19.84   |
-| fir avx2   |  0.28   |   7.73   |    9.67    |  14.66   |
+[comment]: <> (bench_compare_rgb start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    |  84.33  |  170.75  |   319.95   |  448.10  |
+| resize   |    -    |  89.86   |   179.23   |  265.31  |
+| fir rust |  0.90   |  71.68   |   87.07    |  112.47  |
+| fir neon |  0.90   |  42.73   |   57.20    |  81.35   |
+[comment]: <> (bench_compare_rgb end)
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
@@ -47,14 +47,15 @@ Pipeline:
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
-- The `image` crate does not support multiplying and dividing by alpha channel. 
+- The `image` crate does not support multiplying and dividing by alpha channel.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  65.74   |   130.18   |  194.13  |
-| fir rust   |  0.19   |  35.61   |   52.50    |  75.76   |
-| fir sse4.1 |  0.19   |  13.19   |   17.25    |  22.62   |
-| fir avx2   |  0.19   |   9.57   |   11.97    |  16.37   |
+[comment]: <> (bench_compare_rgba start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| resize   |    -    |  99.18   |   181.80   |  276.46  |
+| fir rust |  0.97   |  92.81   |   104.67   |  153.96  |
+| fir neon |  0.97   |  44.09   |   61.19    |  82.98   |
+[comment]: <> (bench_compare_rgba end)
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
@@ -66,13 +67,14 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  16.97  |  48.47   |   77.55    |  107.48  |
-| resize     |    -    |  17.10   |   35.46    |  60.94   |
-| fir rust   |  0.15   |  13.44   |   14.73    |  22.58   |
-| fir sse4.1 |  0.15   |   4.99   |    5.28    |   8.05   |
-| fir avx2   |  0.15   |   7.09   |    5.18    |   8.60   |
+[comment]: <> (bench_compare_l start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    |  74.86  |  105.85  |   175.70   |  243.32  |
+| resize   |    -    |  37.14   |   83.02    |  127.44  |
+| fir rust |  0.51   |  29.42   |   37.32    |  45.47   |
+| fir neon |  0.51   |  15.00   |   19.95    |  28.16   |
+[comment]: <> (bench_compare_l end)
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
 
@@ -87,11 +89,12 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| fir rust   |  0.17   |  25.43   |   28.72    |  39.33   |
-| fir sse4.1 |  0.17   |  12.66   |   14.10    |  17.66   |
-| fir avx2   |  0.17   |   8.76   |    9.70    |  12.28   |
+[comment]: <> (bench_compare_la start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| fir rust |  0.64   |  59.82   |   74.89    |  73.10   |
+| fir neon |  0.64   |  34.80   |   39.24    |  54.70   |
+[comment]: <> (bench_compare_la end)
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
 
@@ -103,13 +106,14 @@ Pipeline:
   has converted into RGB16 image.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  20.82  |  75.42   |   127.53   |  179.75  |
-| resize     |    -    |  45.50   |   89.58    |  132.75  |
-| fir rust   |  0.33   |  43.32   |   78.99    |  113.80  |
-| fir sse4.1 |  0.33   |  24.42   |   39.46    |  55.70   |
-| fir avx2   |  0.33   |  20.17   |   30.73    |  36.83   |
+[comment]: <> (bench_compare_rgb16 start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    |  87.37  |  168.47  |   327.72   |  473.01  |
+| resize   |    -    |  91.11   |   182.73   |  271.48  |
+| fir rust |  1.39   |  146.88  |   274.83   |  392.52  |
+| fir neon |  1.39   |  70.00   |   92.13    |  128.36  |
+[comment]: <> (bench_compare_rgb16 end)
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
 
@@ -122,12 +126,13 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  63.82   |   126.13   |  187.90  |
-| fir rust   |  0.30   |  79.65   |   117.15   |  157.65  |
-| fir sse4.1 |  0.30   |  43.40   |   64.83    |  86.98   |
-| fir avx2   |  0.30   |  25.63   |   36.85    |  48.28   |
+[comment]: <> (bench_compare_rgba16 start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| resize   |    -    |  102.42  |   185.36   |  284.94  |
+| fir rust |  1.51   |  202.31  |   365.93   |  521.22  |
+| fir neon |  1.51   |  76.89   |   117.58   |  159.40  |
+[comment]: <> (bench_compare_rgba16 end)
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
 
@@ -139,13 +144,14 @@ Pipeline:
   has converted into grayscale image with two bytes per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  17.41  |  49.38   |   78.97    |  109.71  |
-| resize     |    -    |  15.30   |   31.51    |  56.97   |
-| fir rust   |  0.16   |  19.20   |   27.82    |  38.54   |
-| fir sse4.1 |  0.16   |   8.07   |   13.39    |  19.30   |
-| fir avx2   |  0.16   |   6.61   |    8.60    |  13.67   |
+[comment]: <> (bench_compare_l16 start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| image    |  76.09  |  110.82  |   186.44   |  257.87  |
+| resize   |    -    |  39.65   |   63.88    |  87.06   |
+| fir rust |  0.63   |  57.32   |   94.92    |  134.83  |
+| fir neon |  0.63   |  17.98   |   26.84    |  37.71   |
+[comment]: <> (bench_compare_l16 end)
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
 
@@ -160,8 +166,9 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| fir rust   |  0.19   |  34.47   |   52.74    |  71.32   |
-| fir sse4.1 |  0.19   |  22.10   |   34.18    |  46.62   |
-| fir avx2   |  0.19   |  15.17   |   21.85    |  29.09   |
+[comment]: <> (bench_compare_la16 start)
+|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|----------|:-------:|:--------:|:----------:|:--------:|
+| fir rust |  0.95   |  105.92  |   192.14   |  270.89  |
+| fir neon |  0.95   |  35.57   |   53.51    |  73.13   |
+[comment]: <> (bench_compare_la16 end)
