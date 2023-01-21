@@ -211,7 +211,7 @@ fn table_header_underline(buffer: &mut Vec<String>, widths: &[usize]) {
 
 fn insert_string_into_file(path: &Path, placeholder_name: &str, string: &str) {
     let mut content = std::fs::read_to_string(path).expect("Unable to read file into string");
-    let start_maker = format!("[comment]: <> ({} start)\n", placeholder_name);
+    let start_maker = format!("[//]: # ({} start)\n", placeholder_name);
     let start = match content.find(&start_maker) {
         Some(s) => s,
         None => {
@@ -222,7 +222,7 @@ fn insert_string_into_file(path: &Path, placeholder_name: &str, string: &str) {
             return;
         }
     };
-    let end_maker = format!("[comment]: <> ({} end)", placeholder_name);
+    let end_maker = format!("[//]: # ({} end)", placeholder_name);
     let end = match content.find(&end_maker) {
         Some(s) => s,
         None => {

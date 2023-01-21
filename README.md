@@ -60,7 +60,7 @@ Pipeline:
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-[comment]: <> (bench_compare_rgb start)
+[//]: # (bench_compare_rgb start)
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  20.66  |  82.74   |   141.56   |  199.96  |
@@ -68,7 +68,7 @@ Pipeline:
 | fir rust   |  0.28   |  39.57   |   67.00    |  98.50   |
 | fir sse4.1 |  0.28   |   9.63   |   14.13    |  19.84   |
 | fir avx2   |  0.28   |   7.73   |    9.67    |  14.66   |
-[comment]: <> (bench_compare_rgb end)
+[//]: # (bench_compare_rgb end)
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
@@ -81,14 +81,14 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-[comment]: <> (bench_compare_rgba start)
+[//]: # (bench_compare_rgba start)
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | resize     |    -    |  65.74   |   130.18   |  194.13  |
 | fir rust   |  0.19   |  35.61   |   52.50    |  75.76   |
 | fir sse4.1 |  0.19   |  13.19   |   17.25    |  22.62   |
 | fir avx2   |  0.19   |   9.57   |   11.97    |  16.37   |
-[comment]: <> (bench_compare_rgba end)
+[//]: # (bench_compare_rgba end)
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
@@ -100,7 +100,7 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-[comment]: <> (bench_compare_l start)
+[//]: # (bench_compare_l start)
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  16.97  |  48.47   |   77.55    |  107.48  |
@@ -108,7 +108,7 @@ Pipeline:
 | fir rust   |  0.15   |  13.44   |   14.73    |  22.58   |
 | fir sse4.1 |  0.15   |   4.99   |    5.28    |   8.05   |
 | fir avx2   |  0.15   |   7.09   |    5.18    |   8.60   |
-[comment]: <> (bench_compare_l end)
+[//]: # (bench_compare_l end)
 
 ## Examples
 
