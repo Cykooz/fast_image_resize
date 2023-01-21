@@ -19,6 +19,15 @@ Run tests without saving result images as files in `./data` directory:
 DONT_SAVE_RESULT=1 cargo test
 ```
 
+# Benchmarks
+
+Run benchmarks to compare with other crates for image resizing and write results into
+report files, such as `./benchmarks-x86_64.md`:
+```shell
+WRITE_COMPARE_RESULT=1 cargo bench -- Compare
+```
+
+
 # Wasm32
 
 Specify build target in `.cargo/config.toml` file.
@@ -47,7 +56,7 @@ Run a specific benchmark in `quick` mode:
 CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=." cargo wasi bench --bench bench_resize -- --quick
 ```
 
-Run benchmarks to compare with other image resize crates and write results into
+Run benchmarks to compare with other crates for image resizing and write results into
 report files, such as `./benchmarks-x86_64.md`:
 ```shell
 CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1" cargo wasi bench -- Compare

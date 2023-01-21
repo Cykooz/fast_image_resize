@@ -231,7 +231,6 @@ dependencies = [
  "lazy_static",
  "num-traits",
  "oorandom",
- "rayon",
  "regex",
  "serde",
  "serde_derive",
