@@ -42,11 +42,6 @@ criterion = { version = "0.4.0", default-features = false, features = ["cargo_be
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 nix = { version = "0.26.1", default-features = false, features = ["sched"] }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-glassbench = "0.3.3"
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-benchmark-simple = "0.1.7"
 
 [[bench]]
 name = "bench_resize"
