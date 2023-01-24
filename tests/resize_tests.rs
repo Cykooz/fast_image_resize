@@ -203,6 +203,10 @@ fn resize_to_same_width_after_cropping() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         if !cpu_extensions.is_supported() {
             continue;
@@ -376,6 +380,10 @@ fn downscale_u8() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -400,6 +408,10 @@ fn upscale_u8() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -423,6 +435,10 @@ fn downscale_u8x2() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -452,6 +468,10 @@ fn upscale_u8x2() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -479,6 +499,10 @@ fn downscale_u8x3() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -508,6 +532,10 @@ fn upscale_u8x3() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -535,6 +563,10 @@ fn downscale_u8x4() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -570,6 +602,10 @@ fn upscale_u8x4() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -594,6 +630,10 @@ fn downscale_u16() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -617,6 +657,10 @@ fn upscale_u16() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -646,6 +690,10 @@ fn downscale_u16x2() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -673,6 +721,10 @@ fn upscale_u16x2() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -702,6 +754,10 @@ fn downscale_u16x3() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -729,6 +785,10 @@ fn upscale_u16x3() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -758,6 +818,10 @@ fn downscale_u16x4() {
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+    }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Lanczos3),
@@ -785,6 +849,10 @@ fn upscale_u16x4() {
     #[cfg(target_arch = "aarch64")]
     {
         cpu_extensions_vec.push(CpuExtensions::Neon);
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions_vec.push(CpuExtensions::Wasm32);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(

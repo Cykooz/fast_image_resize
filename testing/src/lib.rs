@@ -272,5 +272,7 @@ pub fn cpu_ext_into_str(cpu_extensions: CpuExtensions) -> &'static str {
         CpuExtensions::Avx2 => "avx2",
         #[cfg(target_arch = "aarch64")]
         CpuExtensions::Neon => "neon",
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Wasm32 => "wasm32",
     }
 }
