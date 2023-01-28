@@ -20,8 +20,8 @@ exclude = ["/data"]
 
 
 [dependencies]
-num-traits = "0.2.15"
-thiserror = "1.0.37"
+num-traits = "0.2"
+thiserror = "1.0"
 
 [features]
 for_test = []
@@ -30,17 +30,17 @@ for_test = []
 fast_image_resize = { path = ".", features = ["for_test"] }
 image = "0.24.5"
 resize = "0.7.4"
-rgb = "0.8.34"
-png = "0.17.7"
-testing = { path = "testing" }
+rgb = "0.8"
+png = "0.17"
 serde = { version = "1.0", features = ["serde_derive"] }
-serde_json = "1.0"
+serde_json = "1"
 walkdir = "2"
-itertools = "0.10.5"
-criterion = { version = "0.4.0", default-features = false, features = ["cargo_bench_support"] }
+itertools = "0.10"
+criterion = { version = "0.4", default-features = false, features = ["cargo_bench_support"] }
+testing = { path = "testing" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-nix = { version = "0.26.1", default-features = false, features = ["sched"] }
+nix = { version = "0.26", default-features = false, features = ["sched"] }
 
 
 [[bench]]

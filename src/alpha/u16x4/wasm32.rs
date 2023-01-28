@@ -25,7 +25,8 @@ pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
 }
 
 #[inline]
-pub(crate) unsafe fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
     let src_chunks = src_row.chunks_exact(2);
     let src_remainder = src_chunks.remainder();
     let mut dst_chunks = dst_row.chunks_exact_mut(2);
@@ -50,7 +51,8 @@ pub(crate) unsafe fn multiply_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]
 }
 
 #[inline]
-pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
     let mut chunks = row.chunks_exact_mut(2);
     foreach_with_pre_reading(
         &mut chunks,
@@ -72,11 +74,10 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
 }
 
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn multiply_alpha_2_pixels(pixels: v128) -> v128 {
-    let zero = i64x2_splat(0);
-    let half = i32x4_splat(0x8000);
-    const MAX_A: i64 = 0xffff000000000000u64 as i64;
-    let max_alpha = i64x2_splat(MAX_A);
+    let half = u32x4_splat(0x8000);
+    let max_alpha = u64x2_splat(0xffff000000000000);
     /*
        |R0   G0   B0   A0  | |R1   G1   B1   A1  |
        |0001 0203 0405 0607| |0809 1011 1213 1415|
@@ -86,19 +87,19 @@ unsafe fn multiply_alpha_2_pixels(pixels: v128) -> v128 {
     let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
-    let src_i32_lo = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero);
-    let factors = i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(factor_pixels, zero);
-    let src_i32_lo = i32x4_add(i32x4_mul(src_i32_lo, factors), half);
-    let dst_i32_lo = i32x4_add(src_i32_lo, u32x4_shr(src_i32_lo, 16));
-    let dst_i32_lo = u32x4_shr(dst_i32_lo, 16);
+    let src_u32_lo = u32x4_extend_low_u16x8(pixels);
+    let factors = u32x4_extend_low_u16x8(factor_pixels);
+    let mut dst_u32_lo = u32x4_add(u32x4_mul(src_u32_lo, factors), half);
+    dst_u32_lo = u32x4_add(dst_u32_lo, u32x4_shr(dst_u32_lo, 16));
+    dst_u32_lo = u32x4_shr(dst_u32_lo, 16);
 
-    let src_i32_hi = i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero);
-    let factors = i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(factor_pixels, zero);
-    let src_i32_hi = i32x4_add(i32x4_mul(src_i32_hi, factors), half);
-    let dst_i32_hi = i32x4_add(src_i32_hi, u32x4_shr(src_i32_hi, 16));
-    let dst_i32_hi = u32x4_shr(dst_i32_hi, 16);
+    let src_u32_hi = u32x4_extend_high_u16x8(pixels);
+    let factors = u32x4_extend_high_u16x8(factor_pixels);
+    let mut dst_u32_hi = u32x4_add(u32x4_mul(src_u32_hi, factors), half);
+    dst_u32_hi = u32x4_add(dst_u32_hi, u32x4_shr(dst_u32_hi, 16));
+    dst_u32_hi = u32x4_shr(dst_u32_hi, 16);
 
-    u16x8_narrow_i32x4(dst_i32_lo, dst_i32_hi)
+    u16x8_narrow_i32x4(dst_u32_lo, dst_u32_hi)
 }
 
 // Divide
@@ -121,7 +122,9 @@ pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
     }
 }
 
-pub(crate) unsafe fn divide_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn divide_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) {
     let src_chunks = src_row.chunks_exact(2);
     let src_remainder = src_chunks.remainder();
     let mut dst_chunks = dst_row.chunks_exact_mut(2);
@@ -154,7 +157,9 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U16x4], dst_row: &mut [U16x4]) 
     }
 }
 
-pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U16x4]) {
+#[inline]
+#[target_feature(enable = "simd128")]
+unsafe fn divide_alpha_row_inplace(row: &mut [U16x4]) {
     let mut chunks = row.chunks_exact_mut(2);
     foreach_with_pre_reading(
         &mut chunks,
@@ -182,39 +187,39 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U16x4]) {
 }
 
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn divide_alpha_2_pixels(pixels: v128) -> v128 {
-    let zero = i64x2_splat(0);
-    let alpha_mask = i64x2_splat(0xffff000000000000u64 as i64);
+    let zero = u64x2_splat(0);
+    let alpha_mask = u64x2_splat(0xffff000000000000);
     let alpha_max = f32x4_splat(65535.0);
-    let alpha_scale_max = f32x4_splat(2147483648f32);
     /*
        |R0   G0   B0   A0  | |R1   G1   B1   A1  |
        |0001 0203 0405 0607| |0809 1011 1213 1415|
     */
-    const ALPHA32_SH0: v128 = i8x16(6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1);
-    const ALPHA32_SH1: v128 = i8x16(
-        14, 15, -1, -1, 14, 15, -1, -1, 14, 15, -1, -1, 14, 15, -1, -1,
+    const ALPHA32_LO_SH: v128 = i8x16(6, 7, -1, -1, 6, 7, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1);
+    const ALPHA32_HI_SH: v128 = i8x16(
+        14, 15, -1, -1, 14, 15, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
-    let alpha0_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH0));
-    let alpha1_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_SH1));
+    let alpha_lo_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_LO_SH));
+    let alpha_hi_f32x4 = f32x4_convert_i32x4(u8x16_swizzle(pixels, ALPHA32_HI_SH));
 
-    let pix0_f32x4 = f32x4_convert_i32x4(i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero));
-    let pix1_f32x4 = f32x4_convert_i32x4(i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero));
+    let pix_lo_f32x4 = f32x4_convert_i32x4(i16x8_shuffle::<0, 8, 1, 9, 2, 10, 3, 11>(pixels, zero));
+    let pix_hi_f32x4 =
+        f32x4_convert_i32x4(i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero));
 
-    let scaled_pix0_f32x4 = f32x4_mul(pix0_f32x4, alpha_max);
-    let scaled_pix1_f32x4 = f32x4_mul(pix1_f32x4, alpha_max);
+    let scaled_pix_lo_f32x4 = f32x4_mul(pix_lo_f32x4, alpha_max);
+    let scaled_pix_hi_f32x4 = f32x4_mul(pix_hi_f32x4, alpha_max);
 
-    let divided_pix0_i32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
-        f32x4_div(scaled_pix0_f32x4, alpha0_f32x4),
-        alpha_scale_max,
-    ));
-    let divided_pix1_i32x4 = u32x4_trunc_sat_f32x4(f32x4_pmin(
-        f32x4_div(scaled_pix1_f32x4, alpha1_f32x4),
-        alpha_scale_max,
-    ));
+    // In case of zero division the result will be u32::MAX or 0.
+    let divided_pix_lo_u32x4 =
+        u32x4_trunc_sat_f32x4(f32x4_div(scaled_pix_lo_f32x4, alpha_lo_f32x4));
+    let divided_pix_hi_u32x4 =
+        u32x4_trunc_sat_f32x4(f32x4_div(scaled_pix_hi_f32x4, alpha_hi_f32x4));
 
-    let two_pixels_i16x8 = u16x8_narrow_i32x4(divided_pix0_i32x4, divided_pix1_i32x4);
+    // All u32::MAX values in arguments will interpreted as -1i32.
+    // u16x8_narrow_i32x4() converts all negative values into 0.
+    let two_pixels_i16x8 = u16x8_narrow_i32x4(divided_pix_lo_u32x4, divided_pix_hi_u32x4);
     let alpha = v128_and(pixels, alpha_mask);
-    u8x16_shuffle::<0, 1, 2, 3, 4, 5, 22, 23, 8, 9, 10, 11, 12, 13, 30, 31>(two_pixels_i16x8, alpha)
+    v128_or(two_pixels_i16x8, alpha)
 }

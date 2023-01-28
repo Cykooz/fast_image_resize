@@ -205,9 +205,11 @@ unsafe fn divide_alpha_8_pixels(pixels: __m128i) -> __m128i {
     let alpha_scale = _mm_set1_ps(255.0 * 256.0);
 
     let alpha_lo_f32 = _mm_cvtepi32_ps(_mm_shuffle_epi8(pixels, alpha32_sh_lo));
+    // In case of zero division the `scaled_alpha_lo_i32` will contain negative value (-2147483648).
     let scaled_alpha_lo_i32 = _mm_cvtps_epi32(_mm_div_ps(alpha_scale, alpha_lo_f32));
     let alpha_hi_f32 = _mm_cvtepi32_ps(_mm_shuffle_epi8(pixels, alpha32_sh_hi));
     let scaled_alpha_hi_i32 = _mm_cvtps_epi32(_mm_div_ps(alpha_scale, alpha_hi_f32));
+    // All negative values will stored as 0.
     let scaled_alpha_i16 = _mm_packus_epi32(scaled_alpha_lo_i32, scaled_alpha_hi_i32);
 
     let luma_i16 = _mm_and_si128(pixels, luma_mask);

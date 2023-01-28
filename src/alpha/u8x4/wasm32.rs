@@ -1,7 +1,6 @@
 use std::arch::wasm32::*;
 
 use crate::pixels::U8x4;
-use crate::utils::foreach_with_pre_reading;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
 
@@ -26,23 +25,18 @@ pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
 }
 
 #[inline]
-pub(crate) unsafe fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
     let src_chunks = src_row.chunks_exact(4);
     let src_remainder = src_chunks.remainder();
     let mut dst_chunks = dst_row.chunks_exact_mut(4);
     let src_dst = src_chunks.zip(&mut dst_chunks);
-    foreach_with_pre_reading(
-        src_dst,
-        |(src, dst)| {
-            let pixels = v128_load(src.as_ptr() as *const v128);
-            let dst_ptr = dst.as_mut_ptr() as *mut v128;
-            (pixels, dst_ptr)
-        },
-        |(mut pixels, dst_ptr)| {
-            pixels = multiply_alpha_4_pixels(pixels);
-            v128_store(dst_ptr, pixels);
-        },
-    );
+    // A simple for-loop in this case is as fast as implementation with pre-reading
+    for (src, dst) in src_dst {
+        let mut pixels = v128_load(src.as_ptr() as *const v128);
+        pixels = multiply_alpha_4_pixels(pixels);
+        v128_store(dst.as_mut_ptr() as *mut v128, pixels);
+    }
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
@@ -51,9 +45,10 @@ pub(crate) unsafe fn multiply_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) 
 }
 
 #[inline]
-pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
     let mut chunks = row.chunks_exact_mut(4);
-    // Using a simple for-loop in this case is faster than implementation with pre-reading
+    // A simple for-loop in this case is as fast as implementation with pre-reading
     for chunk in &mut chunks {
         let mut pixels = v128_load(chunk.as_ptr() as *const v128);
         pixels = multiply_alpha_4_pixels(pixels);
@@ -67,38 +62,28 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
 }
 
 #[inline]
+#[target_feature(enable = "simd128")]
 unsafe fn multiply_alpha_4_pixels(pixels: v128) -> v128 {
-    let zero = i64x2_splat(0);
-    let half = i16x8_splat(128);
-    const MAX_A: u32 = 0xff000000u32;
-    let max_alpha = u32x4_splat(MAX_A);
-
+    let half = u16x8_splat(128);
+    let max_alpha = u32x4_splat(0xff000000);
     const FACTOR_MASK: v128 = i8x16(3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
 
     let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
     let factor_pixels = v128_or(factor_pixels, max_alpha);
 
-    let pix1 =
-        i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(pixels, zero);
-    let factors = i8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(
-        factor_pixels,
-        zero,
-    );
-    let pix1 = i16x8_add(i16x8_mul(pix1, factors), half);
-    let pix1 = i16x8_add(pix1, u16x8_shr(pix1, 8));
-    let pix1 = u16x8_shr(pix1, 8);
+    let src_u16_lo = u16x8_extend_low_u8x16(pixels);
+    let factors = u16x8_extend_low_u8x16(factor_pixels);
+    let mut dst_u16_lo = u16x8_add(u16x8_mul(src_u16_lo, factors), half);
+    dst_u16_lo = u16x8_add(dst_u16_lo, u16x8_shr(dst_u16_lo, 8));
+    dst_u16_lo = u16x8_shr(dst_u16_lo, 8);
 
-    let pix2 =
-        i8x16_shuffle::<8, 24, 9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31>(pixels, zero);
-    let factors = i8x16_shuffle::<8, 24, 9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31>(
-        factor_pixels,
-        zero,
-    );
-    let pix2 = i16x8_add(i16x8_mul(pix2, factors), half);
-    let pix2 = i16x8_add(pix2, u16x8_shr(pix2, 8));
-    let pix2 = u16x8_shr(pix2, 8);
+    let src_u16_hi = u16x8_extend_high_u8x16(pixels);
+    let factors = u16x8_extend_high_u8x16(factor_pixels);
+    let mut dst_u16_hi = u16x8_add(u16x8_mul(src_u16_hi, factors), half);
+    dst_u16_hi = u16x8_add(dst_u16_hi, u16x8_shr(dst_u16_hi, 8));
+    dst_u16_hi = u16x8_shr(dst_u16_hi, 8);
 
-    u8x16_narrow_i16x8(pix1, pix2)
+    u8x16_narrow_i16x8(dst_u16_lo, dst_u16_hi)
 }
 
 // Divide
@@ -118,23 +103,18 @@ pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
 }
 
 #[inline]
-pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
     let src_chunks = src_row.chunks_exact(4);
     let src_remainder = src_chunks.remainder();
     let mut dst_chunks = dst_row.chunks_exact_mut(4);
     let src_dst = src_chunks.zip(&mut dst_chunks);
-    foreach_with_pre_reading(
-        src_dst,
-        |(src, dst)| {
-            let pixels = v128_load(src.as_ptr() as *const v128);
-            let dst_ptr = dst.as_mut_ptr() as *mut v128;
-            (pixels, dst_ptr)
-        },
-        |(mut pixels, dst_ptr)| {
-            pixels = divide_alpha_4_pixels(pixels);
-            v128_store(dst_ptr, pixels);
-        },
-    );
+    // A simple for-loop in this case is faster than implementation with pre-reading
+    for (src, dst) in src_dst {
+        let mut pixels = v128_load(src.as_ptr() as *const v128);
+        pixels = divide_alpha_4_pixels(pixels);
+        v128_store(dst.as_mut_ptr() as *mut v128, pixels);
+    }
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
@@ -157,20 +137,15 @@ pub(crate) unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
 }
 
 #[inline]
-pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
+#[target_feature(enable = "simd128")]
+unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
     let mut chunks = row.chunks_exact_mut(4);
-    foreach_with_pre_reading(
-        &mut chunks,
-        |chunk| {
-            let pixels = v128_load(chunk.as_ptr() as *const v128);
-            let dst_ptr = chunk.as_mut_ptr() as *mut v128;
-            (pixels, dst_ptr)
-        },
-        |(mut pixels, dst_ptr)| {
-            pixels = divide_alpha_4_pixels(pixels);
-            v128_store(dst_ptr, pixels);
-        },
-    );
+    // A simple for-loop in this case is faster than implementation with pre-reading
+    for chunk in &mut chunks {
+        let mut pixels = v128_load(chunk.as_ptr() as *const v128);
+        pixels = divide_alpha_4_pixels(pixels);
+        v128_store(chunk.as_mut_ptr() as *mut v128, pixels);
+    }
 
     let tail = chunks.into_remainder();
     if !tail.is_empty() {
@@ -190,31 +165,32 @@ pub(crate) unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
 }
 
 #[inline]
-unsafe fn divide_alpha_4_pixels(src_pixels: v128) -> v128 {
-    let zero = i64x2_splat(0);
-    let alpha_mask = i32x4_splat(0xff000000u32 as i32);
-    const SHUFFLE1: v128 = i8x16(0, 1, 0, 1, 0, 1, 0, 1, 4, 5, 4, 5, 4, 5, 4, 5);
-    const SHUFFLE2: v128 = i8x16(8, 9, 8, 9, 8, 9, 8, 9, 12, 13, 12, 13, 12, 13, 12, 13);
+#[target_feature(enable = "simd128")]
+unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
+    const FACTOR_LO_SHUFFLE: v128 = i8x16(0, 1, 0, 1, 0, 1, -1, -1, 2, 3, 2, 3, 2, 3, -1, -1);
+    const FACTOR_HI_SHUFFLE: v128 = i8x16(4, 5, 4, 5, 4, 5, -1, -1, 6, 7, 6, 7, 6, 7, -1, -1);
+    let alpha_mask = u32x4_splat(0xff000000);
     let alpha_scale = f32x4_splat(255.0 * 256.0);
-    let alpha_scale_max = f32x4_splat(2147483648f32);
 
-    let alpha_f32 = f32x4_convert_i32x4(u32x4_shr(src_pixels, 24));
-    let scaled_alpha_f32 = f32x4_div(alpha_scale, alpha_f32);
-    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_pmin(scaled_alpha_f32, alpha_scale_max));
-    let mma0 = u8x16_swizzle(scaled_alpha_u32, SHUFFLE1);
-    let mma1 = u8x16_swizzle(scaled_alpha_u32, SHUFFLE2);
+    let alpha_f32 = f32x4_convert_i32x4(u32x4_shr(pixels, 24));
+    // In case of zero division the result will be u32::MAX or 0.
+    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_div(alpha_scale, alpha_f32));
+    // All u32::MAX values in arguments will interpreted as -1i32.
+    // u16x8_narrow_i32x4() converts all negative values into 0.
+    let scaled_alpha_u16 = u16x8_narrow_i32x4(scaled_alpha_u32, scaled_alpha_u32);
+    let factor_lo_u16x8 = u8x16_swizzle(scaled_alpha_u16, FACTOR_LO_SHUFFLE);
+    let factor_hi_u16x8 = u8x16_swizzle(scaled_alpha_u16, FACTOR_HI_SHUFFLE);
 
-    let pix0 =
-        u8x16_shuffle::<0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23>(zero, src_pixels);
-    let pix1 = u8x16_shuffle::<8, 24, 9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31>(
-        zero, src_pixels,
-    );
+    // alpha_mask's first byte is 0
+    let src_u16_lo =
+        u8x16_shuffle::<0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0, 23>(alpha_mask, pixels);
+    let src_u16_hi =
+        u8x16_shuffle::<0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31>(alpha_mask, pixels);
 
-    let pix0 = wasm32_utils::u16x8_mul_hi(pix0, mma0);
-    let pix1 = wasm32_utils::u16x8_mul_hi(pix1, mma1);
+    let dst_lo = wasm32_utils::u16x8_mul_shr16(src_u16_lo, factor_lo_u16x8);
+    let dst_hi = wasm32_utils::u16x8_mul_shr16(src_u16_hi, factor_hi_u16x8);
 
-    let alpha = v128_and(src_pixels, alpha_mask);
-    let rgb = u8x16_narrow_i16x8(pix0, pix1);
-
-    u8x16_shuffle::<0, 1, 2, 19, 4, 5, 6, 23, 8, 9, 10, 27, 12, 13, 14, 31>(rgb, alpha)
+    let alpha = v128_and(pixels, alpha_mask);
+    let rgb = u8x16_narrow_i16x8(dst_lo, dst_hi);
+    v128_or(rgb, alpha)
 }

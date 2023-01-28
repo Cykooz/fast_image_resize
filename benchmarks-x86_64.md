@@ -5,7 +5,7 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.15.0)
-- Rust 1.66.1
+- Rust 1.67
 - criterion = "0.4"
 - fast_image_resize = "2.4.0"
 

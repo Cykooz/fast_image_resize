@@ -23,7 +23,27 @@ fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
-    bench_group.bench_function("nearest wo SIMD", |bencher| {
+    utils::bench(bench_group, 100, "U8x4 Nearest", "rust", |bencher| {
+        bencher.iter(|| {
+            resizer.resize(&src_image, &mut dst_image).unwrap();
+        })
+    });
+}
+
+fn native_nearest_u8_bench(bench_group: &mut utils::BenchGroup) {
+    let image = U8::load_big_src_image();
+    let mut res_image = Image::new(
+        NonZeroU32::new(NEW_WIDTH).unwrap(),
+        NonZeroU32::new(NEW_HEIGHT).unwrap(),
+        image.pixel_type(),
+    );
+    let src_image = image.view();
+    let mut dst_image = res_image.view_mut();
+    let mut resizer = Resizer::new(ResizeAlg::Nearest);
+    unsafe {
+        resizer.set_cpu_extensions(CpuExtensions::None);
+    }
+    utils::bench(bench_group, 100, "U8 Nearest", "rust", |bencher| {
         bencher.iter(|| {
             resizer.resize(&src_image, &mut dst_image).unwrap();
         })
@@ -47,37 +67,17 @@ fn downscale_bench(
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
-    let bench_name = &format!(
-        "{:?}-{:?}-{}",
-        image.pixel_type(),
-        filter_type,
+    utils::bench(
+        bench_group,
+        100,
+        &format!("{:?} {:?}", image.pixel_type(), filter_type),
         cpu_ext_into_str(cpu_extensions),
+        |bencher| {
+            bencher.iter(|| {
+                resizer.resize(&src_image, &mut dst_image).unwrap();
+            })
+        },
     );
-    bench_group.bench_function(bench_name, |bencher| {
-        bencher.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
-    });
-}
-
-fn native_nearest_u8_bench(bench_group: &mut utils::BenchGroup) {
-    let image = U8::load_big_src_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
-    unsafe {
-        resizer.set_cpu_extensions(CpuExtensions::None);
-    }
-    bench_group.bench_function("u8 nearest wo SIMD", |bencher| {
-        bencher.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
-    });
 }
 
 pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
@@ -102,6 +102,10 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
     {
         cpu_extensions.push(CpuExtensions::Neon);
     }
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_extensions.push(CpuExtensions::Simd128);
+    }
     for pixel_type in pixel_types {
         for &cpu_extension in cpu_extensions.iter() {
             let image = match pixel_type {
@@ -125,5 +129,6 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
 }
 
 fn main() {
-    utils::run_bench(resize_bench, "Resize");
+    let results = utils::run_bench(resize_bench, "Resize");
+    println!("{}", utils::build_md_table(&results));
 }

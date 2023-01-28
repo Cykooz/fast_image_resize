@@ -10,25 +10,25 @@ Rust library for fast image resizing with using of SIMD instructions.
 
 Supported pixel formats and available optimisations:
 
-| Format | Description                                                   | Native Rust | SSE4.1 | AVX2 | Neon |
-|:------:|:--------------------------------------------------------------|:-----------:|:------:|:----:|:----:|
-|   U8   | One `u8` component per pixel (e.g. L)                         |      +      |   +    |  +   |  +   |
-|  U8x2  | Two `u8` components per pixel (e.g. LA)                       |      +      |   +    |  +   |  +   |
-|  U8x3  | Three `u8` components per pixel (e.g. RGB)                    |      +      |   +    |  +   |  +   |
-|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)        |      +      |   +    |  +   |  +   |
-|  U16   | One `u16` components per pixel (e.g. L16)                     |      +      |   +    |  +   |  +   |
-| U16x2  | Two `u16` components per pixel (e.g. LA16)                    |      +      |   +    |  +   |  +   |
-| U16x3  | Three `u16` components per pixel (e.g. RGB16)                 |      +      |   +    |  +   |  +   |
-| U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |      +      |   +    |  +   |  +   |
-|  I32   | One `i32` component per pixel                                 |      +      |   -    |  -   |  -   |
-|  F32   | One `f32` component per pixel                                 |      +      |   -    |  -   |  -   |
+| Format | Description                                                   | SSE4.1 | AVX2 | Neon | Wasm32 SIMD128 |
+|:------:|:--------------------------------------------------------------|:------:|:----:|:----:|:--------------:|
+|   U8   | One `u8` component per pixel (e.g. L)                         |   +    |  +   |  +   |       +        |
+|  U8x2  | Two `u8` components per pixel (e.g. LA)                       |   +    |  +   |  +   |       +        |
+|  U8x3  | Three `u8` components per pixel (e.g. RGB)                    |   +    |  +   |  +   |       +        |
+|  U8x4  | Four `u8` components per pixel (e.g. RGBA, RGBx, CMYK)        |   +    |  +   |  +   |       +        |
+|  U16   | One `u16` components per pixel (e.g. L16)                     |   +    |  +   |  +   |       +        |
+| U16x2  | Two `u16` components per pixel (e.g. LA16)                    |   +    |  +   |  +   |       +        |
+| U16x3  | Three `u16` components per pixel (e.g. RGB16)                 |   +    |  +   |  +   |       +        |
+| U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |   +    |  +   |  +   |       +        |
+|  I32   | One `i32` component per pixel                                 |   -    |  -   |  -   |       -        |
+|  F32   | One `f32` component per pixel                                 |   -    |  -   |  -   |       -        |
 
 ## Colorspace
 
 Resizer from this crate does not convert image into linear colorspace 
 during resize process. If it is important for you to resize images with a 
-non-linear color space (e.g. sRGB) correctly, then you need to convert 
-it to a linear color space before resizing and convert back a color space of 
+non-linear color space (e.g. sRGB) correctly, then you hove to convert 
+it to a linear color space before resizing and convert back to the color space of 
 result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
 about resizing with respect to color space.
 
@@ -45,7 +45,8 @@ that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
 - [All x86_64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-x86_64.md)
 - [All arm64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-arm64.md)
-
+- [All wasm32 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-wasm32.md)
+- 
 Rust libraries used to compare of resizing speed:
 
 - image (<https://crates.io/crates/image>)

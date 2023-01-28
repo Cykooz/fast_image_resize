@@ -5,7 +5,7 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.15.0)
-- Rust 1.66.1
+- Rust 1.67
 - wasmtime = "5.0.0"
 - criterion = "0.4"
 - fast_image_resize = "2.4.0"
@@ -70,9 +70,9 @@ Pipeline:
 <!-- bench_compare_l start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  20.67  |  113.49  |   204.72   |  296.08  |
-| resize   |    -    |  30.10   |   60.87    |  90.92   |
-| fir rust |  0.21   |  24.54   |   40.10    |  57.36   |
+| image    |  55.66  |  203.36  |   379.55   |  525.72  |
+| resize   |    -    |  45.42   |   84.39    |  122.73  |
+| fir rust |  0.29   |  35.84   |   58.16    |  81.65   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567

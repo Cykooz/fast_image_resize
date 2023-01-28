@@ -94,8 +94,7 @@ fn mul_div_alpha_test<P, const N: usize>(
     {
         assert_eq!(
             r, *e,
-            "failed test: src={:?}, result={:?}, expected_result={:?}",
-            s, r, e
+            "failed test: src={s:?}, result={r:?}, expected_result={e:?}",
         );
     }
 
@@ -119,8 +118,7 @@ fn mul_div_alpha_test<P, const N: usize>(
     for ((s, r), e) in src_pixels.iter().zip(src_pixels_clone).zip(expected_pixels) {
         assert_eq!(
             r, e,
-            "failed inplace test: src={:?}, result={:?}, expected_result={:?}",
-            s, r, e
+            "failed inplace test: src={s:?}, result={r:?}, expected_result={e:?}",
         );
     }
 }
@@ -157,7 +155,7 @@ mod multiply_alpha_u8x4 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -215,7 +213,7 @@ mod multiply_alpha_u8x2 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -226,8 +224,9 @@ mod multiply_alpha_u8x2 {
 
 #[cfg(test)]
 mod multiply_alpha_u16x2 {
-    use super::*;
     use fast_image_resize::pixels::U16x2;
+
+    use super::*;
 
     const SRC_PIXELS: [U16x2; 9] = [
         U16x2::new([0xffff, 0x8000]),
@@ -273,7 +272,7 @@ mod multiply_alpha_u16x2 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -284,8 +283,9 @@ mod multiply_alpha_u16x2 {
 
 #[cfg(test)]
 mod multiply_alpha_u16x4 {
-    use super::*;
     use fast_image_resize::pixels::U16x4;
+
+    use super::*;
 
     const SRC_PIXELS: [U16x4; 3] = [
         U16x4::new([0xffff, 0x8000, 0, 0x8000]),
@@ -319,7 +319,7 @@ mod multiply_alpha_u16x4 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(Oper::Mul, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -363,7 +363,7 @@ mod divide_alpha_u8x4 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -421,7 +421,7 @@ mod divide_alpha_u8x2 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -490,7 +490,7 @@ mod divide_alpha_u16x2 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod divide_alpha_u16x4 {
     #[cfg(target_arch = "wasm32")]
     #[test]
     fn wasm32_test() {
-        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Wasm32);
+        mul_div_alpha_test(OPER, SRC_PIXELS, RES_PIXELS, CpuExtensions::Simd128);
     }
 
     #[test]

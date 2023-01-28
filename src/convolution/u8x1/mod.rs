@@ -31,7 +31,7 @@ impl Convolution for U8 {
             #[cfg(target_arch = "aarch64")]
             CpuExtensions::Neon => neon::horiz_convolution(src_image, dst_image, offset, coeffs),
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Wasm32 => {
+            CpuExtensions::Simd128 => {
                 wasm32::horiz_convolution(src_image, dst_image, offset, coeffs)
             }
             _ => native::horiz_convolution(src_image, dst_image, offset, coeffs),

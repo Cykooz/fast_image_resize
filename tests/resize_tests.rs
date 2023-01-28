@@ -205,7 +205,7 @@ fn resize_to_same_width_after_cropping() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         if !cpu_extensions.is_supported() {
@@ -382,7 +382,7 @@ fn downscale_u8() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -410,7 +410,7 @@ fn upscale_u8() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -438,7 +438,7 @@ fn downscale_u8x2() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -470,7 +470,7 @@ fn upscale_u8x2() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -502,7 +502,7 @@ fn downscale_u8x3() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -534,7 +534,7 @@ fn upscale_u8x3() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -566,7 +566,7 @@ fn downscale_u8x4() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -604,7 +604,7 @@ fn upscale_u8x4() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -632,7 +632,7 @@ fn downscale_u16() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -660,7 +660,7 @@ fn upscale_u16() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -692,7 +692,7 @@ fn downscale_u16x2() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -724,7 +724,7 @@ fn upscale_u16x2() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -756,7 +756,7 @@ fn downscale_u16x3() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -788,7 +788,7 @@ fn upscale_u16x3() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(
@@ -820,7 +820,7 @@ fn downscale_u16x4() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::downscale_test(
@@ -852,7 +852,7 @@ fn upscale_u16x4() {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        cpu_extensions_vec.push(CpuExtensions::Wasm32);
+        cpu_extensions_vec.push(CpuExtensions::Simd128);
     }
     for cpu_extensions in cpu_extensions_vec {
         P::upscale_test(

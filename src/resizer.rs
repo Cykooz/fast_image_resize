@@ -7,17 +7,24 @@ use crate::{
     DifferentTypesOfPixelsError, DynamicImageView, DynamicImageViewMut, ImageView, ImageViewMut,
 };
 
+/// SIMD extension of CPU.
+/// Specific variants depends from target architecture.
+/// Look at source code to see all available variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CpuExtensions {
     None,
     #[cfg(target_arch = "x86_64")]
+    /// SIMD extension of x86_64 architecture
     Sse4_1,
     #[cfg(target_arch = "x86_64")]
+    /// SIMD extension of x86_64 architecture
     Avx2,
     #[cfg(target_arch = "aarch64")]
+    /// SIMD extension of Arm64 architecture
     Neon,
     #[cfg(target_arch = "wasm32")]
-    Wasm32,
+    /// SIMD extension of Wasm32 architecture
+    Simd128,
 }
 
 impl CpuExtensions {
@@ -31,7 +38,7 @@ impl CpuExtensions {
             #[cfg(target_arch = "aarch64")]
             Self::Neon => true,
             #[cfg(target_arch = "wasm32")]
-            Self::Wasm32 => true,
+            Self::Simd128 => true,
             Self::None => true,
         }
     }
@@ -60,7 +67,7 @@ impl Default for CpuExtensions {
     }
     #[cfg(target_arch = "wasm32")]
     fn default() -> Self {
-        Self::Wasm32
+        Self::Simd128
     }
 
     #[cfg(not(any(

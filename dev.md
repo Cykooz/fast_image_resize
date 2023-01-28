@@ -8,7 +8,6 @@ Install additional toolchains.
 - Wasm32:  
   ```shell
   rustup target add wasm32-wasi
-  cargo install cargo-wasi
   ```
   Install [Wasmtime](https://wasmtime.dev/).
 
@@ -36,28 +35,23 @@ Specify build target in `.cargo/config.toml` file.
 target = "wasm32-wasi"
 ```
 
-Template of command to run `cargo` commands with using `Wasmtime`:
-```
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=." cargo wasi <any cargo command>
-```
-
 Run tests:
 ```shell
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=." cargo wasi test
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --" cargo test
 ```
 
 Run tests without saving result images as files in `./data` directory:
 ```shell
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env DONT_SAVE_RESULT=1" cargo wasi test
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env DONT_SAVE_RESULT=1 --" cargo test
 ```
 
 Run a specific benchmark in `quick` mode:
 ```shell
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=." cargo wasi bench --bench bench_resize -- --quick
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --" cargo bench --bench bench_resize -- --color=always --quick
 ```
 
 Run benchmarks to compare with other crates for image resizing and write results into
 report files, such as `./benchmarks-x86_64.md`:
 ```shell
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1" cargo wasi bench -- Compare
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1 --" cargo bench -- --color=always Compare
 ```

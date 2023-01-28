@@ -254,7 +254,7 @@ pub fn save_result(image: &Image, name: &str) {
         _ => panic!("Unsupported type of pixels"),
     };
     image::save_buffer(
-        &path,
+        path,
         image.buffer(),
         image.width().get(),
         image.height().get(),
@@ -263,16 +263,16 @@ pub fn save_result(image: &Image, name: &str) {
     .unwrap();
 }
 
-pub fn cpu_ext_into_str(cpu_extensions: CpuExtensions) -> &'static str {
+pub const fn cpu_ext_into_str(cpu_extensions: CpuExtensions) -> &'static str {
     match cpu_extensions {
-        CpuExtensions::None => "native",
+        CpuExtensions::None => "rust",
         #[cfg(target_arch = "x86_64")]
-        CpuExtensions::Sse4_1 => "sse41",
+        CpuExtensions::Sse4_1 => "sse4.1",
         #[cfg(target_arch = "x86_64")]
         CpuExtensions::Avx2 => "avx2",
         #[cfg(target_arch = "aarch64")]
         CpuExtensions::Neon => "neon",
         #[cfg(target_arch = "wasm32")]
-        CpuExtensions::Wasm32 => "wasm32",
+        CpuExtensions::Simd128 => "simd128",
     }
 }
