@@ -8,7 +8,7 @@ Environment:
 - Rust 1.67
 - wasmtime = "5.0.0"
 - criterion = "0.4"
-- fast_image_resize = "2.4.0"
+- fast_image_resize = "2.5.0"
 
 Other Rust libraries used to compare of resizing speed:
 
@@ -32,11 +32,12 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 <!-- bench_compare_rgb start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  25.52  |  146.82  |   268.35   |  391.29  |
-| resize   |    -    |  84.92   |   166.80   |  247.48  |
-| fir rust |  0.37   |  50.56   |   88.08    |  126.30  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| image       |  30.54  |  182.53  |   333.69   |  485.57  |
+| resize      |    -    |  85.65   |   166.46   |  248.04  |
+| fir rust    |  0.37   |  56.17   |   95.14    |  136.15  |
+| fir simd128 |    -    |  16.32   |   23.87    |  33.97   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -53,8 +54,8 @@ Pipeline:
 <!-- bench_compare_rgba start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  109.02  |   216.79   |  325.27  |
-| fir rust |  0.25   |  112.21  |   174.85   |  239.34  |
+| resize   |    -    |  106.79  |   204.81   |  309.52  |
+| fir rust |  0.27   |  107.92  |   162.37   |  218.41  |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -68,11 +69,12 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 <!-- bench_compare_l start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  55.66  |  203.36  |   379.55   |  525.72  |
-| resize   |    -    |  45.42   |   84.39    |  122.73  |
-| fir rust |  0.29   |  35.84   |   58.16    |  81.65   |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| image       |  26.91  |  149.62  |   270.65   |  402.29  |
+| resize      |    -    |  24.86   |   46.99    |  69.49   |
+| fir rust    |  0.21   |  25.26   |   40.43    |  56.80   |
+| fir simd128 |    -    |   7.66   |    8.62    |  12.87   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
@@ -91,7 +93,7 @@ Pipeline:
 <!-- bench_compare_la start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.24   |  58.38   |   87.21    |  116.68  |
+| fir rust |  0.24   |  58.78   |   88.65    |  117.81  |
 <!-- bench_compare_la end -->
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
@@ -105,11 +107,12 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 <!-- bench_compare_rgb16 start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  25.65  |  155.69  |   284.54   |  413.21  |
-| resize   |    -    |  88.44   |   172.07   |  258.84  |
-| fir rust |  0.40   |  57.66   |   97.19    |  138.74  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| image       |  30.21  |  183.61  |   334.87   |  485.75  |
+| resize      |    -    |  54.97   |   106.92   |  158.51  |
+| fir rust    |  0.42   |  63.58   |   105.10   |  146.28  |
+| fir simd128 |    -    |  59.84   |   104.52   |  151.31  |
 <!-- bench_compare_rgb16 end -->
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
@@ -126,8 +129,8 @@ Pipeline:
 <!-- bench_compare_rgba16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  111.25  |   219.73   |  328.47  |
-| fir rust |  0.42   |  112.28  |   169.04   |  228.52  |
+| resize   |    -    |  80.98   |   158.27   |  230.59  |
+| fir rust |  0.42   |  117.66  |   171.42   |  227.46  |
 <!-- bench_compare_rgba16 end -->
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
@@ -141,11 +144,12 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 
 <!-- bench_compare_l16 start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  22.20  |  129.91  |   236.08   |  342.27  |
-| resize   |    -    |  30.63   |   60.99    |  91.22   |
-| fir rust |  0.25   |  27.74   |   43.73    |  61.72   |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| image       |  27.74  |  174.53  |   315.94   |  471.17  |
+| resize      |    -    |  30.87   |   61.00    |  91.44   |
+| fir rust    |  0.25   |  28.48   |   44.72    |  62.67   |
+| fir simd128 |    -    |  20.61   |   33.51    |  48.61   |
 <!-- bench_compare_l16 end -->
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
@@ -164,5 +168,5 @@ Pipeline:
 <!-- bench_compare_la16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.25   |  59.93   |   95.26    |  131.62  |
+| fir rust |  0.26   |  58.50   |   87.86    |  117.28  |
 <!-- bench_compare_la16 end -->

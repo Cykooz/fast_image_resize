@@ -25,19 +25,19 @@ Supported pixel formats and available optimisations:
 
 ## Colorspace
 
-Resizer from this crate does not convert image into linear colorspace 
-during resize process. If it is important for you to resize images with a 
-non-linear color space (e.g. sRGB) correctly, then you hove to convert 
-it to a linear color space before resizing and convert back to the color space of 
+Resizer from this crate does not convert image into linear colorspace
+during resize process. If it is important for you to resize images with a
+non-linear color space (e.g. sRGB) correctly, then you hove to convert
+it to a linear color space before resizing and convert back to the color space of
 result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
 about resizing with respect to color space.
 
 This crate provides the
 [PixelComponentMapper](https://docs.rs/fast_image_resize/latest/fast_image_resize/struct.PixelComponentMapper.html)
-structure that allows you to create colorspace converters for images 
+structure that allows you to create colorspace converters for images
 whose pixels based on `u8` and `u16` components.
 
-In addition, the crate contains functions `create_gamma_22_mapper()` 
+In addition, the crate contains functions `create_gamma_22_mapper()`
 and `create_srgb_mapper()` to create instance of `PixelComponentMapper`
 that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
@@ -46,7 +46,7 @@ that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 - [All x86_64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-x86_64.md)
 - [All arm64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-arm64.md)
 - [All wasm32 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-wasm32.md)
-- 
+
 Rust libraries used to compare of resizing speed:
 
 - image (<https://crates.io/crates/image>)
@@ -64,11 +64,11 @@ Pipeline:
 <!-- bench_compare_rgb start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  18.74  |  80.85   |   138.40   |  196.43  |
-| resize     |    -    |  48.75   |   97.45    |  145.80  |
-| fir rust   |  0.28   |  38.90   |   78.31    |  111.49  |
-| fir sse4.1 |    -    |   9.92   |   14.35    |  20.07   |
-| fir avx2   |    -    |   7.82   |    9.90    |  14.48   |
+| image      |  18.53  |  80.66   |   137.96   |  196.04  |
+| resize     |    -    |  46.50   |   91.78    |  136.27  |
+| fir rust   |  0.28   |  38.94   |   78.10    |  111.35  |
+| fir sse4.1 |    -    |   9.88   |   14.22    |  20.09   |
+| fir avx2   |    -    |   7.79   |    9.90    |  14.47   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -85,10 +85,10 @@ Pipeline:
 <!-- bench_compare_rgba start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  73.08   |   137.79   |  201.39  |
-| fir rust   |  0.19   |  34.74   |   47.92    |  68.65   |
-| fir sse4.1 |    -    |  13.03   |   17.35    |  22.69   |
-| fir avx2   |    -    |   9.43   |   11.88    |  16.38   |
+| resize     |    -    |  74.49   |   137.62   |  202.75  |
+| fir rust   |  0.19   |  37.75   |   54.07    |  76.86   |
+| fir sse4.1 |    -    |  13.13   |   17.33    |  22.57   |
+| fir avx2   |    -    |   9.55   |   12.07    |  16.47   |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -104,11 +104,11 @@ Pipeline:
 <!-- bench_compare_l start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  16.07  |  47.59   |   74.81    |  102.84  |
-| resize     |    -    |  17.09   |   35.49    |  60.93   |
-| fir rust   |  0.15   |  13.59   |   15.52    |  23.87   |
-| fir sse4.1 |    -    |   5.00   |    5.31    |   8.07   |
-| fir avx2   |    -    |   7.11   |    5.19    |   8.58   |
+| image      |  15.77  |  47.29   |   74.58    |  102.36  |
+| resize     |    -    |  17.05   |   35.51    |  60.73   |
+| fir rust   |  0.15   |  13.61   |   15.48    |  23.84   |
+| fir sse4.1 |    -    |   4.81   |    5.23    |   7.84   |
+| fir avx2   |    -    |   6.66   |    4.99    |   8.17   |
 <!-- bench_compare_l end -->
 
 ## Examples
