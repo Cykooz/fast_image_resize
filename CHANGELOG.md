@@ -3,7 +3,7 @@
 ### Crate
 
 - Added support of optimisation with helps of `Wasm32 SIMD128` for
-  all type of images exclude `I32` and `F32`
+  all types of images exclude `I32` and `F32`
   (thanks to @cdmurph32, [#11](https://github.com/Cykooz/fast_image_resize/pull/11)).
 
 ### Benchmarks

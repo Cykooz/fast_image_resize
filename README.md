@@ -43,9 +43,11 @@ that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
 ## Some benchmarks for x86_64
 
-- [All x86_64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-x86_64.md)
-- [All arm64 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-arm64.md)
-- [All wasm32 benchmarks.](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-wasm32.md)
+_All benchmarks:_
+[_x86_64_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-x86_64.md),
+[_ARM64_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-arm64.md),
+[_WASM32_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-wasm32.md).
+
 
 Rust libraries used to compare of resizing speed:
 
