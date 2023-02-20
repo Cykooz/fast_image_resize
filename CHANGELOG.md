@@ -1,3 +1,8 @@
+## [Unreleased] - ReleaseDate
+
+- Slightly improved speed of `Convolution` implementation for `U8x2` images 
+  and `Wasm32 SIMD128` instructions.
+
 ## [2.5.0] - 2023-01-29
 
 ### Crate

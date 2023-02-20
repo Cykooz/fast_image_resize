@@ -27,7 +27,7 @@ Supported pixel formats and available optimisations:
 
 Resizer from this crate does not convert image into linear colorspace
 during resize process. If it is important for you to resize images with a
-non-linear color space (e.g. sRGB) correctly, then you hove to convert
+non-linear color space (e.g. sRGB) correctly, then you have to convert
 it to a linear color space before resizing and convert back to the color space of
 result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
 about resizing with respect to color space.

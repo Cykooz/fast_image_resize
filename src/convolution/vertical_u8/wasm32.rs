@@ -25,8 +25,9 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
     }
 }
 
+#[inline]
 #[target_feature(enable = "simd128")]
-pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
+unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
     mut src_x: usize,
@@ -37,7 +38,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
-    let precision = normalizer.precision();
+    let precision = normalizer.precision() as u32;
     let mut dst_u8 = T::components_mut(dst_row);
 
     let initial = i32x4_splat(1 << (precision - 1));
@@ -143,19 +144,14 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             sss7 = i32x4_add(sss7, i32x4_dot_i16x8(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = i32x4_shr(sss0, $imm8);
-                sss1 = i32x4_shr(sss1, $imm8);
-                sss2 = i32x4_shr(sss2, $imm8);
-                sss3 = i32x4_shr(sss3, $imm8);
-                sss4 = i32x4_shr(sss4, $imm8);
-                sss5 = i32x4_shr(sss5, $imm8);
-                sss6 = i32x4_shr(sss6, $imm8);
-                sss7 = i32x4_shr(sss7, $imm8);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = i32x4_shr(sss0, precision);
+        sss1 = i32x4_shr(sss1, precision);
+        sss2 = i32x4_shr(sss2, precision);
+        sss3 = i32x4_shr(sss3, precision);
+        sss4 = i32x4_shr(sss4, precision);
+        sss5 = i32x4_shr(sss5, precision);
+        sss6 = i32x4_shr(sss6, precision);
+        sss7 = i32x4_shr(sss7, precision);
 
         sss0 = i16x8_narrow_i32x4(sss0, sss1);
         sss2 = i16x8_narrow_i32x4(sss2, sss3);
@@ -214,13 +210,8 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             sss1 = i32x4_add(sss1, i32x4_dot_i16x8(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = i32x4_shr(sss0, $imm8);
-                sss1 = i32x4_shr(sss1, $imm8);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = i32x4_shr(sss0, precision);
+        sss1 = i32x4_shr(sss1, precision);
 
         sss0 = i16x8_narrow_i32x4(sss0, sss1);
         sss0 = u8x16_narrow_i16x8(sss0, sss0);
@@ -262,13 +253,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8
             sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = i32x4_shr(sss, $imm8);
-            }};
-        }
-        constify_imm8!(precision, call);
-
+        sss = i32x4_shr(sss, precision);
         sss = i16x8_narrow_i32x4(sss, sss);
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut i32;
         *dst_ptr = i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, sss));

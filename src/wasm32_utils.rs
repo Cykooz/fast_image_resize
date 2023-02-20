@@ -1,4 +1,5 @@
 use std::arch::wasm32::*;
+use std::ptr;
 
 use crate::pixels::{U8x3, U8x4};
 
@@ -12,33 +13,37 @@ pub(crate) unsafe fn load_v128<T>(buf: &[T], index: usize) -> v128 {
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn loadl_i64<T>(buf: &[T], index: usize) -> v128 {
     let i = buf.get_unchecked(index..).as_ptr() as *const i64;
-    i64x2(*i, 0)
+    i64x2(ptr::read_unaligned(i), 0)
 }
 
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn loadl_i32<T>(buf: &[T], index: usize) -> v128 {
     let i = buf.get_unchecked(index..).as_ptr() as *const i32;
-    i32x4(*i, 0, 0, 0)
+    i32x4(ptr::read_unaligned(i), 0, 0, 0)
 }
 
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn loadl_i16<T>(buf: &[T], index: usize) -> v128 {
     let i = buf.get_unchecked(index..).as_ptr() as *const i16;
-    i16x8(*i, 0, 0, 0, 0, 0, 0, 0)
+    i16x8(ptr::read_unaligned(i), 0, 0, 0, 0, 0, 0, 0)
 }
 
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn ptr_i16_to_set1_i64(buf: &[i16], index: usize) -> v128 {
-    i64x2_splat(*(buf.get_unchecked(index..).as_ptr() as *const i64))
+    i64x2_splat(ptr::read_unaligned(
+        buf.get_unchecked(index..).as_ptr() as *const i64
+    ))
 }
 
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn ptr_i16_to_set1_i32(buf: &[i16], index: usize) -> v128 {
-    i32x4_splat(*(buf.get_unchecked(index..).as_ptr() as *const i32))
+    i32x4_splat(ptr::read_unaligned(
+        buf.get_unchecked(index..).as_ptr() as *const i32
+    ))
 }
 
 #[inline]

@@ -303,8 +303,7 @@ where
         assert_eq!(
             testing::image_checksum::<Self, CC>(&result),
             checksum,
-            "Error in checksum for {:?}",
-            cpu_extensions
+            "Error in checksum for {cpu_extensions:?}",
         );
     }
 

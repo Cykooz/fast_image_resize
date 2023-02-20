@@ -106,8 +106,12 @@ opt-level = 3
 opt-level = 3
 #incremental = true
 lto = true
-codegen-units = 1
+#codegen-units = 1
 strip = true
+
+
+[profile.release.package.fast_image_resize]
+codegen-units = 1
 
 
 [profile.test]

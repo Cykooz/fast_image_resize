@@ -26,7 +26,7 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
 }
 
 #[target_feature(enable = "sse4.1")]
-pub(crate) unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
+unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
     mut src_x: usize,
