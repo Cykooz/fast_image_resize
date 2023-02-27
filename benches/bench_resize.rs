@@ -82,17 +82,17 @@ fn downscale_bench(
 
 pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
     let pixel_types = [
-        PixelType::U8,
-        PixelType::U8x2,
+        // PixelType::U8,
+        // PixelType::U8x2,
         PixelType::U8x3,
-        PixelType::U8x4,
-        PixelType::U16,
-        PixelType::U16x2,
-        PixelType::U16x3,
-        PixelType::U16x4,
-        PixelType::I32,
+        // PixelType::U8x4,
+        // PixelType::U16,
+        // PixelType::U16x2,
+        // PixelType::U16x3,
+        // PixelType::U16x4,
+        // PixelType::I32,
     ];
-    let mut cpu_extensions = vec![CpuExtensions::None];
+    let mut cpu_extensions = vec![]; //CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
         cpu_extensions.push(CpuExtensions::Sse4_1);
@@ -124,8 +124,8 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
         }
     }
 
-    native_nearest_u8x4_bench(bench_group);
-    native_nearest_u8_bench(bench_group);
+    // native_nearest_u8x4_bench(bench_group);
+    // native_nearest_u8_bench(bench_group);
 }
 
 fn main() {

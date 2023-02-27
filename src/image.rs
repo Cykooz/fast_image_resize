@@ -111,7 +111,7 @@ impl<'a> Image<'a> {
     #[inline(always)]
     pub fn buffer(&self) -> &[u8] {
         match &self.buffer {
-            BufferContainer::MutU8(p) => *p,
+            BufferContainer::MutU8(p) => p,
             BufferContainer::VecU8(v) => v,
         }
     }

@@ -215,12 +215,13 @@ unsafe fn horiz_convolution_8u(
         R: |-1 03| |-1 00|
     */
     let src_width = src_row.len();
+    let initial = i32x4_splat(1 << (precision - 1));
 
     for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let x_start = coeffs_chunk.start as usize;
         let mut x = x_start;
         let mut coeffs = coeffs_chunk.values;
-        let mut sss = i32x4_splat(1 << (precision - 1));
+        let mut sss = initial;
 
         // Next block of code will be load source pixels by 16 bytes per time.
         // We must guarantee what this process will not go beyond
