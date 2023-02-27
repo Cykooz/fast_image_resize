@@ -118,7 +118,7 @@ impl<'a> Image<'a> {
 
     /// Mutable buffer with image pixels.
     #[inline(always)]
-    fn buffer_mut(&mut self) -> &mut [u8] {
+    pub fn buffer_mut(&mut self) -> &mut [u8] {
         match &mut self.buffer {
             BufferContainer::MutU8(p) => p,
             BufferContainer::VecU8(ref mut v) => v.as_mut_slice(),
