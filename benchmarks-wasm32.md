@@ -4,7 +4,7 @@ Environment:
 
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
-- Ubuntu 22.04 (linux 5.15.0)
+- Ubuntu 22.04 (linux 5.19.0)
 - Rust 1.67.1
 - wasmtime = "6.0.0"
 - criterion = "0.4"
@@ -34,10 +34,10 @@ Pipeline:
 <!-- bench_compare_rgb start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  30.54  |  182.53  |   333.69   |  485.57  |
-| resize      |    -    |  85.65   |   166.46   |  248.04  |
-| fir rust    |  0.37   |  56.17   |   95.14    |  136.15  |
-| fir simd128 |    -    |  16.32   |   23.87    |  33.97   |
+| image       |  28.76  |  173.68  |   317.43   |  471.25  |
+| resize      |    -    |  60.02   |   112.12   |  164.45  |
+| fir rust    |  0.39   |  64.55   |   112.09   |  160.57  |
+| fir simd128 |    -    |  19.24   |   26.81    |  37.65   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -54,8 +54,8 @@ Pipeline:
 <!-- bench_compare_rgba start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  106.79  |   204.81   |  309.52  |
-| fir rust |  0.27   |  107.92  |   162.37   |  218.41  |
+| resize   |    -    |  113.48  |   220.71   |  329.72  |
+| fir rust |  0.28   |  108.67  |   165.42   |  225.15  |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -71,10 +71,10 @@ Pipeline:
 <!-- bench_compare_l start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  26.91  |  149.62  |   270.65   |  402.29  |
-| resize      |    -    |  24.86   |   46.99    |  69.49   |
-| fir rust    |  0.21   |  25.26   |   40.43    |  56.80   |
-| fir simd128 |    -    |   7.66   |    8.62    |  12.87   |
+| image       |  25.92  |  150.91  |   282.91   |  414.63  |
+| resize      |    -    |  30.59   |   62.37    |  92.67   |
+| fir rust    |  0.24   |  31.30   |   51.98    |  74.33   |
+| fir simd128 |    -    |   8.68   |    9.01    |  13.46   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
@@ -93,7 +93,7 @@ Pipeline:
 <!-- bench_compare_la start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.24   |  58.78   |   88.65    |  117.81  |
+| fir rust |  0.28   |  60.44   |   92.25    |  123.84  |
 <!-- bench_compare_la end -->
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
@@ -109,10 +109,10 @@ Pipeline:
 <!-- bench_compare_rgb16 start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  30.21  |  183.61  |   334.87   |  485.75  |
-| resize      |    -    |  54.97   |   106.92   |  158.51  |
-| fir rust    |  0.42   |  63.58   |   105.10   |  146.28  |
-| fir simd128 |    -    |  59.84   |   104.52   |  151.31  |
+| image       |  28.94  |  173.64  |   317.43   |  471.87  |
+| resize      |    -    |  60.21   |   167.97   |  248.82  |
+| fir rust    |  0.42   |  72.90   |   125.37   |  177.67  |
+| fir simd128 |    -    |  61.07   |   105.06   |  151.93  |
 <!-- bench_compare_rgb16 end -->
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
@@ -129,8 +129,8 @@ Pipeline:
 <!-- bench_compare_rgba16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  80.98   |   158.27   |  230.59  |
-| fir rust |  0.42   |  117.66  |   171.42   |  227.46  |
+| resize   |    -    |  106.03  |   206.32   |  311.74  |
+| fir rust |  0.45   |  117.19  |   172.46   |  230.54  |
 <!-- bench_compare_rgba16 end -->
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
@@ -146,10 +146,10 @@ Pipeline:
 <!-- bench_compare_l16 start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  27.74  |  174.53  |   315.94   |  471.17  |
-| resize      |    -    |  30.87   |   61.00    |  91.44   |
-| fir rust    |  0.25   |  28.48   |   44.72    |  62.67   |
-| fir simd128 |    -    |  20.61   |   33.51    |  48.61   |
+| image       |  25.78  |  156.37  |   284.77   |  423.77  |
+| resize      |    -    |  30.57   |   62.63    |  93.16   |
+| fir rust    |  0.26   |  36.22   |   58.49    |  82.46   |
+| fir simd128 |    -    |  22.11   |   35.98    |  51.49   |
 <!-- bench_compare_l16 end -->
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
@@ -168,5 +168,5 @@ Pipeline:
 <!-- bench_compare_la16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.26   |  58.50   |   87.86    |  117.28  |
+| fir rust |  0.28   |  64.02   |   98.11    |  132.66  |
 <!-- bench_compare_la16 end -->

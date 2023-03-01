@@ -1,7 +1,11 @@
 ## [Unreleased] - ReleaseDate
 
+### Crate
+
 - Slightly improved speed of `Convolution` implementation for `U8x2` images 
   and `Wasm32 SIMD128` instructions.
+- Method `Image::buffer_mut()` was made public 
+  ([#14](https://github.com/Cykooz/fast_image_resize/pull/14))
 
 ## [2.5.0] - 2023-01-29
 

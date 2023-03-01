@@ -114,6 +114,14 @@ strip = true
 codegen-units = 1
 
 
+[profile.release.package.image]
+codegen-units = 1
+
+
+[profile.release.package.resize]
+codegen-units = 1
+
+
 [profile.test]
 opt-level = 3
 
