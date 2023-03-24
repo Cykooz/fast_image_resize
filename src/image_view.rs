@@ -388,6 +388,31 @@ where
             .for_each(|(d, s)| d.copy_from_slice(s));
         Ok(())
     }
+
+    /// Create cropped version of the view.
+    pub fn crop(self, crop_box: CropBox) -> Result<Self, CropBoxError> {
+        if crop_box.left >= self.width.get() || crop_box.top >= self.height.get() {
+            return Err(CropBoxError::PositionIsOutOfImageBoundaries);
+        }
+        let right = crop_box.left + crop_box.width.get();
+        let bottom = crop_box.top + crop_box.height.get();
+        if right > self.width.get() || bottom > self.height.get() {
+            return Err(CropBoxError::SizeIsOutOfImageBoundaries);
+        }
+        let row_range = (crop_box.left as usize)..=(right as usize);
+        let rows = self
+            .rows
+            .into_iter()
+            .skip(crop_box.top as usize)
+            .take(crop_box.height.get() as usize)
+            .map(|row| unsafe { row.get_unchecked_mut(row_range.clone()) })
+            .collect();
+        Ok(Self {
+            width: crop_box.width,
+            height: crop_box.height,
+            rows,
+        })
+    }
 }
 
 impl<'a, P> From<ImageViewMut<'a, P>> for ImageView<'a, P>

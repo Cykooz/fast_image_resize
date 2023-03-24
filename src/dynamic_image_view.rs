@@ -146,6 +146,11 @@ impl<'a> DynamicImageViewMut<'a> {
     pub fn pixel_type(&self) -> PixelType {
         dynamic_mut_map!(self, |typed_image| typed_image.pixel_type())
     }
+
+    /// Create cropped version of the view.
+    pub fn crop(self, crop_box: CropBox) -> Result<Self, CropBoxError> {
+        Ok(dynamic_mut_map!(self, typed_image => typed_image.crop(crop_box)?))
+    }
 }
 
 macro_rules! from_typed {
