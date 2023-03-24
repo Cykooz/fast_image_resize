@@ -2,7 +2,7 @@
 
 ### Crate
 
-- Added method `DynamicImageViewMut::crop()` to create cropped version of `ImageViewMut`
+- Added method `DynamicImageViewMut::crop()` to create cropped version of `DynamicImageViewMut`
   ([#13](https://github.com/Cykooz/fast_image_resize/issues/13)).
 - Added method `ImageViewMut::crop()` to create cropped version of `ImageViewMut`.
 
