@@ -47,31 +47,31 @@ pub unsafe fn mm_cvtepu8_epi32_u8x3(buf: &[U8x3], index: usize) -> __m128i {
 #[inline(always)]
 pub unsafe fn mm_cvtepu8_epi32_from_u8(buf: &[u8], index: usize) -> __m128i {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const i32;
-    _mm_cvtepu8_epi32(_mm_cvtsi32_si128(*ptr))
+    _mm_cvtepu8_epi32(_mm_cvtsi32_si128(ptr.read_unaligned()))
 }
 
 #[inline(always)]
 pub unsafe fn mm_cvtsi32_si128_from_u8(buf: &[u8], index: usize) -> __m128i {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const i32;
-    _mm_cvtsi32_si128(*ptr)
+    _mm_cvtsi32_si128(ptr.read_unaligned())
 }
 
 #[inline(always)]
 pub unsafe fn ptr_i16_to_set1_epi32(buf: &[i16], index: usize) -> __m128i {
-    _mm_set1_epi32(*(buf.get_unchecked(index..).as_ptr() as *const i32))
+    _mm_set1_epi32((buf.get_unchecked(index..).as_ptr() as *const i32).read_unaligned())
 }
 
 #[inline(always)]
 pub unsafe fn ptr_i16_to_256set1_epi32(buf: &[i16], index: usize) -> __m256i {
-    _mm256_set1_epi32(*(buf.get_unchecked(index..).as_ptr() as *const i32))
+    _mm256_set1_epi32((buf.get_unchecked(index..).as_ptr() as *const i32).read_unaligned())
 }
 
 #[inline(always)]
 pub unsafe fn ptr_i16_to_set1_epi64x(buf: &[i16], index: usize) -> __m128i {
-    _mm_set1_epi64x(*(buf.get_unchecked(index..).as_ptr() as *const i64))
+    _mm_set1_epi64x((buf.get_unchecked(index..).as_ptr() as *const i64).read_unaligned())
 }
 
 #[inline(always)]
 pub unsafe fn ptr_i16_to_256set1_epi64x(buf: &[i16], index: usize) -> __m256i {
-    _mm256_set1_epi64x(*(buf.get_unchecked(index..).as_ptr() as *const i64))
+    _mm256_set1_epi64x((buf.get_unchecked(index..).as_ptr() as *const i64).read_unaligned())
 }
