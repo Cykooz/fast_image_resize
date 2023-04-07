@@ -46,7 +46,7 @@ pub(crate) fn vert_convolution<T>(
                 let src_ptr = src_row.as_ptr() as *const u8;
                 let src_chunk = unsafe {
                     let ptr = src_ptr.add(x_src) as *const u32;
-                    *ptr
+                    ptr.read_unaligned()
                 };
 
                 let components: [u8; 4] = src_chunk.to_le_bytes();

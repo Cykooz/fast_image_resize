@@ -250,7 +250,7 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
 
         sss = _mm_packs_epi32(sss, sss);
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut i32;
-        *dst_ptr = _mm_cvtsi128_si32(_mm_packus_epi16(sss, sss));
+        dst_ptr.write_unaligned(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
 
         src_x += 4;
     }
