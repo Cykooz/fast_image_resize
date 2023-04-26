@@ -5,13 +5,13 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 5.19.0)
-- Rust 1.67.1
+- Rust 1.69.0
 - criterion = "0.4"
-- fast_image_resize = "2.5.0"
+- fast_image_resize = "2.7.1"
 
 Other Rust libraries used to compare of resizing speed:
 
-- image = "0.24.5" (<https://crates.io/crates/image>)
+- image = "0.24.6" (<https://crates.io/crates/image>)
 - resize = "0.7.4" (<https://crates.io/crates/resize>)
 
 Resize algorithms:

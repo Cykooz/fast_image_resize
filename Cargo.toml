@@ -28,7 +28,7 @@ for_test = []
 
 [dev-dependencies]
 fast_image_resize = { path = ".", features = ["for_test"] }
-image = "0.24.5"
+image = "0.24"
 resize = "0.7.4"
 rgb = "0.8"
 png = "0.17"
