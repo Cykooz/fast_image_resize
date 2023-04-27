@@ -32,10 +32,10 @@ Pipeline:
 <!-- bench_compare_rgb start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  82.14  |  168.74  |   320.90   |  450.42  |
-| resize   |    -    |  89.75   |   177.52   |  265.89  |
-| fir rust |  0.88   |  71.87   |   86.61    |  112.92  |
-| fir neon |    -    |  42.62   |   57.11    |  81.55   |
+| image    |  85.83  |  172.77  |   327.49   |  461.80  |
+| resize   |    -    |  90.01   |   178.96   |  267.73  |
+| fir rust |  0.97   |  72.19   |   87.72    |  113.52  |
+| fir neon |    -    |  43.11   |   57.52    |  81.95   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -52,9 +52,9 @@ Pipeline:
 <!-- bench_compare_rgba start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  115.05  |   196.68   |  291.51  |
-| fir rust |  0.93   |  93.79   |   107.13   |  155.10  |
-| fir neon |    -    |  44.79   |   62.46    |  83.87   |
+| resize   |    -    |  115.37  |   199.42   |  294.89  |
+| fir rust |  1.06   |  94.14   |   106.85   |  155.85  |
+| fir neon |    -    |  44.97   |   62.11    |  84.34   |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -70,10 +70,10 @@ Pipeline:
 <!-- bench_compare_l start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  75.25  |  104.16  |   174.73   |  242.71  |
-| resize   |    -    |  37.83   |   83.66    |  128.53  |
-| fir rust |  0.48   |  29.92   |   38.04    |  45.57   |
-| fir neon |    -    |  15.03   |   20.11    |  28.18   |
+| image    |  76.70  |  105.97  |   177.56   |  246.03  |
+| resize   |    -    |  38.08   |   84.12    |  129.19  |
+| fir rust |  0.50   |  29.84   |   37.68    |  45.70   |
+| fir neon |    -    |  15.13   |   20.21    |  28.06   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
@@ -92,8 +92,8 @@ Pipeline:
 <!-- bench_compare_la start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.67   |  60.13   |   75.12    |  71.88   |
-| fir neon |    -    |  34.48   |   39.38    |  54.70   |
+| fir rust |  0.69   |  60.27   |   75.29    |  73.66   |
+| fir neon |    -    |  35.24   |   39.87    |  55.15   |
 <!-- bench_compare_la end -->
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
@@ -109,10 +109,10 @@ Pipeline:
 <!-- bench_compare_rgb16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  84.64  |  163.62  |   324.75   |  470.06  |
-| resize   |    -    |  90.04   |   179.15   |  266.92  |
-| fir rust |  1.37   |  148.80  |   275.50   |  392.99  |
-| fir neon |    -    |  70.09   |   92.15    |  128.53  |
+| image    |  86.76  |  167.74  |   333.95   |  483.54  |
+| resize   |    -    |  90.74   |   181.57   |  270.82  |
+| fir rust |  1.57   |  147.41  |   276.09   |  394.25  |
+| fir neon |    -    |  74.86   |   93.61    |  129.32  |
 <!-- bench_compare_rgb16 end -->
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
@@ -129,9 +129,9 @@ Pipeline:
 <!-- bench_compare_rgba16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  119.04  |   202.65   |  300.32  |
-| fir rust |  1.50   |  202.83  |   366.23   |  521.08  |
-| fir neon |    -    |  77.24   |   117.97   |  159.74  |
+| resize   |    -    |  120.12  |   205.34   |  304.43  |
+| fir rust |  1.66   |  204.22  |   369.08   |  523.95  |
+| fir neon |    -    |  79.02   |   119.04   |  161.24  |
 <!-- bench_compare_rgba16 end -->
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
@@ -147,10 +147,10 @@ Pipeline:
 <!-- bench_compare_l16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| image    |  75.81  |  109.53  |   186.26   |  258.33  |
-| resize   |    -    |  41.47   |   64.49    |  88.17   |
-| fir rust |  0.63   |  57.12   |   95.16    |  135.02  |
-| fir neon |    -    |  17.47   |   26.64    |  37.81   |
+| image    |  77.69  |  111.50  |   189.42   |  262.56  |
+| resize   |    -    |  41.61   |   64.26    |  88.40   |
+| fir rust |  0.70   |  57.42   |   95.45    |  135.30  |
+| fir neon |    -    |  17.54   |   26.77    |  37.92   |
 <!-- bench_compare_l16 end -->
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
@@ -169,6 +169,6 @@ Pipeline:
 <!-- bench_compare_la16 start -->
 |          | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.92   |  106.64  |   192.31   |  271.17  |
-| fir neon |    -    |  35.71   |   53.88    |  73.40   |
+| fir rust |  1.06   |  106.70  |   193.68   |  272.60  |
+| fir neon |    -    |  36.37   |   54.91    |  74.60   |
 <!-- bench_compare_la16 end -->

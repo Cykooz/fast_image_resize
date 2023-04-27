@@ -33,11 +33,11 @@ Pipeline:
 <!-- bench_compare_rgb start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.37  |  81.71   |   149.63   |  205.67  |
-| resize     |    -    |  48.65   |   97.50    |  145.90  |
-| fir rust   |  0.28   |  38.21   |   65.73    |  96.99   |
-| fir sse4.1 |    -    |   9.78   |   14.26    |  20.00   |
-| fir avx2   |    -    |   7.85   |    9.96    |  14.75   |
+| image      |  19.39  |  81.40   |   138.60   |  196.45  |
+| resize     |    -    |  46.45   |   91.99    |  136.59  |
+| fir rust   |  0.29   |  38.13   |   65.61    |  97.16   |
+| fir sse4.1 |    -    |   9.81   |   14.29    |  20.06   |
+| fir avx2   |    -    |   7.91   |    9.89    |  14.84   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -54,10 +54,10 @@ Pipeline:
 <!-- bench_compare_rgba start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  74.59   |   138.44   |  202.18  |
-| fir rust   |  0.19   |  36.23   |   52.20    |  75.37   |
-| fir sse4.1 |    -    |  13.31   |   17.32    |  22.66   |
-| fir avx2   |    -    |   9.77   |   12.20    |  16.56   |
+| resize     |    -    |  73.12   |   137.57   |  202.70  |
+| fir rust   |  0.19   |  37.29   |   53.75    |  76.40   |
+| fir sse4.1 |    -    |  13.13   |   17.45    |  22.67   |
+| fir avx2   |    -    |   9.53   |   12.06    |  16.49   |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -73,11 +73,11 @@ Pipeline:
 <!-- bench_compare_l start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  16.55  |  48.08   |   75.52    |  103.29  |
-| resize     |    -    |  17.02   |   35.08    |  60.26   |
-| fir rust   |  0.16   |  13.59   |   15.51    |  23.58   |
-| fir sse4.1 |    -    |   4.74   |    5.15    |   7.81   |
-| fir avx2   |    -    |   6.64   |    4.95    |   8.04   |
+| image      |  16.29  |  47.78   |   75.65    |  103.63  |
+| resize     |    -    |  17.09   |   35.60    |  60.28   |
+| fir rust   |  0.16   |  13.60   |   15.51    |  23.92   |
+| fir sse4.1 |    -    |   4.84   |    5.15    |   7.80   |
+| fir avx2   |    -    |   6.66   |    4.97    |   8.14   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
@@ -96,9 +96,9 @@ Pipeline:
 <!-- bench_compare_la start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| fir rust   |  0.17   |  25.01   |   30.30    |  42.12   |
-| fir sse4.1 |    -    |  12.68   |   14.27    |  17.89   |
-| fir avx2   |    -    |   8.79   |    9.67    |  12.48   |
+| fir rust   |  0.17   |  24.81   |   30.32    |  42.56   |
+| fir sse4.1 |    -    |  12.65   |   14.27    |  17.91   |
+| fir avx2   |    -    |   8.73   |    9.59    |  12.41   |
 <!-- bench_compare_la end -->
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
@@ -114,11 +114,11 @@ Pipeline:
 <!-- bench_compare_rgb16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.55  |  75.48   |   126.27   |  177.42  |
-| resize     |    -    |  45.91   |   90.34    |  134.11  |
-| fir rust   |  0.34   |  44.01   |   78.28    |  113.66  |
-| fir sse4.1 |    -    |  24.31   |   39.35    |  55.89   |
-| fir avx2   |    -    |  19.81   |   30.10    |  36.11   |
+| image      |  19.01  |  73.92   |   133.43   |  183.58  |
+| resize     |    -    |  46.18   |   90.68    |  134.20  |
+| fir rust   |  0.35   |  44.34   |   79.10    |  114.15  |
+| fir sse4.1 |    -    |  24.57   |   39.91    |  56.27   |
+| fir avx2   |    -    |  19.87   |   29.82    |  36.09   |
 <!-- bench_compare_rgb16 end -->
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
@@ -135,10 +135,10 @@ Pipeline:
 <!-- bench_compare_rgba16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  72.18   |   134.34   |  195.65  |
-| fir rust   |  0.39   |  79.69   |   117.99   |  158.31  |
-| fir sse4.1 |    -    |  43.46   |   65.22    |  87.31   |
-| fir avx2   |    -    |  25.93   |   36.60    |  48.02   |
+| resize     |    -    |  71.67   |   134.02   |  195.58  |
+| fir rust   |  0.39   |  81.01   |   119.14   |  159.04  |
+| fir sse4.1 |    -    |  43.61   |   65.36    |  87.56   |
+| fir avx2   |    -    |  25.64   |   36.42    |  47.76   |
 <!-- bench_compare_rgba16 end -->
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
@@ -154,11 +154,11 @@ Pipeline:
 <!-- bench_compare_l16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  17.01  |  48.77   |   76.80    |  105.87  |
-| resize     |    -    |  15.43   |   32.01    |  56.97   |
-| fir rust   |  0.17   |  18.66   |   27.70    |  38.56   |
-| fir sse4.1 |    -    |   8.19   |   13.57    |  19.33   |
-| fir avx2   |    -    |   6.69   |    8.85    |  13.76   |
+| image      |  16.34  |  48.68   |   76.27    |  105.09  |
+| resize     |    -    |  15.41   |   31.72    |  57.02   |
+| fir rust   |  0.18   |  18.72   |   27.96    |  38.71   |
+| fir sse4.1 |    -    |   8.18   |   13.55    |  19.38   |
+| fir avx2   |    -    |   6.66   |    8.71    |  13.97   |
 <!-- bench_compare_l16 end -->
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
@@ -177,7 +177,7 @@ Pipeline:
 <!-- bench_compare_la16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
-| fir rust   |  0.19   |  34.11   |   53.60    |  72.66   |
-| fir sse4.1 |    -    |  22.03   |   34.05    |  46.60   |
-| fir avx2   |    -    |  15.38   |   22.13    |  29.33   |
+| fir rust   |  0.20   |  33.72   |   53.68    |  72.66   |
+| fir sse4.1 |    -    |  21.98   |   34.05    |  46.60   |
+| fir avx2   |    -    |  15.26   |   22.01    |  29.30   |
 <!-- bench_compare_la16 end -->

@@ -151,17 +151,21 @@ pub fn fir_resize_with_alpha<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
     let mut dst_view = dst_image.view_mut();
     let mut mul_div = MulDiv::default();
 
-    let mut cpu_ext_and_name = vec![(CpuExtensions::None, "rust")];
+    let mut cpu_ext_and_name = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
-        cpu_ext_and_name.push((CpuExtensions::Sse4_1, "sse4.1"));
-        cpu_ext_and_name.push((CpuExtensions::Avx2, "avx2"));
+        cpu_ext_and_name.push(CpuExtensions::Sse4_1);
+        cpu_ext_and_name.push(CpuExtensions::Avx2);
     }
     #[cfg(target_arch = "aarch64")]
     {
-        cpu_ext_and_name.push((CpuExtensions::Neon, "neon"));
+        cpu_ext_and_name.push(CpuExtensions::Neon);
     }
-    for (cpu_ext, ext_name) in cpu_ext_and_name {
+    #[cfg(target_arch = "wasm32")]
+    {
+        cpu_ext_and_name.push(CpuExtensions::Simd128);
+    }
+    for cpu_ext in cpu_ext_and_name {
         for alg_name in ALG_NAMES {
             let resize_alg = match alg_name {
                 "Nearest" => {
@@ -186,7 +190,7 @@ pub fn fir_resize_with_alpha<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
             bench(
                 bench_group,
                 sample_size,
-                format!("fir {}", ext_name),
+                format!("fir {}", cpu_ext_into_str(cpu_ext)),
                 alg_name,
                 |bencher| {
                     fast_resizer.reset_internal_buffers();
