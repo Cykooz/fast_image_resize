@@ -3,7 +3,7 @@
 ### Crate
 
 - Use (read|write)_unaligned for unaligned pointers 
-  (thanks to @durin42, [#16](https://github.com/Cykooz/fast_image_resize/pull/16)).
+  ([#16](https://github.com/Cykooz/fast_image_resize/pull/16)).
 
 ## [2.7.0] - 2023-03-24
 

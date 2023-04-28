@@ -34,10 +34,10 @@ Pipeline:
 <!-- bench_compare_rgb start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  28.76  |  173.68  |   317.43   |  471.25  |
-| resize      |    -    |  60.02   |   112.12   |  164.45  |
-| fir rust    |  0.39   |  64.55   |   112.09   |  160.57  |
-| fir simd128 |    -    |  19.24   |   26.81    |  37.65   |
+| image       |  23.16  |  99.13   |   173.28   |  247.24  |
+| resize      |    -    |  53.26   |   100.84   |  148.86  |
+| fir rust    |  0.39   |  56.20   |   96.83    |  137.63  |
+| fir simd128 |    -    |  15.76   |   21.15    |  29.93   |
 <!-- bench_compare_rgb end -->
 
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
@@ -52,10 +52,11 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
 <!-- bench_compare_rgba start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  113.48  |   220.71   |  329.72  |
-| fir rust |  0.28   |  108.67  |   165.42   |  225.15  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| resize      |    -    |  70.26   |   135.86   |  201.70  |
+| fir rust    |  0.29   |  109.08  |   161.29   |  211.15  |
+| fir simd128 |    -    |  18.99   |   24.47    |  32.11   |
 <!-- bench_compare_rgba end -->
 
 ### Resize L8 image (U8) 4928x3279 => 852x567
@@ -71,10 +72,10 @@ Pipeline:
 <!-- bench_compare_l start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  25.92  |  150.91  |   282.91   |  414.63  |
-| resize      |    -    |  30.59   |   62.37    |  92.67   |
-| fir rust    |  0.24   |  31.30   |   51.98    |  74.33   |
-| fir simd128 |    -    |   8.68   |    9.01    |  13.46   |
+| image       |  19.97  |  76.69   |   130.46   |  183.81  |
+| resize      |    -    |  24.89   |   47.08    |  69.85   |
+| fir rust    |  0.23   |  31.20   |   49.05    |  69.19   |
+| fir simd128 |    -    |   8.62   |    8.73    |  13.31   |
 <!-- bench_compare_l end -->
 
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
@@ -91,9 +92,10 @@ Pipeline:
 - The `resize` crate does not support this pixel format.
 
 <!-- bench_compare_la start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.28   |  60.44   |   92.25    |  123.84  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| fir rust    |  0.22   |  61.12   |   94.63    |  129.43  |
+| fir simd128 |    -    |  20.28   |   21.32    |  27.25   |
 <!-- bench_compare_la end -->
 
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
@@ -109,10 +111,10 @@ Pipeline:
 <!-- bench_compare_rgb16 start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  28.94  |  173.64  |   317.43   |  471.87  |
-| resize      |    -    |  60.21   |   167.97   |  248.82  |
-| fir rust    |  0.42   |  72.90   |   125.37   |  177.67  |
-| fir simd128 |    -    |  61.07   |   105.06   |  151.93  |
+| image       |  23.09  |  104.82  |   196.11   |  285.95  |
+| resize      |    -    |  54.00   |   104.82   |  155.54  |
+| fir rust    |  0.45   |  67.27   |   111.68   |  157.72  |
+| fir simd128 |    -    |  53.94   |   91.66    |  131.08  |
 <!-- bench_compare_rgb16 end -->
 
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
@@ -127,10 +129,11 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
 <!-- bench_compare_rgba16 start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| resize   |    -    |  106.03  |   206.32   |  311.74  |
-| fir rust |  0.45   |  117.19  |   172.46   |  230.54  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| resize      |    -    |  73.08   |   139.06   |  205.89  |
+| fir rust    |  0.40   |  131.46  |   188.91   |  246.28  |
+| fir simd128 |    -    |  76.39   |   124.16   |  173.10  |
 <!-- bench_compare_rgba16 end -->
 
 ### Resize L16 image (U16) 4928x3279 => 852x567
@@ -146,10 +149,10 @@ Pipeline:
 <!-- bench_compare_l16 start -->
 |             | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |-------------|:-------:|:--------:|:----------:|:--------:|
-| image       |  25.78  |  156.37  |   284.77   |  423.77  |
-| resize      |    -    |  30.57   |   62.63    |  93.16   |
-| fir rust    |  0.26   |  36.22   |   58.49    |  82.46   |
-| fir simd128 |    -    |  22.11   |   35.98    |  51.49   |
+| image       |  21.17  |  77.63   |   131.44   |  185.26  |
+| resize      |    -    |  30.48   |   61.50    |  91.86   |
+| fir rust    |  0.23   |  32.81   |   49.09    |  69.09   |
+| fir simd128 |    -    |  19.42   |   30.96    |  44.40   |
 <!-- bench_compare_l16 end -->
 
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
@@ -166,7 +169,8 @@ Pipeline:
 - The `resize` crate does not support this pixel format.
 
 <!-- bench_compare_la16 start -->
-|          | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|----------|:-------:|:--------:|:----------:|:--------:|
-| fir rust |  0.28   |  64.02   |   98.11    |  132.66  |
+|             | Nearest | Bilinear | CatmullRom | Lanczos3 |
+|-------------|:-------:|:--------:|:----------:|:--------:|
+| fir rust    |  0.29   |  77.94   |   118.99   |  159.79  |
+| fir simd128 |    -    |  40.72   |   65.98    |  92.33   |
 <!-- bench_compare_la16 end -->
