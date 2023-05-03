@@ -1,6 +1,5 @@
 use std::arch::x86_64::*;
 use std::intrinsics::transmute;
-use std::ptr;
 
 use crate::pixels::{U8x3, U8x4};
 
@@ -17,13 +16,13 @@ pub unsafe fn loadu_si256<T>(buf: &[T], index: usize) -> __m256i {
 #[inline(always)]
 pub unsafe fn loadl_epi16<T>(buf: &[T], index: usize) -> __m128i {
     let mem_addr = buf.get_unchecked(index..).as_ptr() as *const i16;
-    _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, ptr::read_unaligned(mem_addr))
+    _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, mem_addr.read_unaligned())
 }
 
 #[inline(always)]
 pub unsafe fn loadl_epi32<T>(buf: &[T], index: usize) -> __m128i {
     let mem_addr = buf.get_unchecked(index..).as_ptr() as *const i32;
-    _mm_set_epi32(0, 0, 0, ptr::read_unaligned(mem_addr))
+    _mm_set_epi32(0, 0, 0, mem_addr.read_unaligned())
 }
 
 #[inline(always)]

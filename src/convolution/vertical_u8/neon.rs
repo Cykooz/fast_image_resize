@@ -167,7 +167,7 @@ unsafe fn store_tmp_buf_into_dst_row<const IMM: i32>(
         let sss_u8 = vcombine_u8(vqmovun_s16(sss_i16), vqmovun_s16(sss_i16));
         let res = vdupd_laneq_u64::<0>(vreinterpretq_u64_u8(sss_u8));
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut u64;
-        *dst_ptr = res;
+        dst_ptr.write_unaligned(res);
     }
 
     let mut dst_chunks_4 = dst_chunks_8.into_remainder().chunks_exact_mut(4);
@@ -180,7 +180,7 @@ unsafe fn store_tmp_buf_into_dst_row<const IMM: i32>(
         let sss_u8 = vcombine_u8(vqmovun_s16(sss_i16), vqmovun_s16(sss_i16));
         let res = vdups_laneq_u32::<0>(vreinterpretq_u32_u8(sss_u8));
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut u32;
-        *dst_ptr = res;
+        dst_ptr.write_unaligned(res);
     }
 
     let dst_chunk = dst_chunks_4.into_remainder();

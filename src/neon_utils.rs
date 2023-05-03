@@ -3,19 +3,19 @@ use std::arch::aarch64::*;
 #[inline(always)]
 pub unsafe fn load_u8x1<T>(buf: &[T], index: usize) -> uint8x8_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u8;
-    vcreate_u8(*ptr as u64)
+    vcreate_u8(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
 pub unsafe fn load_u8x2<T>(buf: &[T], index: usize) -> uint8x8_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
-    vcreate_u8(*ptr as u64)
+    vcreate_u8(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
 pub unsafe fn load_u8x4<T>(buf: &[T], index: usize) -> uint8x8_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
-    vcreate_u8(*ptr as u64)
+    vcreate_u8(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
@@ -71,13 +71,13 @@ pub unsafe fn load_deintrel_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t 
 #[inline(always)]
 pub unsafe fn load_u16x1<T>(buf: &[T], index: usize) -> uint16x4_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
-    vcreate_u16(*ptr as u64)
+    vcreate_u16(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
 pub unsafe fn load_u16x2<T>(buf: &[T], index: usize) -> uint16x4_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
-    vcreate_u16(*ptr as u64)
+    vcreate_u16(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
@@ -151,7 +151,7 @@ pub unsafe fn load_deintrel_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t 
 #[inline(always)]
 pub unsafe fn load_i32x1<T>(buf: &[T], index: usize) -> int32x2_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
-    vcreate_s32(*ptr as u64)
+    vcreate_s32(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
@@ -217,13 +217,13 @@ pub unsafe fn store_i64x2x4<T>(buf: &mut [T], index: usize, v: int64x2x4_t) {
 #[inline(always)]
 pub unsafe fn load_i16x1<T>(buf: &[T], index: usize) -> int16x4_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
-    vcreate_s16(*ptr as u64)
+    vcreate_s16(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
 pub unsafe fn load_i16x2<T>(buf: &[T], index: usize) -> int16x4_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
-    vcreate_s16(*ptr as u64)
+    vcreate_s16(ptr.read_unaligned() as u64)
 }
 
 #[inline(always)]
@@ -252,7 +252,7 @@ pub unsafe fn load_i16x8x2<T>(buf: &[T], index: usize) -> int16x8x2_t {
 #[inline(always)]
 pub unsafe fn create_u8x16_from_one_u32<T>(buf: &[T], index: usize) -> uint8x16_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u32;
-    vreinterpretq_u8_u32(vsetq_lane_u32::<0>(*ptr, vdupq_n_u32(0u32)))
+    vreinterpretq_u8_u32(vsetq_lane_u32::<0>(ptr.read_unaligned(), vdupq_n_u32(0u32)))
 }
 
 /// Multiply the packed unsigned 16-bit integers in a and b, producing

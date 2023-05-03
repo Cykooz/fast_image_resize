@@ -1,8 +1,15 @@
+## [Unreleased] - ReleaseDate
+
+### Crate
+
+- Added using of (read|write)_unaligned for unaligned pointers on `arm64` architecture.
+  ([#15](https://github.com/Cykooz/fast_image_resize/issues/15)).
+
 ## [2.7.1] - 2023-04-28
 
 ### Crate
 
-- Use (read|write)_unaligned for unaligned pointers 
+- Added using of (read|write)_unaligned for unaligned pointers on `x86_64` architecture.
   ([#16](https://github.com/Cykooz/fast_image_resize/pull/16)).
 
 ## [2.7.0] - 2023-03-24
