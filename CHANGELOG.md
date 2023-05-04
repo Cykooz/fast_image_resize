@@ -3,7 +3,7 @@
 ### Fixed
 
 - Added using of (read|write)_unaligned for unaligned pointers 
-  on `arm64` and `wasm32` architecture.
+  on `arm64` and `wasm32` architectures.
   ([#15](https://github.com/Cykooz/fast_image_resize/issues/15)).
 
 ## [2.7.1] - 2023-04-28
