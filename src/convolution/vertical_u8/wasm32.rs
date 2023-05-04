@@ -226,8 +226,8 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
 
         sss0 = i16x8_narrow_i32x4(sss0, sss1);
         sss0 = u8x16_narrow_i16x8(sss0, sss0);
-        let dst_ptr = dst_chunk.as_mut_ptr() as *mut [i64; 2];
-        (*dst_ptr)[0] = i64x2_extract_lane::<0>(sss0);
+        let dst_ptr = dst_chunk.as_mut_ptr() as *mut i64;
+        dst_ptr.write_unaligned(i64x2_extract_lane::<0>(sss0));
 
         src_x += 8;
     }
@@ -273,7 +273,7 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
 
         sss = i16x8_narrow_i32x4(sss, sss);
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut i32;
-        *dst_ptr = i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, sss));
+        dst_ptr.write_unaligned(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, sss)));
 
         src_x += 4;
     }

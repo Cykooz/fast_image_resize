@@ -48,8 +48,10 @@ pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
         let mut ss = initial;
         let src_rows = src_image.iter_rows(first_y_src);
         for (&k, src_row) in ks.iter().zip(src_rows) {
+            // SAFETY: Alignment of src_row is greater or equal than alignment u16
+            //         because one component of pixel type T is u16.
             let src_ptr = src_row.as_ptr() as *const u16;
-            let src_component = unsafe { *src_ptr.add(x_src as usize) };
+            let src_component = unsafe { *src_ptr.add(x_src) };
             ss += src_component as i64 * (k as i64);
         }
         *dst_component = normalizer.clip(ss);

@@ -1,5 +1,7 @@
 use std::arch::aarch64::*;
 
+use crate::pixels::PixelExt;
+
 #[inline(always)]
 pub unsafe fn load_u8x1<T>(buf: &[T], index: usize) -> uint8x8_t {
     let ptr = buf.get_unchecked(index..).as_ptr() as *const u8;
@@ -101,50 +103,74 @@ pub unsafe fn load_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x1x3<T>(buf: &[T], index: usize) -> uint16x4x3_t {
+pub unsafe fn load_deintrel_u16x1x3<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x4x3_t {
     let mut arr = [0u16; 12];
     let src_ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
-    let src_slice = std::slice::from_raw_parts(src_ptr, 3);
-    arr[0..3].copy_from_slice(src_slice);
+    let dst_ptr = arr.as_mut_ptr();
+    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 3);
     vld3_u16(arr.as_ptr())
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x2x3<T>(buf: &[T], index: usize) -> uint16x4x3_t {
+pub unsafe fn load_deintrel_u16x2x3<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x4x3_t {
     let mut arr = [0u16; 12];
     let src_ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
-    let src_slice = std::slice::from_raw_parts(src_ptr, 6);
-    arr[0..6].copy_from_slice(src_slice);
+    let dst_ptr = arr.as_mut_ptr();
+    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 6);
     vld3_u16(arr.as_ptr())
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x3<T>(buf: &[T], index: usize) -> uint16x4x3_t {
+pub unsafe fn load_deintrel_u16x4x3<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x4x3_t {
     vld3_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x4<T>(buf: &[T], index: usize) -> uint16x4x4_t {
+pub unsafe fn load_deintrel_u16x4x4<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x4x4_t {
     vld4_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x2<T>(buf: &[T], index: usize) -> uint16x4x2_t {
+pub unsafe fn load_deintrel_u16x4x2<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x4x2_t {
     vld2_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x2<T>(buf: &[T], index: usize) -> uint16x8x2_t {
+pub unsafe fn load_deintrel_u16x8x2<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x8x2_t {
     vld2q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x3<T>(buf: &[T], index: usize) -> uint16x8x3_t {
+pub unsafe fn load_deintrel_u16x8x3<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x8x3_t {
     vld3q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
+pub unsafe fn load_deintrel_u16x8x4<T: PixelExt<Component = u16>>(
+    buf: &[T],
+    index: usize,
+) -> uint16x8x4_t {
     vld4q_u16(buf.get_unchecked(index..).as_ptr() as *const u16)
 }
 
