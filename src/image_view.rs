@@ -399,7 +399,7 @@ where
         if right > self.width.get() || bottom > self.height.get() {
             return Err(CropBoxError::SizeIsOutOfImageBoundaries);
         }
-        let row_range = (crop_box.left as usize)..=(right as usize);
+        let row_range = (crop_box.left as usize)..(right as usize);
         let rows = self
             .rows
             .into_iter()
@@ -494,4 +494,35 @@ where
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn crop_view_mut() {
+        let mut image = crate::Image::new(
+            NonZeroU32::new(64).unwrap(),
+            NonZeroU32::new(32).unwrap(),
+            PixelType::U8,
+        );
+
+        let image_view: ImageViewMut<crate::pixels::U8> =
+            ImageViewMut::from_buffer(image.width(), image.height(), image.buffer_mut()).unwrap();
+        let cropped_view = image_view
+            .crop(CropBox {
+                left: 10,
+                top: 10,
+                width: NonZeroU32::new(44).unwrap(),
+                height: NonZeroU32::new(12).unwrap(),
+            })
+            .unwrap();
+        assert_eq!(cropped_view.width().get(), 44);
+        assert_eq!(cropped_view.height().get(), 12);
+        assert_eq!(cropped_view.rows.len(), 12);
+        for row in cropped_view.rows.iter() {
+            assert_eq!(row.len(), 44);
+        }
+    }
 }

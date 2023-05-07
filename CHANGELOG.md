@@ -1,3 +1,11 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed size of rows in cropped `ImageViewMut` created by
+  `ImageViewMut::crop` method
+  ([#17](https://github.com/Cykooz/fast_image_resize/issues/17)).
+
 ## [2.7.2] - 2023-05-04
 
 ### Fixed
