@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [2.7.3] - 2023-05-07
 
 ### Fixed
 
