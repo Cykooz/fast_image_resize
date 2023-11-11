@@ -2,40 +2,47 @@ use std::f64::consts::PI;
 
 pub type FilterFn<'a> = &'a dyn Fn(f64) -> f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FilterType {
     /// Each pixel of source image contributes to one pixel of the
     /// destination image with identical weights. For upscaling is equivalent
-    /// of `Nearest` resize algorithm.    
+    /// of `Nearest` resize algorithm.
+    ///
+    /// Minimal kernel size 1x1 px.    
     Box,
     /// Bilinear filter calculate the output pixel value using linear
     /// interpolation on all pixels that may contribute to the output value.
+    ///
+    /// Minimal kernel size 2x2 px.
     Bilinear,
     /// Hamming filter has the same performance as `Bilinear` filter while
     /// providing the image downscaling quality comparable to bicubic
     /// (`CatmulRom` or `Mitchell`). Produces a sharper image than `Bilinear`,
     /// doesn't have dislocations on local level like with `Box`.
     /// The filter don’t show good quality for the image upscaling.
+    ///
+    /// Minimal kernel size 2x2 px.
     Hamming,
     /// Catmull-Rom bicubic filter calculate the output pixel value using
     /// cubic interpolation on all pixels that may contribute to the output
     /// value.
+    ///
+    /// Minimal kernel size 4x4 px.
     CatmullRom,
     /// Mitchell–Netravali bicubic filter calculate the output pixel value
     /// using cubic interpolation on all pixels that may contribute to the
     /// output value.
+    ///
+    /// Minimal kernel size 4x4 px.
     Mitchell,
     /// Lanczos3 filter calculate the output pixel value using a high-quality
     /// Lanczos filter (a truncated sinc) on all pixels that may contribute
     /// to the output value.
+    ///
+    /// Minimal kernel size 6x6 px.
+    #[default]
     Lanczos3,
-}
-
-impl Default for FilterType {
-    fn default() -> Self {
-        FilterType::Lanczos3
-    }
 }
 
 /// Returns reference to filter function and value of `filter_support`.

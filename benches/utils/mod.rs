@@ -12,19 +12,19 @@ mod bencher;
 mod resize_functions;
 mod results;
 
-const fn get_arch_name() -> &'static str {
+const fn get_arch_id_and_name() -> (&'static str, &'static str) {
     #[cfg(target_arch = "x86_64")]
-    return "x86_64";
+    return ("x86_64", "x86_64");
     #[cfg(target_arch = "aarch64")]
-    return "arm64";
+    return ("arm64", "arm64");
     #[cfg(target_arch = "wasm32")]
-    return "wasm32";
+    return ("wasm32", "Wasm32");
     #[cfg(not(any(
         target_arch = "x86_64",
         target_arch = "aarch64",
         target_arch = "wasm32"
     )))]
-    return "unknown";
+    return ("unknown", "Unknown");
 }
 
 /// Returns the Cargo target directory, possibly calling `cargo metadata` to

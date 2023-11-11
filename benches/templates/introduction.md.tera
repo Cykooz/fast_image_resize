@@ -1,0 +1,33 @@
+## Benchmarks of fast_image_resize crate for {{ arch_name }} architecture
+
+Environment:
+
+{% if arch_id == "arm64" -%}
+- CPU: Neoverse-N1 2GHz (Oracle Cloud Compute, VM.Standard.A1.Flex)
+{% else -%}
+- CPU: AMD Ryzen 9 5950X
+- RAM: DDR4 3800 MHz
+{% endif -%}
+- Ubuntu 22.04 (linux 6.2.0)
+- Rust 1.73.0
+- criterion = "0.5.1"
+- fast_image_resize = "2.7.1"
+{% if arch_id == "wasm32" -%}
+- wasmtime = "8.0.0"
+{% endif %}
+
+Other libraries used to compare of resizing speed:
+
+- image = "0.24.7" (<https://crates.io/crates/image>)
+- resize = "0.8.2" (<https://crates.io/crates/resize>)
+{% if arch_id != "wasm32" -%}
+- libvips = "8.12.1" (single-threaded mode, cache disabled)
+{% endif %}
+
+Resize algorithms:
+
+- Nearest
+- Box - convolution with adaptive kernel size, min 1x1 px
+- Bilinear - convolution with adaptive kernel size, min 2x2 px
+- Bicubic (CatmullRom) - convolution with adaptive kernel size, min 4x4 px
+- Lanczos3 -convolution with adaptive kernel size, min 6x6 px

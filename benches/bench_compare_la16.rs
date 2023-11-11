@@ -3,7 +3,9 @@ use fast_image_resize::pixels::U16x2;
 mod utils;
 
 pub fn bench_downscale_la16(bench_group: &mut utils::BenchGroup) {
-    utils::fir_resize_with_alpha::<U16x2>(bench_group);
+    type P = U16x2;
+    utils::libvips_resize::<P>(bench_group, true);
+    utils::fir_resize_with_alpha::<P>(bench_group);
 }
 
 fn main() {

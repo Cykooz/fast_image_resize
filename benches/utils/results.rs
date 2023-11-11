@@ -8,7 +8,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use walkdir::WalkDir;
 
-use super::get_arch_name;
+use super::get_arch_id_and_name;
 
 #[derive(Debug)]
 pub struct BenchResult {
@@ -96,7 +96,7 @@ pub fn get_results(parent_dir: &PathBuf, modified_after: &SystemTime) -> Vec<Ben
     result
 }
 
-static COL_ORDER: [&str; 4] = ["Nearest", "Bilinear", "CatmullRom", "Lanczos3"];
+static COL_ORDER: [&str; 5] = ["Nearest", "Box", "Bilinear", "Bicubic", "Lanczos3"];
 
 pub fn build_md_table(bench_results: &[BenchResult]) -> String {
     let mut row_names: Vec<String> = Vec::new();
@@ -189,10 +189,9 @@ pub fn build_md_table(bench_results: &[BenchResult]) -> String {
 
 fn table_row(buffer: &mut Vec<String>, widths: &[usize], values: &[String]) {
     for (i, (&width, value)) in widths.iter().zip(values).enumerate() {
-        if i == 0 {
-            buffer.push(format!("| {:width$} ", value, width = width));
-        } else {
-            buffer.push(format!("| {:^width$} ", value, width = width));
+        match i {
+            0 => buffer.push(format!("| {:width$} ", value, width = width)),
+            _ => buffer.push(format!("| {:^width$} ", value, width = width)),
         }
     }
     buffer.push("|\n".to_string());
@@ -200,10 +199,9 @@ fn table_row(buffer: &mut Vec<String>, widths: &[usize], values: &[String]) {
 
 fn table_header_underline(buffer: &mut Vec<String>, widths: &[usize]) {
     for (i, &width) in widths.iter().enumerate() {
-        if i == 0 {
-            buffer.push(format!("|{:-<width$}", "", width = width + 2));
-        } else {
-            buffer.push(format!("|:{:-<width$}:", "", width = width));
+        match i {
+            0 => buffer.push(format!("|{:-<width$}", "", width = width + 2)),
+            _ => buffer.push(format!("|:{:-<width$}:", "", width = width)),
         }
     }
     buffer.push("|\n".to_string());
@@ -239,20 +237,44 @@ fn insert_string_into_file(path: &Path, placeholder_name: &str, string: &str) {
 }
 
 fn write_bench_results_into_file(md_table: &str) {
-    let file_name = format!("benchmarks-{}.md", get_arch_name());
-    let file_path = PathBuf::from(file_name);
-    if !file_path.is_file() {
-        panic!("Can't find file {:?} in current directory", file_path);
+    let (arch_id, arch_name) = get_arch_id_and_name();
+    let file_name = format!("benchmarks-{}.md", arch_id);
+    let file_path_buf = PathBuf::from(file_name);
+    if !file_path_buf.is_file() {
+        panic!("Can't find file {:?} in current directory", file_path_buf);
     }
-    let crate_name = env!("CARGO_CRATE_NAME");
-    insert_string_into_file(file_path.as_path(), crate_name, md_table);
+    let file_path = file_path_buf.as_path();
 
-    if get_arch_name() == "x86_64" {
+    let tera_engine = match tera::Tera::new("benches/templates/**/*.tera") {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Parsing error(s): {}", e);
+            ::std::process::exit(1);
+        }
+    };
+    let mut context = tera::Context::new();
+    context.insert("arch_id", &arch_id);
+    context.insert("arch_name", &arch_name);
+
+    // Update introduction text
+    let introduction = tera_engine
+        .render("introduction.md.tera", &context)
+        .unwrap();
+    insert_string_into_file(file_path, "introduction", &introduction);
+
+    // Update benchmark results
+    let crate_name = env!("CARGO_CRATE_NAME");
+    context.insert("compare_results", md_table);
+    let tpl_file_name = format!("{}.md.tera", crate_name);
+    let results_block = tera_engine.render(&tpl_file_name, &context).unwrap();
+    insert_string_into_file(file_path, crate_name, &results_block);
+
+    if arch_id == "x86_64" {
         let file_path = PathBuf::from("README.md");
         if !file_path.is_file() {
             panic!("Can't find file {:?} in current directory", file_path);
         }
-        insert_string_into_file(file_path.as_path(), crate_name, md_table);
+        insert_string_into_file(file_path.as_path(), crate_name, &results_block);
     }
 }
 

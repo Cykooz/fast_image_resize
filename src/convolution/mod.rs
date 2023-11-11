@@ -132,6 +132,8 @@ pub fn precompute_coefficients(
             ww += w;
         }
         if ww != 0.0 {
+            // Normalise values of coefficients.
+            // Sum of coefficients must be equal to 1.0.
             coeffs[cur_index..].iter_mut().for_each(|w| *w /= ww);
         }
         // Remaining values should stay empty if they are used despite x_max.

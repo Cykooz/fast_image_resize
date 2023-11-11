@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use criterion::measurement::WallTime;
 use criterion::{Bencher, BenchmarkGroup, BenchmarkId, Criterion};
 
-use super::{cargo_target_directory, get_arch_name, get_results, BenchResult};
+use super::{cargo_target_directory, get_arch_id_and_name, get_results, BenchResult};
 
 pub type BenchGroup<'a> = BenchmarkGroup<'a, WallTime>;
 
@@ -15,8 +15,8 @@ where
 {
     pin_process_to_cpu0();
 
-    let arch_name = get_arch_name();
-    let output_dir = criterion_output_directory().join(arch_name);
+    let arch_id = get_arch_id_and_name().0;
+    let output_dir = criterion_output_directory().join(arch_id);
     let mut criterion = Criterion::default()
         .output_directory(&output_dir)
         .configure_from_args();

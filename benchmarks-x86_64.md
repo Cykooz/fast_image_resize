@@ -1,26 +1,33 @@
+<!-- introduction start -->
 ## Benchmarks of fast_image_resize crate for x86_64 architecture
 
 Environment:
 
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
-- Ubuntu 22.04 (linux 5.19.0)
-- Rust 1.69.0
-- criterion = "0.4"
+- Ubuntu 22.04 (linux 6.2.0)
+- Rust 1.73.0
+- criterion = "0.5.1"
 - fast_image_resize = "2.7.1"
 
-Other Rust libraries used to compare of resizing speed:
 
-- image = "0.24.6" (<https://crates.io/crates/image>)
-- resize = "0.7.4" (<https://crates.io/crates/resize>)
+Other libraries used to compare of resizing speed:
+
+- image = "0.24.7" (<https://crates.io/crates/image>)
+- resize = "0.8.2" (<https://crates.io/crates/resize>)
+- libvips = "8.12.1" (single-threaded mode, cache disabled)
+
 
 Resize algorithms:
 
 - Nearest
-- Convolution with Bilinear filter
-- Convolution with CatmullRom filter
-- Convolution with Lanczos3 filter
+- Box - convolution with adaptive kernel size, min 1x1 px
+- Bilinear - convolution with adaptive kernel size, min 2x2 px
+- Bicubic (CatmullRom) - convolution with adaptive kernel size, min 4x4 px
+- Lanczos3 -convolution with adaptive kernel size, min 6x6 px
+<!-- introduction end -->
 
+<!-- bench_compare_rgb start -->
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -30,7 +37,6 @@ Pipeline:
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_rgb start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  19.39  |  81.40   |   138.60   |  196.45  |
@@ -40,6 +46,7 @@ Pipeline:
 | fir avx2   |    -    |   7.91   |    9.89    |  14.84   |
 <!-- bench_compare_rgb end -->
 
+<!-- bench_compare_rgba start -->
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -51,7 +58,6 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-<!-- bench_compare_rgba start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | resize     |    -    |  73.12   |   137.57   |  202.70  |
@@ -60,6 +66,7 @@ Pipeline:
 | fir avx2   |    -    |   9.53   |   12.06    |  16.49   |
 <!-- bench_compare_rgba end -->
 
+<!-- bench_compare_l start -->
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -70,7 +77,6 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_l start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  16.29  |  47.78   |   75.65    |  103.63  |
@@ -80,6 +86,7 @@ Pipeline:
 | fir avx2   |    -    |   6.66   |    4.97    |   8.14   |
 <!-- bench_compare_l end -->
 
+<!-- bench_compare_la start -->
 ### Resize LA8 image (U8x2) 4928x3279 => 852x567
 
 Pipeline:
@@ -93,7 +100,6 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
-<!-- bench_compare_la start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | fir rust   |  0.17   |  24.81   |   30.32    |  42.56   |
@@ -101,6 +107,7 @@ Pipeline:
 | fir avx2   |    -    |   8.73   |    9.59    |  12.41   |
 <!-- bench_compare_la end -->
 
+<!-- bench_compare_rgb16 start -->
 ### Resize RGB16 image (U16x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -111,7 +118,6 @@ Pipeline:
   has converted into RGB16 image.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_rgb16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  19.01  |  73.92   |   133.43   |  183.58  |
@@ -121,6 +127,7 @@ Pipeline:
 | fir avx2   |    -    |  19.87   |   29.82    |  36.09   |
 <!-- bench_compare_rgb16 end -->
 
+<!-- bench_compare_rgba16 start -->
 ### Resize RGBA16 image (U16x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -132,7 +139,6 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-<!-- bench_compare_rgba16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | resize     |    -    |  71.67   |   134.02   |  195.58  |
@@ -141,6 +147,7 @@ Pipeline:
 | fir avx2   |    -    |  25.64   |   36.42    |  47.76   |
 <!-- bench_compare_rgba16 end -->
 
+<!-- bench_compare_l16 start -->
 ### Resize L16 image (U16) 4928x3279 => 852x567
 
 Pipeline:
@@ -151,7 +158,6 @@ Pipeline:
   has converted into grayscale image with two bytes per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_l16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  16.34  |  48.68   |   76.27    |  105.09  |
@@ -161,6 +167,7 @@ Pipeline:
 | fir avx2   |    -    |   6.66   |    8.71    |  13.97   |
 <!-- bench_compare_l16 end -->
 
+<!-- bench_compare_la16 start -->
 ### Resize LA16 (luma with alpha channel) image (U16x2) 4928x3279 => 852x567
 
 Pipeline:
@@ -174,7 +181,6 @@ Pipeline:
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
-<!-- bench_compare_la16 start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | fir rust   |  0.20   |  33.72   |   53.68    |  72.66   |

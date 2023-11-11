@@ -1,12 +1,14 @@
 use std::ops::Deref;
 
+use criterion::black_box;
 use image::{imageops, ImageBuffer};
 
-use crate::utils::bencher::{bench, BenchGroup};
 use fast_image_resize::{CpuExtensions, FilterType, Image, MulDiv, ResizeAlg, Resizer};
 use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
 
-const ALG_NAMES: [&str; 4] = ["Nearest", "Bilinear", "CatmullRom", "Lanczos3"];
+use crate::utils::bencher::{bench, BenchGroup};
+
+const ALG_NAMES: [&str; 5] = ["Nearest", "Box", "Bilinear", "Bicubic", "Lanczos3"];
 const NEW_WIDTH: u32 = 852;
 const NEW_HEIGHT: u32 = 567;
 
@@ -20,7 +22,7 @@ where
         let (filter, sample_size) = match alg_name {
             "Nearest" => (imageops::Nearest, 80),
             "Bilinear" => (imageops::Triangle, 50),
-            "CatmullRom" => (imageops::CatmullRom, 30),
+            "Bicubic" => (imageops::CatmullRom, 30),
             "Lanczos3" => (imageops::Lanczos3, 20),
             _ => continue,
         };
@@ -43,19 +45,25 @@ pub fn resize_resize<Format, Out>(
     Out: Clone,
     Format: resize::PixelFormat<OutputPixel = Out> + Copy,
 {
+    fn box_kernel(_: f32) -> f32 {
+        1.0
+    }
+
     for alg_name in ALG_NAMES {
         if alg_name == "Nearest" {
             // "resize" doesn't support "nearest" algorithm
             continue;
         }
+
         let mut dst =
             vec![pixel_format.into_pixel(Format::new()); (NEW_WIDTH * NEW_HEIGHT) as usize];
         let sample_size = if alg_name == "Lanczos3" { 60 } else { 100 };
 
         bench(bench_group, sample_size, "resize", alg_name, |bencher| {
             let filter = match alg_name {
+                "Box" => resize::Type::Custom(resize::Filter::new(Box::new(box_kernel), 0.5)),
                 "Bilinear" => resize::Type::Triangle,
-                "CatmullRom" => resize::Type::Catrom,
+                "Bicubic" => resize::Type::Catrom,
                 "Lanczos3" => resize::Type::Lanczos3,
                 _ => return,
             };
@@ -72,6 +80,109 @@ pub fn resize_resize<Format, Out>(
                 resizer.resize(src_image, &mut dst).unwrap();
             })
         });
+    }
+}
+
+/// Resize image with help of "libvips" crate (https://crates.io/crates/libvips)
+
+pub fn libvips_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup, has_alpha: bool) {
+    #[cfg(not(target_arch = "wasm32"))]
+    vips::libvips_resize_inner::<P>(bench_group, has_alpha);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod vips {
+    use libvips::ops::{self, BandFormat, Kernel, ReduceOptions};
+    use libvips::{VipsApp, VipsImage};
+
+    use super::*;
+
+    const SAMPLE_SIZE: usize = 100;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn libvips_resize_inner<P: PixelTestingExt>(
+        bench_group: &mut BenchGroup,
+        has_alpha: bool,
+    ) {
+        let app = VipsApp::new("Test Libvips", false).expect("Cannot initialize libvips");
+        app.concurrency_set(1);
+        app.cache_set_max(0);
+        app.cache_set_max_mem(0);
+
+        let src_image_data = P::load_big_src_image();
+        let src_width = src_image_data.width().get() as i32;
+        let src_height = src_image_data.height().get() as i32;
+        let band_format = if P::count_of_component_values() > 256 {
+            BandFormat::Ushort
+        } else {
+            BandFormat::Uchar
+        };
+        let src_vips_image = VipsImage::new_from_memory(
+            src_image_data.buffer(),
+            src_width,
+            src_height,
+            P::count_of_components() as i32,
+            band_format,
+        )
+        .unwrap();
+        let hshrink = src_width as f64 / NEW_WIDTH as f64;
+        let vshrink = src_height as f64 / NEW_HEIGHT as f64;
+
+        for alg_name in ALG_NAMES {
+            let kernel = match alg_name {
+                "Nearest" => Kernel::Nearest,
+                "Box" => {
+                    bench(bench_group, SAMPLE_SIZE, "libvips", alg_name, |bencher| {
+                        if has_alpha {
+                            bencher.iter(|| {
+                                let premultiplied = ops::premultiply(&src_vips_image).unwrap();
+                                let resized =
+                                    ops::shrink(&premultiplied, hshrink, vshrink).unwrap();
+                                let result = ops::unpremultiply(&resized).unwrap();
+                                let result = ops::cast(&result, band_format).unwrap();
+                                let res_bytes = result.image_write_to_memory();
+                                black_box(&res_bytes);
+                            })
+                        } else {
+                            bencher.iter(|| {
+                                let result =
+                                    ops::shrink(&src_vips_image, hshrink, vshrink).unwrap();
+                                let res_bytes = result.image_write_to_memory();
+                                black_box(&res_bytes);
+                            })
+                        }
+                    });
+                    continue;
+                }
+                "Bilinear" => Kernel::Linear,
+                "Bicubic" => Kernel::Cubic,
+                "Lanczos3" => Kernel::Lanczos3,
+                _ => continue,
+            };
+            let options = ReduceOptions { kernel };
+            bench(bench_group, SAMPLE_SIZE, "libvips", alg_name, |bencher| {
+                if has_alpha {
+                    bencher.iter(|| {
+                        let premultiplied = ops::premultiply(&src_vips_image).unwrap();
+                        let resized =
+                            ops::reduce_with_opts(&premultiplied, hshrink, vshrink, &options)
+                                .unwrap();
+                        let result = ops::unpremultiply(&resized).unwrap();
+                        let result = ops::cast(&result, band_format).unwrap();
+                        let res_bytes = result.image_write_to_memory();
+                        black_box(&res_bytes);
+                    })
+                } else {
+                    bencher.iter(|| {
+                        let result =
+                            ops::reduce_with_opts(&src_vips_image, hshrink, vshrink, &options)
+                                .unwrap();
+                        let res_bytes = result.image_write_to_memory();
+                        black_box(&res_bytes);
+                    })
+                }
+            });
+        }
     }
 }
 
@@ -110,8 +221,9 @@ pub fn fir_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
                     }
                     ResizeAlg::Nearest
                 }
+                "Box" => ResizeAlg::Convolution(FilterType::Box),
                 "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
-                "CatmullRom" => ResizeAlg::Convolution(FilterType::CatmullRom),
+                "Bicubic" => ResizeAlg::Convolution(FilterType::CatmullRom),
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => continue,
             };
@@ -175,8 +287,9 @@ pub fn fir_resize_with_alpha<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
                     }
                     ResizeAlg::Nearest
                 }
+                "Box" => ResizeAlg::Convolution(FilterType::Box),
                 "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
-                "CatmullRom" => ResizeAlg::Convolution(FilterType::CatmullRom),
+                "Bicubic" => ResizeAlg::Convolution(FilterType::CatmullRom),
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => return,
             };
@@ -212,7 +325,7 @@ pub fn fir_resize_with_alpha<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
                                 mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
                             });
                         }
-                    }
+                    };
                 },
             );
         }

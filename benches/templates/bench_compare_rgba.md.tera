@@ -1,0 +1,12 @@
+### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+- Numbers in table is mean duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
+
+{{ compare_results -}}

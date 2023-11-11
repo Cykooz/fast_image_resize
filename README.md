@@ -6,6 +6,11 @@
 
 Rust library for fast image resizing with using of SIMD instructions.
 
+|          | Nearest |  Box  | Linear | Cubic | Lanczos3 |
+|----------|:-------:|:-----:|:------:|:-----:|:--------:|
+| libvips  |  8.42   | 36.42 | 12.94  | 18.04 |  22.13   |
+| fir avx2 |  0.86   | 19.53 | 21.28  | 27.35 |  38.65   |
+
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
@@ -54,6 +59,7 @@ Rust libraries used to compare of resizing speed:
 - image (<https://crates.io/crates/image>)
 - resize (<https://crates.io/crates/resize>)
 
+<!-- bench_compare_rgb start -->
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -63,16 +69,17 @@ Pipeline:
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_rgb start -->
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  19.37  |  81.71   |   149.63   |  205.67  |
-| resize     |    -    |  48.65   |   97.50    |  145.90  |
-| fir rust   |  0.28   |  38.21   |   65.73    |  96.99   |
-| fir sse4.1 |    -    |   9.78   |   14.26    |  20.00   |
-| fir avx2   |    -    |   7.85   |    9.96    |  14.75   |
+|            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:------:|:--------:|:-------:|:--------:|
+| image      | 100.67  |   -    |  247.87  | 410.70  |  579.80  |
+| resize     |    -    | 75.18  |  124.37  | 223.05  |  320.85  |
+| libvips    |  20.02  | 191.59 |  48.95   |  75.14  |  101.29  |
+| fir rust   |  0.85   | 58.66  |  98.47   | 166.57  |  229.08  |
+| fir sse4.1 |    -    | 22.75  |  26.92   |  39.61  |  56.12   |
+| fir avx2   |    -    | 20.40  |  21.61   |  28.31  |  40.84   |
 <!-- bench_compare_rgb end -->
 
+<!-- bench_compare_rgba start -->
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -84,7 +91,6 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-<!-- bench_compare_rgba start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | resize     |    -    |  74.59   |   138.44   |  202.18  |
@@ -93,6 +99,7 @@ Pipeline:
 | fir avx2   |    -    |   9.77   |   12.20    |  16.56   |
 <!-- bench_compare_rgba end -->
 
+<!-- bench_compare_l start -->
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -103,7 +110,6 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-<!-- bench_compare_l start -->
 |            | Nearest | Bilinear | CatmullRom | Lanczos3 |
 |------------|:-------:|:--------:|:----------:|:--------:|
 | image      |  16.55  |  48.08   |   75.52    |  103.29  |
