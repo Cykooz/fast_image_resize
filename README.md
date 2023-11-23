@@ -6,11 +6,6 @@
 
 Rust library for fast image resizing with using of SIMD instructions.
 
-|          | Nearest |  Box  | Linear | Cubic | Lanczos3 |
-|----------|:-------:|:-----:|:------:|:-----:|:--------:|
-| libvips  |  8.42   | 36.42 | 12.94  | 18.04 |  22.13   |
-| fir avx2 |  0.86   | 19.53 | 21.28  | 27.35 |  38.65   |
-
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
 Supported pixel formats and available optimisations:
