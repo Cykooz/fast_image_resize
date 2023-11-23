@@ -48,11 +48,11 @@ _All benchmarks:_
 [_ARM64_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-arm64.md),
 [_WASM32_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-wasm32.md).
 
-
-Rust libraries used to compare of resizing speed:
+Other libraries used to compare of resizing speed:
 
 - image (<https://crates.io/crates/image>)
 - resize (<https://crates.io/crates/resize>)
+- libvips (single-threaded mode, cache disabled)
 
 <!-- bench_compare_rgb start -->
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
@@ -204,7 +204,11 @@ fn resize_image_with_cropping(
     dst_height: NonZeroU32
 ) -> fr::Image {
     // Set cropping parameters
-    src_view.set_crop_box_to_fit_dst_size(dst_width, dst_height, None);
+    src_view.set_crop_box_to_fit_dst_size(
+        dst_width, 
+        dst_height, 
+        None,
+    );
 
     // Create container for data of destination image
     let mut dst_image = fr::Image::new(
