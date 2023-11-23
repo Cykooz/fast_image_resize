@@ -9,7 +9,7 @@ Environment:
 - RAM: DDR4 3800 MHz
 {% endif -%}
 - Ubuntu 22.04 (linux 6.2.0)
-- Rust 1.73.0
+- Rust 1.74.0
 - criterion = "0.5.1"
 - fast_image_resize = "2.7.1"
 {% if arch_id == "wasm32" -%}
@@ -27,7 +27,7 @@ Other libraries used to compare of resizing speed:
 Resize algorithms:
 
 - Nearest
-- Box - convolution with adaptive kernel size, min 1x1 px
-- Bilinear - convolution with adaptive kernel size, min 2x2 px
-- Bicubic (CatmullRom) - convolution with adaptive kernel size, min 4x4 px
-- Lanczos3 -convolution with adaptive kernel size, min 6x6 px
+- Box - convolution with minimal kernel size 1x1 px
+- Bilinear - convolution with minimal kernel size 2x2 px
+- Bicubic (CatmullRom) - convolution with minimal kernel size 4x4 px
+- Lanczos3 -convolution with minimal kernel size 6x6 px

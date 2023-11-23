@@ -106,7 +106,7 @@ pub struct Resizer {
 impl Resizer {
     /// Creates instance of `Resizer`
     ///
-    /// By default, instance of `Resizer` created with best CPU-extensions provided by your CPU.
+    /// By default, instance of `Resizer` created with the best CPU-extensions provided by your CPU.
     /// You can change this by use method [Resizer::set_cpu_extensions].
     pub fn new(algorithm: ResizeAlg) -> Self {
         Self {
@@ -233,7 +233,7 @@ impl Resizer {
     }
 }
 
-/// Create inner image container from part of given buffer.
+/// Creates inner image container from part of given buffer.
 /// Buffer may be expanded if it size is less than required for image.
 fn get_temp_image_from_buffer<P: PixelExt>(
     buffer: &mut Vec<u8>,

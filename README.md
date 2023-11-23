@@ -34,7 +34,7 @@ Resizer from this crate does not convert image into linear colorspace
 during resize process. If it is important for you to resize images with a
 non-linear color space (e.g. sRGB) correctly, then you have to convert
 it to a linear color space before resizing and convert back to the color space of
-result image. [Read more](https://legacy.imagemagick.org/Usage/resize/#resize_colorspace)
+result image. [Read more](http://www.ericbrasseur.org/gamma.html)
 about resizing with respect to color space.
 
 This crate provides the
@@ -69,14 +69,14 @@ Pipeline:
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
-|------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| image      | 100.67  |   -    |  247.87  | 410.70  |  579.80  |
-| resize     |    -    | 75.18  |  124.37  | 223.05  |  320.85  |
-| libvips    |  20.02  | 191.59 |  48.95   |  75.14  |  101.29  |
-| fir rust   |  0.85   | 58.66  |  98.47   | 166.57  |  229.08  |
-| fir sse4.1 |    -    | 22.75  |  26.92   |  39.61  |  56.12   |
-| fir avx2   |    -    | 20.40  |  21.61   |  28.31  |  40.84   |
+|            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image      |  29.36  |   -   |  91.28   | 148.79  |  207.66  |
+| resize     |    -    | 26.85 |  53.61   |  97.96  |  144.70  |
+| libvips    |  7.82   | 60.15 |  20.00   |  30.62  |  39.94   |
+| fir rust   |  0.29   | 24.68 |  40.63   |  73.49  |  108.02  |
+| fir sse4.1 |    -    | 7.97  |   9.55   |  14.06  |  19.68   |
+| fir avx2   |    -    | 6.96  |   7.62   |  9.77   |  14.05   |
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
@@ -91,12 +91,13 @@ Pipeline:
 - Numbers in table is mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| resize     |    -    |  74.59   |   138.44   |  202.18  |
-| fir rust   |  0.19   |  36.23   |   52.20    |  75.37   |
-| fir sse4.1 |    -    |  13.31   |   17.32    |  22.66   |
-| fir avx2   |    -    |   9.77   |   12.20    |  16.56   |
+|            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:------:|:--------:|:-------:|:--------:|
+| resize     |    -    | 42.84  |  85.35   | 147.60  |  211.91  |
+| libvips    |  9.44   | 122.38 |  190.92  | 339.54  |  502.03  |
+| fir rust   |  0.19   | 60.50  |  100.79  | 188.09  |  291.29  |
+| fir sse4.1 |    -    | 11.41  |  13.19   |  17.30  |  22.50   |
+| fir avx2   |    -    |  9.22  |  10.19   |  12.24  |  16.34   |
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
@@ -110,13 +111,14 @@ Pipeline:
   has converted into grayscale image with one byte per pixel.
 - Numbers in table is mean duration of image resizing in milliseconds.
 
-|            | Nearest | Bilinear | CatmullRom | Lanczos3 |
-|------------|:-------:|:--------:|:----------:|:--------:|
-| image      |  16.55  |  48.08   |   75.52    |  103.29  |
-| resize     |    -    |  17.02   |   35.08    |  60.26   |
-| fir rust   |  0.16   |  13.59   |   15.51    |  23.58   |
-| fir sse4.1 |    -    |   4.74   |    5.15    |   7.81   |
-| fir avx2   |    -    |   6.64   |    4.95    |   8.04   |
+|            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image      |  26.92  |   -   |  58.04   |  85.53  |  114.00  |
+| resize     |    -    | 10.95 |  18.66   |  38.15  |  65.44   |
+| libvips    |  4.70   | 25.07 |   9.59   |  13.30  |  17.90   |
+| fir rust   |  0.16   | 13.61 |  13.48   |  14.79  |  22.38   |
+| fir sse4.1 |    -    | 5.83  |   5.30   |  6.05   |   8.52   |
+| fir avx2   |    -    | 6.60  |   6.24   |  4.58   |   7.83   |
 <!-- bench_compare_l end -->
 
 ## Examples

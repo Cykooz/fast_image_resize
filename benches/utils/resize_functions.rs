@@ -161,7 +161,7 @@ mod vips {
             };
             let options = ReduceOptions { kernel };
             bench(bench_group, SAMPLE_SIZE, "libvips", alg_name, |bencher| {
-                if has_alpha {
+                if has_alpha && alg_name != "Nearest" {
                     bencher.iter(|| {
                         let premultiplied = ops::premultiply(&src_vips_image).unwrap();
                         let resized =

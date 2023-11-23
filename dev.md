@@ -1,6 +1,9 @@
 # Preparation
 
-Install additional toolchains.
+Install system libraries:
+- libvips-dev (used in benchmarks)
+
+Install additional toolchains:
 - Arm64:
   ```shell
   rustup target add aarch64-unknown-linux-gnu

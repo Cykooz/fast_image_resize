@@ -143,7 +143,7 @@ struct MappingTablesGroup {
 /// `U16x3` image with linear colorspace.
 ///
 /// Alpha channel from such pixel types as `U8x2`, `U8x4`, `U16x2` and `U16x4`
-/// not mapped with tables. This component transformed into destination
+/// is not mapped with tables. This component is transformed into destination
 /// component type with help of [IntoPixelComponent] trait.
 pub struct PixelComponentMapper {
     forward_mapping_tables: MappingTablesGroup,
