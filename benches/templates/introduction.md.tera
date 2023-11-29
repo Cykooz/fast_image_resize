@@ -11,9 +11,9 @@ Environment:
 - Ubuntu 22.04 (linux 6.2.0)
 - Rust 1.74.0
 - criterion = "0.5.1"
-- fast_image_resize = "2.7.1"
+- fast_image_resize = "2.7.3"
 {% if arch_id == "wasm32" -%}
-- wasmtime = "8.0.0"
+- wasmtime = "15.0.0"
 {% endif %}
 
 Other libraries used to compare of resizing speed:

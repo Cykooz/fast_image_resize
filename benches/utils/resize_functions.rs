@@ -214,13 +214,7 @@ pub fn fir_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
     for cpu_ext in cpu_extensions {
         for alg_name in ALG_NAMES {
             let resize_alg = match alg_name {
-                "Nearest" => {
-                    if cpu_ext != CpuExtensions::None {
-                        // Nearest algorithm implemented only for native Rust.
-                        continue;
-                    }
-                    ResizeAlg::Nearest
-                }
+                "Nearest" => ResizeAlg::Nearest,
                 "Box" => ResizeAlg::Convolution(FilterType::Box),
                 "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
                 "Bicubic" => ResizeAlg::Convolution(FilterType::CatmullRom),
@@ -280,13 +274,7 @@ pub fn fir_resize_with_alpha<P: PixelTestingExt>(bench_group: &mut BenchGroup) {
     for cpu_ext in cpu_ext_and_name {
         for alg_name in ALG_NAMES {
             let resize_alg = match alg_name {
-                "Nearest" => {
-                    if cpu_ext != CpuExtensions::None {
-                        // Nearest algorithm implemented only for native Rust.
-                        continue;
-                    }
-                    ResizeAlg::Nearest
-                }
+                "Nearest" => ResizeAlg::Nearest,
                 "Box" => ResizeAlg::Convolution(FilterType::Box),
                 "Bilinear" => ResizeAlg::Convolution(FilterType::Bilinear),
                 "Bicubic" => ResizeAlg::Convolution(FilterType::CatmullRom),
