@@ -1,9 +1,7 @@
-use std::num::NonZeroU32;
-
 use fast_image_resize::pixels::*;
 use fast_image_resize::Image;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
-use testing::{cpu_ext_into_str, PixelTestingExt};
+use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
 
 mod utils;
 
@@ -12,11 +10,7 @@ const NEW_HEIGHT: u32 = 567;
 
 fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
     let image = U8x4::load_big_src_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
+    let mut res_image = Image::new(nonzero(NEW_WIDTH), nonzero(NEW_HEIGHT), image.pixel_type());
     let src_image = image.view();
     let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Nearest);
@@ -32,11 +26,7 @@ fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
 
 fn native_nearest_u8_bench(bench_group: &mut utils::BenchGroup) {
     let image = U8::load_big_src_image();
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
+    let mut res_image = Image::new(nonzero(NEW_WIDTH), nonzero(NEW_HEIGHT), image.pixel_type());
     let src_image = image.view();
     let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Nearest);
@@ -56,11 +46,7 @@ fn downscale_bench(
     cpu_extensions: CpuExtensions,
     filter_type: FilterType,
 ) {
-    let mut res_image = Image::new(
-        NonZeroU32::new(NEW_WIDTH).unwrap(),
-        NonZeroU32::new(NEW_HEIGHT).unwrap(),
-        image.pixel_type(),
-    );
+    let mut res_image = Image::new(nonzero(NEW_WIDTH), nonzero(NEW_HEIGHT), image.pixel_type());
     let src_image = image.view();
     let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(filter_type));
@@ -92,7 +78,7 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
         PixelType::U16x4,
         PixelType::I32,
     ];
-    let mut cpu_extensions = vec![]; //CpuExtensions::None];
+    let mut cpu_extensions = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
         cpu_extensions.push(CpuExtensions::Sse4_1);
@@ -107,6 +93,10 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
         cpu_extensions.push(CpuExtensions::Simd128);
     }
     for pixel_type in pixel_types {
+        #[cfg(feature = "only_u8x4")]
+        if pixel_type != PixelType::U8x4 {
+            continue;
+        }
         for &cpu_extension in cpu_extensions.iter() {
             let image = match pixel_type {
                 PixelType::U8 => U8::load_big_src_image(),
@@ -125,6 +115,7 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
     }
 
     native_nearest_u8x4_bench(bench_group);
+    #[cfg(not(feature = "only_u8x4"))]
     native_nearest_u8_bench(bench_group);
 }
 

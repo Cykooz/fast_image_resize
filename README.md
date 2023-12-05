@@ -239,8 +239,8 @@ fn main() {
     let src_image = fr::Image::from_vec_u8(
         width,
         height,
-        img.to_rgb8().into_raw(),
-        fr::PixelType::U8x3,
+        img.to_rgba8().into_raw(),
+        fr::PixelType::U8x4,
     ).unwrap();
     resize_image_with_cropping(
         src_image.view(),

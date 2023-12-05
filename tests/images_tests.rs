@@ -60,12 +60,12 @@ fn crop_view_mut() {
     let src_image = fr::Image::from_vec_u8(
         nonzero(64),
         nonzero(32),
-        vec![255; 64 * 32],
-        fr::PixelType::U8,
+        vec![255; 64 * 32 * 4],
+        fr::PixelType::U8x4,
     )
     .unwrap();
     // Black destination image
-    let mut dst_image = fr::Image::new(nonzero(64), nonzero(32), fr::PixelType::U8);
+    let mut dst_image = fr::Image::new(nonzero(64), nonzero(32), fr::PixelType::U8x4);
 
     let mut cropped_dst_view = dst_image
         .view_mut()
@@ -84,7 +84,7 @@ fn crop_view_mut() {
         .resize(&src_image.view(), &mut cropped_dst_view)
         .unwrap();
 
-    let row_size: usize = 64;
+    let row_size: usize = 64 * 4;
     let dst_buffer = dst_image.buffer();
 
     let black_block = vec![0u8; 10 * row_size];
@@ -92,10 +92,10 @@ fn crop_view_mut() {
     assert_eq!(dst_buffer[0..10 * row_size], black_block);
 
     // Middle rows
-    let mut middle_row = vec![0u8; 10];
-    middle_row.extend(vec![255u8; 44]);
-    middle_row.extend(vec![0u8; 10]);
-    for row in dst_buffer.chunks_exact(row_size).skip(10).take(12) {
+    let mut middle_row = vec![0u8; 10 * 4];
+    middle_row.extend(vec![255u8; 44 * 4]);
+    middle_row.extend(vec![0u8; 10 * 4]);
+    for row in dst_buffer.chunks_exact(row_size).skip(10 * 4).take(12 * 4) {
         assert_eq!(row, middle_row);
     }
 

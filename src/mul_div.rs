@@ -50,6 +50,7 @@ impl MulDiv {
         src_image: &DynamicImageView,
         dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImagesError> {
+        #[cfg(not(feature = "only_u8x4"))]
         match (src_image, dst_image) {
             (
                 DynamicImageView::U8x2(typed_src_image),
@@ -69,6 +70,14 @@ impl MulDiv {
             ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
             _ => Err(MulDivImagesError::UnsupportedPixelType),
         }
+        #[cfg(feature = "only_u8x4")]
+        match (src_image, dst_image) {
+            (
+                DynamicImageView::U8x4(typed_src_image),
+                DynamicImageViewMut::U8x4(typed_dst_image),
+            ) => multiply_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            _ => Err(MulDivImagesError::UnsupportedPixelType),
+        }
     }
 
     /// Multiplies color-channels (RGB or Luma) of image by alpha-channel inplace.
@@ -76,6 +85,7 @@ impl MulDiv {
         &self,
         image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImageError> {
+        #[cfg(not(feature = "only_u8x4"))]
         match image {
             DynamicImageViewMut::U8x2(typed_image) => {
                 multiply_alpha_inplace(typed_image, self.cpu_extensions);
@@ -95,6 +105,14 @@ impl MulDiv {
             }
             _ => Err(MulDivImageError::UnsupportedPixelType),
         }
+        #[cfg(feature = "only_u8x4")]
+        match image {
+            DynamicImageViewMut::U8x4(typed_image) => {
+                multiply_alpha_inplace(typed_image, self.cpu_extensions);
+                Ok(())
+            }
+            _ => Err(MulDivImageError::UnsupportedPixelType),
+        }
     }
 
     /// Divides color-channels (RGB or Luma) of source image by alpha-channel and store
@@ -104,6 +122,7 @@ impl MulDiv {
         src_image: &DynamicImageView,
         dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImagesError> {
+        #[cfg(not(feature = "only_u8x4"))]
         match (src_image, dst_image) {
             (
                 DynamicImageView::U8x2(typed_src_image),
@@ -123,6 +142,14 @@ impl MulDiv {
             ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
             _ => Err(MulDivImagesError::UnsupportedPixelType),
         }
+        #[cfg(feature = "only_u8x4")]
+        match (src_image, dst_image) {
+            (
+                DynamicImageView::U8x4(typed_src_image),
+                DynamicImageViewMut::U8x4(typed_dst_image),
+            ) => divide_alpha(typed_src_image, typed_dst_image, self.cpu_extensions),
+            _ => Err(MulDivImagesError::UnsupportedPixelType),
+        }
     }
 
     /// Divides color-channels (RGB or Luma) of image by alpha-channel inplace.
@@ -130,6 +157,7 @@ impl MulDiv {
         &self,
         image: &mut DynamicImageViewMut,
     ) -> Result<(), MulDivImageError> {
+        #[cfg(not(feature = "only_u8x4"))]
         match image {
             DynamicImageViewMut::U8x2(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
@@ -144,6 +172,14 @@ impl MulDiv {
                 Ok(())
             }
             DynamicImageViewMut::U16x4(typed_image) => {
+                divide_alpha_inplace(typed_image, self.cpu_extensions);
+                Ok(())
+            }
+            _ => Err(MulDivImageError::UnsupportedPixelType),
+        }
+        #[cfg(feature = "only_u8x4")]
+        match image {
+            DynamicImageViewMut::U8x4(typed_image) => {
                 divide_alpha_inplace(typed_image, self.cpu_extensions);
                 Ok(())
             }

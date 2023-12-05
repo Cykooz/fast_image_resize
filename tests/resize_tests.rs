@@ -31,9 +31,12 @@ fn try_resize_to_other_pixel_type() {
 fn resize_to_same_size() {
     let width = nonzero(100);
     let height = nonzero(80);
-    let buffer: Vec<u8> = (0..8000).map(|v| (v & 0xff) as u8).collect();
-    let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8).unwrap();
-    let mut dst_image = Image::new(width, height, PixelType::U8);
+    let buffer: Vec<u8> = (0..8000)
+        .map(|v| (v & 0xff) as u8)
+        .flat_map(|v| [v; 4])
+        .collect();
+    let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8x4).unwrap();
+    let mut dst_image = Image::new(width, height, PixelType::U8x4);
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     resizer
         .resize(&src_image.view(), &mut dst_image.view_mut())
@@ -50,8 +53,11 @@ fn resize_to_same_size_after_cropping() {
     let height = nonzero(80);
     let src_width = nonzero(120);
     let src_height = nonzero(100);
-    let buffer: Vec<u8> = (0..12000).map(|v| (v & 0xff) as u8).collect();
-    let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8).unwrap();
+    let buffer: Vec<u8> = (0..12000)
+        .map(|v| (v & 0xff) as u8)
+        .flat_map(|v| [v; 4])
+        .collect();
+    let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8x4).unwrap();
     let mut src_view = src_image.view();
     src_view
         .set_crop_box(CropBox {
@@ -62,7 +68,7 @@ fn resize_to_same_size_after_cropping() {
         })
         .unwrap();
 
-    let mut dst_image = Image::new(width, height, PixelType::U8);
+    let mut dst_image = Image::new(width, height, PixelType::U8x4);
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     resizer
         .resize(&src_view, &mut dst_image.view_mut())
@@ -78,6 +84,7 @@ fn resize_to_same_size_after_cropping() {
                 None
             }
         })
+        .flat_map(|v| [v; 4])
         .collect();
     let dst_buffer = dst_image.into_vec();
     assert!(matches!(cropped_buffer.cmp(&dst_buffer), Ordering::Equal));
@@ -211,39 +218,48 @@ fn resize_to_same_width_after_cropping() {
         if !cpu_extensions.is_supported() {
             continue;
         }
-        resize_to_same_width(PixelType::U8, cpu_extensions, |v| [v]);
-        resize_to_same_width(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
-        resize_to_same_width(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
         resize_to_same_width(PixelType::U8x4, cpu_extensions, |v| [v; 4]);
-        resize_to_same_width(PixelType::U16, cpu_extensions, |v| [v, 0]);
-        resize_to_same_width(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
-        resize_to_same_width(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
-        resize_to_same_width(PixelType::U16x4, cpu_extensions, |v| {
-            [v, 0, v, 0, v, 0, v, 0]
-        });
-        resize_to_same_height(PixelType::U8, cpu_extensions, |v| [v]);
-        resize_to_same_height(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
-        resize_to_same_height(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
+        #[cfg(not(feature = "only_u8x4"))]
+        {
+            resize_to_same_width(PixelType::U8, cpu_extensions, |v| [v]);
+            resize_to_same_width(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
+            resize_to_same_width(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
+            resize_to_same_width(PixelType::U16, cpu_extensions, |v| [v, 0]);
+            resize_to_same_width(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
+            resize_to_same_width(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
+            resize_to_same_width(PixelType::U16x4, cpu_extensions, |v| {
+                [v, 0, v, 0, v, 0, v, 0]
+            });
+        }
         resize_to_same_height(PixelType::U8x4, cpu_extensions, |v| [v; 4]);
-        resize_to_same_height(PixelType::U16, cpu_extensions, |v| [v, 0]);
-        resize_to_same_height(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
-        resize_to_same_height(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
-        resize_to_same_height(PixelType::U16x4, cpu_extensions, |v| {
-            [v, 0, v, 0, v, 0, v, 0]
+        #[cfg(not(feature = "only_u8x4"))]
+        {
+            resize_to_same_height(PixelType::U8, cpu_extensions, |v| [v]);
+            resize_to_same_height(PixelType::U8x2, cpu_extensions, |v| [v; 2]);
+            resize_to_same_height(PixelType::U8x3, cpu_extensions, |v| [v; 3]);
+            resize_to_same_height(PixelType::U16, cpu_extensions, |v| [v, 0]);
+            resize_to_same_height(PixelType::U16x2, cpu_extensions, |v| [v, 0, v, 0]);
+            resize_to_same_height(PixelType::U16x3, cpu_extensions, |v| [v, 0, v, 0, v, 0]);
+            resize_to_same_height(PixelType::U16x4, cpu_extensions, |v| {
+                [v, 0, v, 0, v, 0, v, 0]
+            });
+        }
+    }
+    #[cfg(not(feature = "only_u8x4"))]
+    {
+        resize_to_same_width(PixelType::I32, CpuExtensions::None, |v| {
+            (v as i32).to_le_bytes()
+        });
+        resize_to_same_width(PixelType::F32, CpuExtensions::None, |v| {
+            (v as f32).to_le_bytes()
+        });
+        resize_to_same_height(PixelType::I32, CpuExtensions::None, |v| {
+            (v as i32).to_le_bytes()
+        });
+        resize_to_same_height(PixelType::F32, CpuExtensions::None, |v| {
+            (v as f32).to_le_bytes()
         });
     }
-    resize_to_same_width(PixelType::I32, CpuExtensions::None, |v| {
-        (v as i32).to_le_bytes()
-    });
-    resize_to_same_width(PixelType::F32, CpuExtensions::None, |v| {
-        (v as f32).to_le_bytes()
-    });
-    resize_to_same_height(PixelType::I32, CpuExtensions::None, |v| {
-        (v as i32).to_le_bytes()
-    });
-    resize_to_same_height(PixelType::F32, CpuExtensions::None, |v| {
-        (v as f32).to_le_bytes()
-    });
 }
 
 trait ResizeTest<const CC: usize> {
@@ -364,500 +380,509 @@ where
     }
 }
 
-#[test]
-fn downscale_u8() {
-    type P = U8;
-    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348]);
+#[cfg(not(feature = "only_u8x4"))]
+mod not_u8x4 {
+    use super::*;
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
-        P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [2923557],
-        );
-    }
-}
+    #[test]
+    fn downscale_u8() {
+        type P = U8;
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348]);
 
-#[test]
-fn upscale_u8() {
-    type P = U8;
-    P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [1148754010]);
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [2923557],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    #[test]
+    fn upscale_u8() {
+        type P = U8;
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [1148754010]);
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [1148811406],
+            );
+        }
     }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
+
+    #[test]
+    fn downscale_u8x2() {
+        type P = U8x2;
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348, 6121802]);
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [2923557, 6122818],
+            );
+        }
     }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+
+    #[test]
+    fn upscale_u8x2() {
+        type P = U8x2;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [1148811406],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [1146218632, 2364895380],
         );
-    }
-}
 
-#[test]
-fn downscale_u8x2() {
-    type P = U8x2;
-    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348, 6121802]);
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [1146283728, 2364890194],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn downscale_u8x3() {
+        type P = U8x3;
         P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [2923557, 6122818],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [2937940, 2945380, 2882679],
         );
-    }
-}
 
-#[test]
-fn upscale_u8x2() {
-    type P = U8x2;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [1146218632, 2364895380],
-    );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [2942479, 2947850, 2885072],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn upscale_u8x3() {
+        type P = U8x3;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [1146283728, 2364890194],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [1156008260, 1158417906, 1135087540],
         );
-    }
-}
 
-#[test]
-fn downscale_u8x3() {
-    type P = U8x3;
-    P::downscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [2937940, 2945380, 2882679],
-    );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [1156107005, 1158443335, 1135101759],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
+    #[test]
+    fn downscale_u16() {
+        type P = U16;
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [750529436]);
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [751401243],
+            );
+        }
     }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
+
+    #[test]
+    fn upscale_u16() {
+        type P = U16;
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [295229780570]);
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [295246940755],
+            );
+        }
     }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+
+    #[test]
+    fn downscale_u16x2() {
+        type P = U16x2;
         P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [2942479, 2947850, 2885072],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [750529436, 1573303114],
         );
-    }
-}
 
-#[test]
-fn upscale_u8x3() {
-    type P = U8x3;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [1156008260, 1158417906, 1135087540],
-    );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [751401243, 1573563971],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn upscale_u16x2() {
+        type P = U16x2;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [1156107005, 1158443335, 1135101759],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [294578188424, 607778112660],
         );
-    }
-}
 
-#[test]
-fn downscale_u8x4() {
-    type P = U8x4;
-    P::downscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [2937940, 2945380, 2882679, 6121802],
-    );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [294597368766, 607776760273],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn downscale_u16x3() {
+        type P = U16x3;
         P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [2942479, 2947850, 2885072, 6122818],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [755050580, 756962660, 740848503],
         );
 
-        P::downscale_test(
-            ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
-            cpu_extensions,
-            [2942546, 2947627, 2884866, 6123158],
-        );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [756269847, 757632467, 741478612],
+            );
+        }
     }
-}
 
-#[test]
-fn upscale_u8x4() {
-    type P = U8x4;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [1155096957, 1152644783, 1123285879, 2364895380],
-    );
-
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn upscale_u16x3() {
+        type P = U16x3;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [1155201788, 1152688479, 1123328716, 2364890194],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [297094122820, 297713401842, 291717497780],
         );
-    }
-}
 
-#[test]
-fn downscale_u16() {
-    type P = U16;
-    P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [750529436]);
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [297122154090, 297723994984, 291725294637],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn downscale_u16x4() {
+        type P = U16x4;
         P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [751401243],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [755050580, 756962660, 740848503, 1573303114],
         );
-    }
-}
 
-#[test]
-fn upscale_u16() {
-    type P = U16;
-    P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [295229780570]);
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [756269847, 757632467, 741478612, 1573563971],
+            );
+        }
+    }
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn upscale_u16x4() {
+        type P = U16x4;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [295246940755],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [296859917949, 296229709231, 288684470903, 607778112660],
         );
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [296888688348, 296243667797, 288698172180, 607776760273],
+            );
+        }
     }
 }
 
-#[test]
-fn downscale_u16x2() {
-    type P = U16x2;
-    P::downscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [750529436, 1573303114],
-    );
+mod u8x4 {
+    use super::*;
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    #[test]
+    fn downscale_u8x4() {
+        type P = U8x4;
         P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [751401243, 1573563971],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [2937940, 2945380, 2882679, 6121802],
         );
-    }
-}
 
-#[test]
-fn upscale_u16x2() {
-    type P = U16x2;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [294578188424, 607778112660],
-    );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [2942479, 2947850, 2885072, 6122818],
+            );
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
+            P::downscale_test(
+                ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
+                cpu_extensions,
+                [2942546, 2947627, 2884866, 6123158],
+            );
+        }
     }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+
+    #[test]
+    fn upscale_u8x4() {
+        type P = U8x4;
         P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [294597368766, 607776760273],
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [1155096957, 1152644783, 1123285879, 2364895380],
         );
-    }
-}
 
-#[test]
-fn downscale_u16x3() {
-    type P = U16x3;
-    P::downscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [755050580, 756962660, 740848503],
-    );
-
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
-        P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [756269847, 757632467, 741478612],
-        );
-    }
-}
-
-#[test]
-fn upscale_u16x3() {
-    type P = U16x3;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [297094122820, 297713401842, 291717497780],
-    );
-
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
-        P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [297122154090, 297723994984, 291725294637],
-        );
-    }
-}
-
-#[test]
-fn downscale_u16x4() {
-    type P = U16x4;
-    P::downscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [755050580, 756962660, 740848503, 1573303114],
-    );
-
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
-        P::downscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [756269847, 757632467, 741478612, 1573563971],
-        );
-    }
-}
-
-#[test]
-fn upscale_u16x4() {
-    type P = U16x4;
-    P::upscale_test(
-        ResizeAlg::Nearest,
-        CpuExtensions::None,
-        [296859917949, 296229709231, 288684470903, 607778112660],
-    );
-
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
-        P::upscale_test(
-            ResizeAlg::Convolution(FilterType::Lanczos3),
-            cpu_extensions,
-            [296888688348, 296243667797, 288698172180, 607776760273],
-        );
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        for cpu_extensions in cpu_extensions_vec {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [1155201788, 1152688479, 1123328716, 2364890194],
+            );
+        }
     }
 }

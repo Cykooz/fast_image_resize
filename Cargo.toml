@@ -20,12 +20,14 @@ exclude = ["/data"]
 
 
 [dependencies]
+cfg-if = "1.0.0"
 num-traits = "0.2"
 thiserror = "1.0"
 
 
 [features]
 for_test = []
+only_u8x4 = []  # This can be used to experiment with the crate's code.
 
 
 [dev-dependencies]
@@ -37,7 +39,7 @@ png = "0.17"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1"
 walkdir = "2"
-itertools = "0.11"
+itertools = "0.12"
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
 tera = "1"
 testing = { path = "testing" }
@@ -110,7 +112,7 @@ opt-level = 3
 [profile.release]
 opt-level = 3
 #incremental = true
-lto = true
+#lto = true
 #codegen-units = 1
 strip = true
 

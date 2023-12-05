@@ -90,7 +90,7 @@ where
         let src_rows = src_image.iter_rows(first_y_src);
         for (&k, src_row) in ks.iter().zip(src_rows) {
             let src_ptr = src_row.as_ptr() as *const u8;
-            let src_component = unsafe { *src_ptr.add(x_src as usize) };
+            let src_component = unsafe { *src_ptr.add(x_src) };
             ss += src_component as i32 * (k as i32);
         }
         *dst_component = unsafe { normalizer.clip(ss) };

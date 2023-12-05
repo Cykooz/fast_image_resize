@@ -6,10 +6,14 @@ use crate::{ImageView, ImageViewMut};
 
 mod common;
 pub(crate) mod errors;
-mod u16x2;
-mod u16x4;
-mod u8x2;
 mod u8x4;
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "only_u8x4"))] {
+        mod u16x2;
+        mod u16x4;
+        mod u8x2;
+    }
+}
 
 pub(crate) trait AlphaMulDiv
 where

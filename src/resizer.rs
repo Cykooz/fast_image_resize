@@ -126,6 +126,7 @@ impl Resizer {
         src_image: &DynamicImageView,
         dst_image: &mut DynamicImageViewMut,
     ) -> Result<(), DifferentTypesOfPixelsError> {
+        #[cfg(not(feature = "only_u8x4"))]
         match (src_image, dst_image) {
             (DynamicImageView::U8(src), DynamicImageViewMut::U8(dst)) => {
                 self.resize_inner(src, dst);
@@ -155,6 +156,15 @@ impl Resizer {
                 self.resize_inner(src, dst);
             }
             (DynamicImageView::F32(src), DynamicImageViewMut::F32(dst)) => {
+                self.resize_inner(src, dst);
+            }
+            _ => {
+                return Err(DifferentTypesOfPixelsError);
+            }
+        }
+        #[cfg(feature = "only_u8x4")]
+        match (src_image, dst_image) {
+            (DynamicImageView::U8x4(src), DynamicImageViewMut::U8x4(dst)) => {
                 self.resize_inner(src, dst);
             }
             _ => {

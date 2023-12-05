@@ -9,20 +9,24 @@ use crate::{ImageView, ImageViewMut};
 #[macro_use]
 mod macros;
 
-mod f32x1;
 mod filters;
-mod i32x1;
 mod optimisations;
-mod u16x1;
-mod u16x2;
-mod u16x3;
-mod u16x4;
-mod u8x1;
-mod u8x2;
-mod u8x3;
 mod u8x4;
-mod vertical_u16;
 mod vertical_u8;
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "only_u8x4"))] {
+        mod u8x1;
+        mod u8x2;
+        mod u8x3;
+        mod u16x1;
+        mod u16x2;
+        mod u16x3;
+        mod u16x4;
+        mod i32x1;
+        mod f32x1;
+        mod vertical_u16;
+    }
+}
 
 pub(crate) trait Convolution
 where
