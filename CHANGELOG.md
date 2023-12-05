@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Changed
+
+- Slightly improved (about 3%) speed of `AVX2` implementation of `Convolution` trait
+  for `U8x3` and `U8x4` images.
+
 ## [2.7.3] - 2023-05-07
 
 ### Fixed

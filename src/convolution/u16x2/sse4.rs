@@ -147,7 +147,7 @@ unsafe fn horiz_convolution_four_rows(
         }
 
         for i in 0..4 {
-            _mm_storeu_si128((&mut ll_buf).as_mut_ptr() as *mut __m128i, ll_sum[i]);
+            _mm_storeu_si128(ll_buf.as_mut_ptr() as *mut __m128i, ll_sum[i]);
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0 = [normalizer.clip(ll_buf[0]), normalizer.clip(ll_buf[1])];
         }
@@ -252,7 +252,7 @@ unsafe fn horiz_convolution_one_row(
             ll_sum = _mm_add_epi64(ll_sum, _mm_mul_epi32(p_i64x2, coeff0_i64x2));
         }
 
-        _mm_storeu_si128((&mut ll_buf).as_mut_ptr() as *mut __m128i, ll_sum);
+        _mm_storeu_si128(ll_buf.as_mut_ptr() as *mut __m128i, ll_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = [normalizer.clip(ll_buf[0]), normalizer.clip(ll_buf[1])];
     }

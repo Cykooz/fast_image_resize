@@ -161,9 +161,9 @@ unsafe fn horiz_convolution_four_rows(
         }
 
         for i in 0..4 {
-            _mm256_storeu_si256((&mut rg_buf).as_mut_ptr() as *mut __m256i, rg_sum[i]);
-            _mm256_storeu_si256((&mut rg_bb_buf).as_mut_ptr() as *mut __m256i, rg_bb_sum[i]);
-            _mm256_storeu_si256((&mut bbb_buf).as_mut_ptr() as *mut __m256i, bbb_sum[i]);
+            _mm256_storeu_si256(rg_buf.as_mut_ptr() as *mut __m256i, rg_sum[i]);
+            _mm256_storeu_si256(rg_bb_buf.as_mut_ptr() as *mut __m256i, rg_bb_sum[i]);
+            _mm256_storeu_si256(bbb_buf.as_mut_ptr() as *mut __m256i, bbb_sum[i]);
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0[0] = normalizer.clip(rg_buf[0] + rg_buf[2] + rg_bb_buf[0] + half_error);
             dst_pixel.0[1] = normalizer.clip(rg_buf[1] + rg_buf[3] + rg_bb_buf[1] + half_error);
@@ -288,9 +288,9 @@ unsafe fn horiz_convolution_one_row(
             x += 1;
         }
 
-        _mm256_storeu_si256((&mut rg_buf).as_mut_ptr() as *mut __m256i, rg_sum);
-        _mm256_storeu_si256((&mut rg_bb_buf).as_mut_ptr() as *mut __m256i, rg_bb_sum);
-        _mm256_storeu_si256((&mut bbb_buf).as_mut_ptr() as *mut __m256i, bbb_sum);
+        _mm256_storeu_si256(rg_buf.as_mut_ptr() as *mut __m256i, rg_sum);
+        _mm256_storeu_si256(rg_bb_buf.as_mut_ptr() as *mut __m256i, rg_bb_sum);
+        _mm256_storeu_si256(bbb_buf.as_mut_ptr() as *mut __m256i, bbb_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0[0] = normalizer.clip(rg_buf[0] + rg_buf[2] + rg_bb_buf[0] + half_error);
         dst_pixel.0[1] = normalizer.clip(rg_buf[1] + rg_buf[3] + rg_bb_buf[1] + half_error);

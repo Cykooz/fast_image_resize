@@ -16,7 +16,7 @@ const fn recip_alpha_array(precision: u32) -> [u32; 256] {
     let scaled_max = 255 * scale;
     let mut i: usize = 1;
     while i < 256 {
-        res[i] = (((scaled_max / i as u32) + 1) >> 1) as u32;
+        res[i] = ((scaled_max / i as u32) + 1) >> 1;
         i += 1;
     }
     res
@@ -28,7 +28,7 @@ const fn recip_alpha16_array(precision: u64) -> [u64; 65536] {
     let scaled_max = 0xffff * scale;
     let mut i: usize = 1;
     while i < 65536 {
-        res[i] = (((scaled_max / i as u64) + 1) >> 1) as u64;
+        res[i] = ((scaled_max / i as u64) + 1) >> 1;
         i += 1;
     }
     res

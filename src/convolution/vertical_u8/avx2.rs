@@ -16,20 +16,44 @@ pub(crate) fn vert_convolution<T>(
     T: PixelExt<Component = u8>,
 {
     let normalizer = optimisations::Normalizer16::new(coeffs);
+    let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            vert_convolution_p::<T, $imm8>(src_image, dst_image, offset, normalizer);
+        }};
+    }
+    constify_imm8!(precision, call);
+}
+
+fn vert_convolution_p<T, const PRECISION: i32>(
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
+    offset: u32,
+    normalizer: optimisations::Normalizer16,
+) where
+    T: PixelExt<Component = u8>,
+{
     let coefficients_chunks = normalizer.normalized_chunks();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u8(src_image, dst_row, src_x, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row::<T, PRECISION>(
+                src_image,
+                dst_row,
+                src_x,
+                coeffs_chunk,
+                &normalizer,
+            );
         }
     }
 }
 
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn vert_convolution_into_one_row_u8<T>(
+unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
     mut src_x: usize,
@@ -41,10 +65,9 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
-    let precision = normalizer.precision();
 
-    let initial = _mm_set1_epi32(1 << (precision - 1));
-    let initial_256 = _mm256_set1_epi32(1 << (precision - 1));
+    let initial = _mm_set1_epi32(1 << (PRECISION as u8 - 1));
+    let initial_256 = _mm256_set1_epi32(1 << (PRECISION as u8 - 1));
 
     let mut dst_u8 = T::components_mut(dst_row);
 
@@ -104,15 +127,10 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
             sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm256_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm256_srai_epi32::<$imm8>(sss1);
-                sss2 = _mm256_srai_epi32::<$imm8>(sss2);
-                sss3 = _mm256_srai_epi32::<$imm8>(sss3);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = _mm256_srai_epi32::<PRECISION>(sss0);
+        sss1 = _mm256_srai_epi32::<PRECISION>(sss1);
+        sss2 = _mm256_srai_epi32::<PRECISION>(sss2);
+        sss3 = _mm256_srai_epi32::<PRECISION>(sss3);
 
         sss0 = _mm256_packs_epi32(sss0, sss1);
         sss2 = _mm256_packs_epi32(sss2, sss3);
@@ -165,13 +183,8 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm_srai_epi32::<$imm8>(sss1);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = _mm_srai_epi32::<PRECISION>(sss0);
+        sss1 = _mm_srai_epi32::<PRECISION>(sss1);
 
         sss0 = _mm_packs_epi32(sss0, sss1);
         sss0 = _mm_packus_epi16(sss0, sss0);
@@ -211,12 +224,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = _mm_srai_epi32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss = _mm_srai_epi32::<PRECISION>(sss);
 
         sss = _mm_packs_epi32(sss, sss);
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut i32;
@@ -230,7 +238,7 @@ unsafe fn vert_convolution_into_one_row_u8<T>(
         native::convolution_by_u8(
             src_img,
             normalizer,
-            1 << (precision - 1),
+            1 << (PRECISION as u8 - 1),
             dst_u8,
             src_x,
             y_start,

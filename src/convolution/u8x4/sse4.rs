@@ -18,6 +18,21 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            horiz_convolution_p::<$imm8>(src_image, dst_image, offset, normalizer);
+        }};
+    }
+    constify_imm8!(precision, call);
+}
+
+fn horiz_convolution_p<const PRECISION: i32>(
+    src_image: &ImageView<U8x4>,
+    dst_image: &mut ImageViewMut<U8x4>,
+    offset: u32,
+    normalizer: optimisations::Normalizer16,
+) {
     let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_image.height().get();
 
@@ -25,18 +40,17 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
     let mut yy = dst_height - dst_height % 4;
     while yy < dst_height {
         unsafe {
-            horiz_convolution_8u(
+            horiz_convolution_one_row::<PRECISION>(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
-                precision,
             );
         }
         yy += 1;
@@ -50,13 +64,12 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_8u4x(
+unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x4]; 4],
     dst_rows: [&mut &mut [U8x4]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
-    let initial = _mm_set1_epi32(1 << (precision - 1));
+    let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let mask_lo = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
     let mask_hi = _mm_set_epi8(-1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8);
     let mask = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
@@ -151,15 +164,10 @@ unsafe fn horiz_convolution_8u4x(
             sss3 = _mm_add_epi32(sss3, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm_srai_epi32::<$imm8>(sss1);
-                sss2 = _mm_srai_epi32::<$imm8>(sss2);
-                sss3 = _mm_srai_epi32::<$imm8>(sss3);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = _mm_srai_epi32::<PRECISION>(sss0);
+        sss1 = _mm_srai_epi32::<PRECISION>(sss1);
+        sss2 = _mm_srai_epi32::<PRECISION>(sss2);
+        sss3 = _mm_srai_epi32::<PRECISION>(sss3);
 
         sss0 = _mm_packs_epi32(sss0, sss0);
         sss1 = _mm_packs_epi32(sss1, sss1);
@@ -182,13 +190,12 @@ unsafe fn horiz_convolution_8u4x(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_8u(
+unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x4],
     dst_row: &mut [U8x4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
-    let initial = _mm_set1_epi32(1 << (precision - 1));
+    let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let sh1 = _mm_set_epi8(-1, 11, -1, 3, -1, 10, -1, 2, -1, 9, -1, 1, -1, 8, -1, 0);
     let sh2 = _mm_set_epi8(5, 4, 1, 0, 5, 4, 1, 0, 5, 4, 1, 0, 5, 4, 1, 0);
     let sh3 = _mm_set_epi8(-1, 15, -1, 7, -1, 14, -1, 6, -1, 13, -1, 5, -1, 12, -1, 4);
@@ -268,13 +275,7 @@ unsafe fn horiz_convolution_8u(
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = _mm_srai_epi32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
-
+        sss = _mm_srai_epi32::<PRECISION>(sss);
         sss = _mm_packs_epi32(sss, sss);
         *dst_row.get_unchecked_mut(dst_x) =
             transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));

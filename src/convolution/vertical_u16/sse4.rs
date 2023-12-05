@@ -110,7 +110,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let mut dst_ptr = dst_chunk.as_mut_ptr();
         for x in 0..2 {
             for sum in sums {
-                _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, sum[x]);
+                _mm_storeu_si128(c_buf.as_mut_ptr() as *mut __m128i, sum[x]);
                 *dst_ptr = normalizer.clip(c_buf[0]);
                 dst_ptr = dst_ptr.add(1);
                 *dst_ptr = normalizer.clip(c_buf[1]);
@@ -164,7 +164,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
             // sums[i] = _mm_and_si128(sums[i] , mask);
             // sums[i] = _mm_srl_epi64(sums[i] , precision_i64);
             // _mm_packus_epi32(sums[i] , sums[i] );
-            _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, sum);
+            _mm_storeu_si128(c_buf.as_mut_ptr() as *mut __m128i, sum);
             *dst_ptr = normalizer.clip(c_buf[0]);
             dst_ptr = dst_ptr.add(1);
             *dst_ptr = normalizer.clip(c_buf[1]);
@@ -212,12 +212,12 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         }
 
         let mut dst_ptr = dst_chunk.as_mut_ptr();
-        _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, c01);
+        _mm_storeu_si128(c_buf.as_mut_ptr() as *mut __m128i, c01);
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);
         dst_ptr = dst_ptr.add(1);
-        _mm_storeu_si128((&mut c_buf).as_mut_ptr() as *mut __m128i, c23);
+        _mm_storeu_si128(c_buf.as_mut_ptr() as *mut __m128i, c23);
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);

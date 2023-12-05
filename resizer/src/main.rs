@@ -105,7 +105,7 @@ fn resize(cli: &Cli) -> Result<()> {
 fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::PixelType)> {
     let source_path = &cli.source_path;
     debug!("Opening the source image {:?}", source_path);
-    let image = ImageReader::open(&source_path)
+    let image = ImageReader::open(source_path)
         .with_context(|| format!("Failed to read source file from {:?}", source_path))?
         .decode()
         .with_context(|| "Failed to decode source image")?;

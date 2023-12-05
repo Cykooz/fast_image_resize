@@ -15,6 +15,21 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            horiz_convolution_p::<$imm8>(src_image, dst_image, offset, normalizer);
+        }};
+    }
+    constify_imm8!(precision, call);
+}
+
+fn horiz_convolution_p<const PRECISION: i32>(
+    src_image: &ImageView<U8x3>,
+    dst_image: &mut ImageViewMut<U8x3>,
+    offset: u32,
+    normalizer: optimisations::Normalizer16,
+) {
     let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_image.height().get();
 
@@ -22,18 +37,17 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
     let mut yy = dst_height - dst_height % 4;
     while yy < dst_height {
         unsafe {
-            horiz_convolution_8u(
+            horiz_convolution_one_row::<PRECISION>(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
-                precision,
             );
         }
         yy += 1;
@@ -48,14 +62,13 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_8u4x(
+unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x3]; 4],
     dst_rows: [&mut &mut [U8x3]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
     let zero = _mm_setzero_si128();
-    let initial = _mm_set1_epi32(1 << (precision - 1));
+    let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let src_width = src_rows[0].len();
 
     /*
@@ -153,15 +166,11 @@ unsafe fn horiz_convolution_8u4x(
 
             x += 1;
         }
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss_a[0] = _mm_srai_epi32::<$imm8>(sss_a[0]);
-                sss_a[1] = _mm_srai_epi32::<$imm8>(sss_a[1]);
-                sss_a[2] = _mm_srai_epi32::<$imm8>(sss_a[2]);
-                sss_a[3] = _mm_srai_epi32::<$imm8>(sss_a[3]);
-            }};
-        }
-        constify_imm8!(precision, call);
+
+        sss_a[0] = _mm_srai_epi32::<PRECISION>(sss_a[0]);
+        sss_a[1] = _mm_srai_epi32::<PRECISION>(sss_a[1]);
+        sss_a[2] = _mm_srai_epi32::<PRECISION>(sss_a[2]);
+        sss_a[3] = _mm_srai_epi32::<PRECISION>(sss_a[3]);
 
         for i in 0..4 {
             let sss = _mm_packs_epi32(sss_a[i], zero);
@@ -179,11 +188,10 @@ unsafe fn horiz_convolution_8u4x(
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_8u(
+unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x3],
     dst_row: &mut [U8x3],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
     #[rustfmt::skip]
     let pix_sh1 = _mm_set_epi8(
@@ -220,7 +228,7 @@ unsafe fn horiz_convolution_8u(
         let x_start = coeffs_chunk.start as usize;
         let mut x = x_start;
         let mut coeffs = coeffs_chunk.values;
-        let mut sss = _mm_set1_epi32(1 << (precision - 1));
+        let mut sss = _mm_set1_epi32(1 << (PRECISION - 1));
 
         // Next block of code will be load source pixels by 16 bytes per time.
         // We must guarantee what this process will not go beyond
@@ -277,13 +285,7 @@ unsafe fn horiz_convolution_8u(
             x += 1;
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = _mm_srai_epi32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
-
+        sss = _mm_srai_epi32::<PRECISION>(sss);
         sss = _mm_packs_epi32(sss, sss);
         let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
         let bytes = pixel.to_le_bytes();

@@ -27,7 +27,7 @@ pub(crate) fn horiz_convolution(
     let mut yy = dst_height - dst_height % 4;
     while yy < dst_height {
         unsafe {
-            horiz_convolution_row(
+            horiz_convolution_one_row(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
@@ -114,7 +114,7 @@ unsafe fn horiz_convolution_four_rows(
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_row(
+unsafe fn horiz_convolution_one_row(
     src_row: &[U8],
     dst_row: &mut [U8],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],

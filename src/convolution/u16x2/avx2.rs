@@ -164,7 +164,7 @@ unsafe fn horiz_convolution_four_rows(
 
         // ll_sum.into_iter().enumerate() executes slowly than ll_sum.iter().enumerate()
         for (i, &ll) in ll_sum.iter().enumerate() {
-            _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll);
+            _mm256_storeu_si256(ll_buf.as_mut_ptr() as *mut __m256i, ll);
             let dst_pixel = dst_rows[i * 2].get_unchecked_mut(dst_x);
 
             dst_pixel.0 = [normalizer.clip(ll_buf[0]), normalizer.clip(ll_buf[1])];
@@ -308,7 +308,7 @@ unsafe fn horiz_convolution_one_row(
             ll_sum = _mm256_add_epi64(ll_sum, _mm256_mul_epi32(p_i64x4, coeff0_i64x4));
         }
 
-        _mm256_storeu_si256((&mut ll_buf).as_mut_ptr() as *mut __m256i, ll_sum);
+        _mm256_storeu_si256(ll_buf.as_mut_ptr() as *mut __m256i, ll_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = [
             normalizer.clip(ll_buf[0] + ll_buf[2] + half_error),

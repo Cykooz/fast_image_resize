@@ -20,14 +20,14 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_image.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, &normalizer);
+            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, &normalizer);
         }
     }
 
     let mut yy = dst_height - dst_height % 4;
     while yy < dst_height {
         unsafe {
-            horiz_convolution_8u(
+            horiz_convolution_one_row(
                 src_image.get_row(yy + offset).unwrap(),
                 dst_image.get_row_mut(yy).unwrap(),
                 &coefficients_chunks,
@@ -46,7 +46,7 @@ pub(crate) fn horiz_convolution(
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn horiz_convolution_8u4x(
+unsafe fn horiz_convolution_four_rows(
     src_rows: [&[U8]; 4],
     dst_rows: [&mut &mut [U8]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
@@ -115,7 +115,7 @@ unsafe fn horiz_convolution_8u4x(
 /// - precision <= MAX_COEFS_PRECISION
 #[inline]
 #[target_feature(enable = "avx2")]
-unsafe fn horiz_convolution_8u(
+unsafe fn horiz_convolution_one_row(
     src_row: &[U8],
     dst_row: &mut [U8],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
@@ -183,7 +183,7 @@ unsafe fn hsum_epi32_avx(x: __m128i) -> i32 {
     // 3-operand non-destructive AVX lets us save a byte without needing a movdqa
     let hi64 = _mm_unpackhi_epi64(x, x);
     let sum64 = _mm_add_epi32(hi64, x);
-    const I: i32 = ((2 << 6) | (3 << 4) | 1) as i32;
+    const I: i32 = (2 << 6) | (3 << 4) | 1;
     let hi32 = _mm_shuffle_epi32::<I>(sum64); // Swap the low two elements
     let sum32 = _mm_add_epi32(sum64, hi32);
     _mm_cvtsi128_si32(sum32) // movd

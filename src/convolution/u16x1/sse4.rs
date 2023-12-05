@@ -152,14 +152,14 @@ unsafe fn horiz_convolution_four_rows(
         if let Some(&k) = coeffs.first() {
             let coeff01_i64x2 = _mm_set_epi64x(0, k as i64);
             for i in 0..4 {
-                let pixel = (*src_rows[i].get_unchecked(x)).0 as i64;
+                let pixel = src_rows[i].get_unchecked(x).0 as i64;
                 let source = _mm_set_epi64x(0, pixel);
                 ll_sum[i] = _mm_add_epi64(ll_sum[i], _mm_mul_epi32(source, coeff01_i64x2));
             }
         }
 
         for i in 0..4 {
-            _mm_storeu_si128((&mut ll_buf).as_mut_ptr() as *mut __m128i, ll_sum[i]);
+            _mm_storeu_si128(ll_buf.as_mut_ptr() as *mut __m128i, ll_sum[i]);
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0 = normalizer.clip(ll_buf.iter().sum::<i64>() + half_error);
         }
@@ -269,12 +269,12 @@ unsafe fn horiz_convolution_one_row(
 
         if let Some(&k) = coeffs.first() {
             let coeff01_i64x2 = _mm_set_epi64x(0, k as i64);
-            let pixel = (*src_row.get_unchecked(x)).0 as i64;
+            let pixel = src_row.get_unchecked(x).0 as i64;
             let source = _mm_set_epi64x(0, pixel);
             ll_sum = _mm_add_epi64(ll_sum, _mm_mul_epi32(source, coeff01_i64x2));
         }
 
-        _mm_storeu_si128((&mut ll_buf).as_mut_ptr() as *mut __m128i, ll_sum);
+        _mm_storeu_si128(ll_buf.as_mut_ptr() as *mut __m128i, ll_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = normalizer.clip(ll_buf[0] + ll_buf[1] + half_error);
     }

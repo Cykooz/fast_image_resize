@@ -7,26 +7,52 @@ use crate::simd_utils;
 use crate::{ImageView, ImageViewMut};
 
 #[inline]
-pub(crate) fn vert_convolution<T: PixelExt<Component = u8>>(
+pub(crate) fn vert_convolution<T>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
     offset: u32,
     coeffs: Coefficients,
-) {
+) where
+    T: PixelExt<Component = u8>,
+{
     let normalizer = optimisations::Normalizer16::new(coeffs);
+    let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            vert_convolution_p::<T, $imm8>(src_image, dst_image, offset, normalizer);
+        }};
+    }
+    constify_imm8!(precision, call);
+}
+
+fn vert_convolution_p<T, const PRECISION: i32>(
+    src_image: &ImageView<T>,
+    dst_image: &mut ImageViewMut<T>,
+    offset: u32,
+    normalizer: optimisations::Normalizer16,
+) where
+    T: PixelExt<Component = u8>,
+{
     let coefficients_chunks = normalizer.normalized_chunks();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u8(src_image, dst_row, src_x, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row::<T, PRECISION>(
+                src_image,
+                dst_row,
+                src_x,
+                coeffs_chunk,
+                &normalizer,
+            );
         }
     }
 }
 
 #[target_feature(enable = "sse4.1")]
-unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
+unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECISION: i32>(
     src_img: &ImageView<T>,
     dst_row: &mut [T],
     mut src_x: usize,
@@ -36,10 +62,9 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
     let max_y = y_start + coeffs.len() as u32;
-    let precision = normalizer.precision();
     let mut dst_u8 = T::components_mut(dst_row);
 
-    let initial = _mm_set1_epi32(1 << (precision - 1));
+    let initial = _mm_set1_epi32(1 << (PRECISION - 1));
 
     let mut dst_chunks_32 = dst_u8.chunks_exact_mut(32);
     for dst_chunk in &mut dst_chunks_32 {
@@ -128,19 +153,14 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
             sss7 = _mm_add_epi32(sss7, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm_srai_epi32::<$imm8>(sss1);
-                sss2 = _mm_srai_epi32::<$imm8>(sss2);
-                sss3 = _mm_srai_epi32::<$imm8>(sss3);
-                sss4 = _mm_srai_epi32::<$imm8>(sss4);
-                sss5 = _mm_srai_epi32::<$imm8>(sss5);
-                sss6 = _mm_srai_epi32::<$imm8>(sss6);
-                sss7 = _mm_srai_epi32::<$imm8>(sss7);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = _mm_srai_epi32::<PRECISION>(sss0);
+        sss1 = _mm_srai_epi32::<PRECISION>(sss1);
+        sss2 = _mm_srai_epi32::<PRECISION>(sss2);
+        sss3 = _mm_srai_epi32::<PRECISION>(sss3);
+        sss4 = _mm_srai_epi32::<PRECISION>(sss4);
+        sss5 = _mm_srai_epi32::<PRECISION>(sss5);
+        sss6 = _mm_srai_epi32::<PRECISION>(sss6);
+        sss7 = _mm_srai_epi32::<PRECISION>(sss7);
 
         sss0 = _mm_packs_epi32(sss0, sss1);
         sss2 = _mm_packs_epi32(sss2, sss3);
@@ -195,13 +215,8 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = _mm_srai_epi32::<$imm8>(sss0);
-                sss1 = _mm_srai_epi32::<$imm8>(sss1);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = _mm_srai_epi32::<PRECISION>(sss0);
+        sss1 = _mm_srai_epi32::<PRECISION>(sss1);
 
         sss0 = _mm_packs_epi32(sss0, sss1);
         sss0 = _mm_packus_epi16(sss0, sss0);
@@ -241,12 +256,7 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = _mm_srai_epi32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss = _mm_srai_epi32::<PRECISION>(sss);
 
         sss = _mm_packs_epi32(sss, sss);
         let dst_ptr = dst_chunk.as_mut_ptr() as *mut i32;
@@ -260,7 +270,7 @@ unsafe fn vert_convolution_into_one_row_u8<T: PixelExt<Component = u8>>(
         native::convolution_by_u8(
             src_img,
             normalizer,
-            1 << (precision - 1),
+            1 << (PRECISION - 1),
             dst_u8,
             src_x,
             y_start,

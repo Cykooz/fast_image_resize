@@ -292,7 +292,7 @@ unsafe fn horiz_convolution_one_row(
             let mut coeffs: [i16; 3] = [0; 3];
             for (i, &coeff) in reminder1.iter().enumerate() {
                 coeffs[i] = coeff;
-                let pixel: [u8; 2] = (*src_row.get_unchecked(x)).0.to_le_bytes();
+                let pixel: [u8; 2] = src_row.get_unchecked(x).0.to_le_bytes();
                 pixels[i * 2] = pixel[0] as i16;
                 pixels[i * 2 + 1] = pixel[1] as i16;
                 x += 1;
