@@ -23,7 +23,7 @@ Resize algorithms:
 - Box - convolution with minimal kernel size 1x1 px
 - Bilinear - convolution with minimal kernel size 2x2 px
 - Bicubic (CatmullRom) - convolution with minimal kernel size 4x4 px
-- Lanczos3 -convolution with minimal kernel size 6x6 px
+- Lanczos3 - convolution with minimal kernel size 6x6 px
 <!-- introduction end -->
 
 <!-- bench_compare_rgb start -->
