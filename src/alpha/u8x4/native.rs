@@ -35,14 +35,13 @@ pub(crate) fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
 
 #[inline(always)]
 fn multiply_alpha_pixel(mut pixel: U8x4) -> U8x4 {
-    let components: [u8; 4] = pixel.0.to_le_bytes();
-    let alpha = components[3];
-    pixel.0 = u32::from_le_bytes([
-        mul_div_255(components[0], alpha),
-        mul_div_255(components[1], alpha),
-        mul_div_255(components[2], alpha),
+    let alpha = pixel.0[3];
+    pixel.0 = [
+        mul_div_255(pixel.0[0], alpha),
+        mul_div_255(pixel.0[1], alpha),
+        mul_div_255(pixel.0[2], alpha),
         alpha,
-    ]);
+    ];
     pixel
 }
 
@@ -76,14 +75,13 @@ pub(crate) fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
 
 #[inline(always)]
 fn divide_alpha_pixel(mut pixel: U8x4) -> U8x4 {
-    let components: [u8; 4] = pixel.0.to_le_bytes();
-    let alpha = components[3];
+    let alpha = pixel.0[3];
     let recip_alpha = RECIP_ALPHA[alpha as usize];
-    pixel.0 = u32::from_le_bytes([
-        div_and_clip(components[0], recip_alpha),
-        div_and_clip(components[1], recip_alpha),
-        div_and_clip(components[2], recip_alpha),
+    pixel.0 = [
+        div_and_clip(pixel.0[0], recip_alpha),
+        div_and_clip(pixel.0[1], recip_alpha),
+        div_and_clip(pixel.0[2], recip_alpha),
         alpha,
-    ]);
+    ];
     pixel
 }

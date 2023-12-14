@@ -55,11 +55,29 @@ pub trait PixelTestingExt: PixelExt {
             .unwrap()
     }
 
+    fn load_big_square_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4019x4019.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
     fn load_big_src_image() -> Image<'static> {
         let img = Self::load_big_image();
         Image::from_vec_u8(
-            NonZeroU32::new(img.width()).unwrap(),
-            NonZeroU32::new(img.height()).unwrap(),
+            nonzero(img.width()),
+            nonzero(img.height()),
+            Self::img_into_bytes(img),
+            Self::pixel_type(),
+        )
+        .unwrap()
+    }
+
+    fn load_big_square_src_image() -> Image<'static> {
+        let img = Self::load_big_square_image();
+        Image::from_vec_u8(
+            nonzero(img.width()),
+            nonzero(img.height()),
             Self::img_into_bytes(img),
             Self::pixel_type(),
         )
@@ -76,8 +94,8 @@ pub trait PixelTestingExt: PixelExt {
     fn load_small_src_image() -> Image<'static> {
         let img = Self::load_small_image();
         Image::from_vec_u8(
-            NonZeroU32::new(img.width()).unwrap(),
-            NonZeroU32::new(img.height()).unwrap(),
+            nonzero(img.width()),
+            nonzero(img.height()),
             Self::img_into_bytes(img),
             Self::pixel_type(),
         )
@@ -96,6 +114,13 @@ impl PixelTestingExt for U8 {
 impl PixelTestingExt for U8x2 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn load_big_square_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4019x4019-rgba.png")
             .unwrap()
             .decode()
             .unwrap()
@@ -122,6 +147,13 @@ impl PixelTestingExt for U8x3 {
 impl PixelTestingExt for U8x4 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn load_big_square_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4019x4019-rgba.png")
             .unwrap()
             .decode()
             .unwrap()
@@ -164,6 +196,13 @@ impl PixelTestingExt for U16x2 {
             .unwrap()
     }
 
+    fn load_big_square_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4019x4019-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
     fn load_small_image() -> DynamicImage {
         ImageReader::open("./data/nasa-852x567-rgba.png")
             .unwrap()
@@ -193,6 +232,13 @@ impl PixelTestingExt for U16x3 {
 impl PixelTestingExt for U16x4 {
     fn load_big_image() -> DynamicImage {
         ImageReader::open("./data/nasa-4928x3279-rgba.png")
+            .unwrap()
+            .decode()
+            .unwrap()
+    }
+
+    fn load_big_square_image() -> DynamicImage {
+        ImageReader::open("./data/nasa-4019x4019-rgba.png")
             .unwrap()
             .decode()
             .unwrap()

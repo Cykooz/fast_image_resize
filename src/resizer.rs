@@ -330,34 +330,68 @@ fn resample_convolution<P>(
     });
 
     match (horiz_coeffs, vert_coeffs) {
-        (Some(horiz_coeffs), Some(mut vert_coeffs)) => {
-            let y_first = vert_coeffs.bounds[0].start;
-            // Last used row in the source image
-            let last_y_bound = vert_coeffs.bounds.last().unwrap();
-            let y_last = last_y_bound.start + last_y_bound.size;
-            let temp_height = NonZeroU32::new(y_last - y_first).unwrap();
-            let mut temp_image = get_temp_image_from_buffer(temp_buffer, dst_width, temp_height);
-            let mut tmp_dst_view = temp_image.dst_view();
-            P::horiz_convolution(
-                src_image,
-                &mut tmp_dst_view,
-                y_first,
-                horiz_coeffs,
-                cpu_extensions,
-            );
+        (Some(mut horiz_coeffs), Some(mut vert_coeffs)) => {
+            if P::count_of_component_values() > 256 {
+                let y_first = vert_coeffs.bounds[0].start;
+                // Last used row in the source image
+                let last_y_bound = vert_coeffs.bounds.last().unwrap();
+                let y_last = last_y_bound.start + last_y_bound.size;
+                let temp_height = NonZeroU32::new(y_last - y_first).unwrap();
+                let mut temp_image =
+                    get_temp_image_from_buffer(temp_buffer, dst_width, temp_height);
+                let mut tmp_dst_view = temp_image.dst_view();
+                P::horiz_convolution(
+                    src_image,
+                    &mut tmp_dst_view,
+                    y_first,
+                    horiz_coeffs,
+                    cpu_extensions,
+                );
 
-            // Shift bounds for vertical pass
-            vert_coeffs
-                .bounds
-                .iter_mut()
-                .for_each(|b| b.start -= y_first);
-            P::vert_convolution(
-                &tmp_dst_view.into(),
-                dst_image,
-                0,
-                vert_coeffs,
-                cpu_extensions,
-            );
+                // Shift bounds for vertical pass
+                vert_coeffs
+                    .bounds
+                    .iter_mut()
+                    .for_each(|b| b.start -= y_first);
+                P::vert_convolution(
+                    &tmp_dst_view.into(),
+                    dst_image,
+                    0,
+                    vert_coeffs,
+                    cpu_extensions,
+                );
+            } else {
+                let y_first = vert_coeffs.bounds[0].start;
+                let x_first = horiz_coeffs.bounds[0].start;
+                // Last used col in the source image
+                let last_x_bound = horiz_coeffs.bounds.last().unwrap();
+                let x_last = last_x_bound.start + last_x_bound.size;
+                let temp_width = NonZeroU32::new(x_last - x_first).unwrap();
+                let mut temp_image =
+                    get_temp_image_from_buffer(temp_buffer, temp_width, dst_height);
+                let mut tmp_dst_view = temp_image.dst_view();
+
+                P::vert_convolution(
+                    src_image,
+                    &mut tmp_dst_view,
+                    y_first,
+                    vert_coeffs,
+                    cpu_extensions,
+                );
+
+                // Shift bounds for horizontal pass
+                horiz_coeffs
+                    .bounds
+                    .iter_mut()
+                    .for_each(|b| b.start -= x_first);
+                P::horiz_convolution(
+                    &tmp_dst_view.into(),
+                    dst_image,
+                    0,
+                    horiz_coeffs,
+                    cpu_extensions,
+                );
+            }
         }
         (Some(horiz_coeffs), None) => {
             P::horiz_convolution(

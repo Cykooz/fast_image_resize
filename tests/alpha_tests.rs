@@ -120,7 +120,7 @@ mod u8x4 {
     use fast_image_resize::pixels::U8x4;
 
     const fn p4(r: u8, g: u8, b: u8, a: u8) -> U8x4 {
-        U8x4::new(u32::from_le_bytes([r, g, b, a]))
+        U8x4::new([r, g, b, a])
     }
 
     #[cfg(test)]

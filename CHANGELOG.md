@@ -4,6 +4,11 @@
 
 - Slightly improved (about 3%) speed of `AVX2` implementation of `Convolution` trait
   for `U8x3` and `U8x4` images.
+- Significantly improved (4.5 times on `x86_64`) speed of vertical convolution pass implemented 
+  in native Rust for `U8`, `U8x2`, `U8x3` and `U8x4` images.
+- Changed order of convolution passes for `U8`, `U8x2`, `U8x3` and `U8x4` images.
+  Now the vertical pass is the first and the horizontal pass is the second.
+- **BREAKING**: Changed internal data type for `U8x4` structure. Not it is `[u8; 4]` instead of `u32`.
 
 ## [2.7.3] - 2023-05-07
 

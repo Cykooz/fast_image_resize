@@ -1,5 +1,6 @@
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::PixelExt;
+use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
@@ -24,39 +25,59 @@ pub(crate) fn vert_convolution<T>(
         let ks = coeffs_chunk.values;
         let mut x_src = src_x_initial;
         let dst_components = T::components_mut(dst_row);
-        let (head, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<u32>() };
 
-        if !head.is_empty() {
-            x_src = convolution_by_u8(
-                src_image,
-                &normalizer,
-                initial,
-                head,
-                x_src,
-                first_y_src,
-                ks,
-            );
+        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u8; 32]>() };
+        x_src = convolution_by_chunks(
+            src_image,
+            &normalizer,
+            initial,
+            dst_chunks,
+            x_src,
+            first_y_src,
+            ks,
+        );
+        if tail.is_empty() {
+            continue;
         }
 
-        // Convolution by u8x4
-        for dst_chunk in dst_chunks {
-            let mut ss = [initial; 4];
-            let src_rows = src_image.iter_rows(first_y_src);
-            for (&k, src_row) in ks.iter().zip(src_rows) {
-                let src_ptr = src_row.as_ptr() as *const u8;
-                let src_chunk = unsafe {
-                    let ptr = src_ptr.add(x_src) as *const u32;
-                    ptr.read_unaligned()
-                };
-
-                let components: [u8; 4] = src_chunk.to_le_bytes();
-                for (s, c) in ss.iter_mut().zip(components) {
-                    *s += c as i32 * (k as i32);
-                }
-            }
-            *dst_chunk = u32::from_le_bytes(ss.map(|v| unsafe { normalizer.clip(v) }));
-            x_src += 4;
+        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 16]>() };
+        x_src = convolution_by_chunks(
+            src_image,
+            &normalizer,
+            initial,
+            dst_chunks,
+            x_src,
+            first_y_src,
+            ks,
+        );
+        if tail.is_empty() {
+            continue;
         }
+
+        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 8]>() };
+        x_src = convolution_by_chunks(
+            src_image,
+            &normalizer,
+            initial,
+            dst_chunks,
+            x_src,
+            first_y_src,
+            ks,
+        );
+        if tail.is_empty() {
+            continue;
+        }
+
+        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 4]>() };
+        x_src = convolution_by_chunks(
+            src_image,
+            &normalizer,
+            initial,
+            dst_chunks,
+            x_src,
+            first_y_src,
+            ks,
+        );
 
         if !tail.is_empty() {
             convolution_by_u8(
@@ -95,6 +116,48 @@ where
         }
         *dst_component = unsafe { normalizer.clip(ss) };
         x_src += 1
+    }
+    x_src
+}
+
+#[inline(always)]
+fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
+    src_image: &ImageView<T>,
+    normalizer: &optimisations::Normalizer16,
+    initial: i32,
+    dst_chunks: &mut [[u8; CHUNK_SIZE]],
+    mut x_src: usize,
+    first_y_src: u32,
+    ks: &[i16],
+) -> usize
+where
+    T: PixelExt<Component = u8>,
+{
+    for dst_chunk in dst_chunks {
+        let mut ss = [initial; CHUNK_SIZE];
+        let src_rows = src_image.iter_rows(first_y_src);
+
+        foreach_with_pre_reading(
+            ks.iter().zip(src_rows),
+            |(&k, src_row)| {
+                let src_ptr = src_row.as_ptr() as *const u8;
+                let src_chunk = unsafe {
+                    let ptr = src_ptr.add(x_src) as *const [u8; CHUNK_SIZE];
+                    ptr.read_unaligned()
+                };
+                (src_chunk, k)
+            },
+            |(src_chunk, k)| {
+                for (s, c) in ss.iter_mut().zip(src_chunk) {
+                    *s += c as i32 * (k as i32);
+                }
+            },
+        );
+
+        for (i, s) in ss.iter().copied().enumerate() {
+            dst_chunk[i] = unsafe { normalizer.clip(s) };
+        }
+        x_src += CHUNK_SIZE;
     }
     x_src
 }

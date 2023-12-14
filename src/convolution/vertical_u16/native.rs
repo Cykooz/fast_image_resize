@@ -1,19 +1,22 @@
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::PixelExt;
+use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
-pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
+pub(crate) fn vert_convolution<T>(
     src_image: &ImageView<T>,
     dst_image: &mut ImageViewMut<T>,
     offset: u32,
     coeffs: Coefficients,
-) {
+) where
+    T: PixelExt<Component = u16>,
+{
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let precision = normalizer.precision();
     let initial: i64 = 1 << (precision - 1);
-    let x_src = offset as usize * T::count_of_components();
+    let src_x_initial = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut();
     let coeffs_chunks_iter = coefficients_chunks.into_iter();
@@ -21,16 +24,30 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
         let first_y_src = coeffs_chunk.start;
         let ks = coeffs_chunk.values;
         let dst_components = T::components_mut(dst_row);
+        let mut x_src = src_x_initial;
 
-        convolution_by_u16(
+        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u16; 16]>() };
+        x_src = convolution_by_chunks(
             src_image,
             &normalizer,
             initial,
-            dst_components,
+            dst_chunks,
             x_src,
             first_y_src,
             ks,
         );
+
+        if !tail.is_empty() {
+            convolution_by_u16(
+                src_image,
+                &normalizer,
+                initial,
+                tail,
+                x_src,
+                first_y_src,
+                ks,
+            );
+        }
     }
 }
 
@@ -56,6 +73,48 @@ pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
         }
         *dst_component = normalizer.clip(ss);
         x_src += 1
+    }
+    x_src
+}
+
+#[inline(always)]
+fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
+    src_image: &ImageView<T>,
+    normalizer: &optimisations::Normalizer32,
+    initial: i64,
+    dst_chunks: &mut [[u16; CHUNK_SIZE]],
+    mut x_src: usize,
+    first_y_src: u32,
+    ks: &[i32],
+) -> usize
+where
+    T: PixelExt<Component = u16>,
+{
+    for dst_chunk in dst_chunks {
+        let mut ss = [initial; CHUNK_SIZE];
+        let src_rows = src_image.iter_rows(first_y_src);
+
+        foreach_with_pre_reading(
+            ks.iter().zip(src_rows),
+            |(&k, src_row)| {
+                let src_ptr = src_row.as_ptr() as *const u16;
+                let src_chunk = unsafe {
+                    let ptr = src_ptr.add(x_src) as *const [u16; CHUNK_SIZE];
+                    ptr.read_unaligned()
+                };
+                (src_chunk, k)
+            },
+            |(src_chunk, k)| {
+                for (s, c) in ss.iter_mut().zip(src_chunk) {
+                    *s += c as i64 * (k as i64);
+                }
+            },
+        );
+
+        for (i, s) in ss.iter().copied().enumerate() {
+            dst_chunk[i] = normalizer.clip(s);
+        }
+        x_src += CHUNK_SIZE;
     }
     x_src
 }

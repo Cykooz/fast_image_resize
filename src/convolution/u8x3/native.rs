@@ -12,7 +12,7 @@ pub(crate) fn horiz_convolution(
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
     let coefficients_chunks = normalizer.normalized_chunks();
-    let initial = 1 << (precision - 1);
+    let initial = 1i32 << (precision - 1);
 
     let src_rows = src_image.iter_rows(offset);
     let dst_rows = dst_image.iter_rows_mut();
