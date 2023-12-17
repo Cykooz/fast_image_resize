@@ -118,13 +118,13 @@ unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
-        let mut src_buffer = [U8x4::new(0); 4];
+        let mut src_buffer = [U8x4::new([0; 4]); 4];
         src_buffer
             .iter_mut()
             .zip(src_remainder)
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_buffer = [U8x4::new(0); 4];
+        let mut dst_buffer = [U8x4::new([0; 4]); 4];
         let src_pixels = v128_load(src_buffer.as_ptr() as *const v128);
         let dst_pixels = divide_alpha_4_pixels(src_pixels);
         v128_store(dst_buffer.as_mut_ptr() as *mut v128, dst_pixels);
@@ -149,13 +149,13 @@ unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
 
     let tail = chunks.into_remainder();
     if !tail.is_empty() {
-        let mut src_buffer = [U8x4::new(0); 4];
+        let mut src_buffer = [U8x4::new([0; 4]); 4];
         src_buffer
             .iter_mut()
             .zip(tail.iter())
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_buffer = [U8x4::new(0); 4];
+        let mut dst_buffer = [U8x4::new([0; 4]); 4];
         let src_pixels = v128_load(src_buffer.as_ptr() as *const v128);
         let dst_pixels = divide_alpha_4_pixels(src_pixels);
         v128_store(dst_buffer.as_mut_ptr() as *mut v128, dst_pixels);

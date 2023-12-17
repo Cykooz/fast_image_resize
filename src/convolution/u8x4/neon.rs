@@ -185,7 +185,7 @@ unsafe fn horiz_convolution_8u4x(
         for i in 0..4 {
             let s = vqmovun_s16(vcombine_s16(vqmovn_s32(sss_a[i]), vdup_n_s16(0)));
             let s = vreinterpret_u32_u8(s);
-            dst_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u32::<0>(s);
+            dst_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u32::<0>(s).to_le_bytes();
         }
     }
 }
@@ -297,6 +297,6 @@ unsafe fn horiz_convolution_8u(
 
         let s = vqmovun_s16(vcombine_s16(vqmovn_s32(sss), vdup_n_s16(0)));
         let s = vreinterpret_u32_u8(s);
-        dst_row.get_unchecked_mut(dst_x).0 = vget_lane_u32::<0>(s);
+        dst_row.get_unchecked_mut(dst_x).0 = vget_lane_u32::<0>(s).to_le_bytes();
     }
 }

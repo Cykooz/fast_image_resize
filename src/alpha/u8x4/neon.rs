@@ -172,13 +172,13 @@ unsafe fn divide_alpha_row(src_row: &[U8x4], dst_row: &mut [U8x4]) {
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
-        let mut src_pixels = [U8x4::new(0); 8];
+        let mut src_pixels = [U8x4::new([0; 4]); 8];
         src_pixels
             .iter_mut()
             .zip(src_remainder)
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x4::new(0); 8];
+        let mut dst_pixels = [U8x4::new([0; 4]); 8];
         let mut pixels = neon_utils::load_deintrel_u8x8x4(src_pixels.as_slice(), 0);
         pixels = divide_alpha_8_pixels(pixels);
         let dst_ptr = dst_pixels.as_mut_ptr() as *mut u8;
@@ -218,13 +218,13 @@ unsafe fn divide_alpha_row_inline(row: &mut [U8x4]) {
 
     let tail = chunks.into_remainder();
     if !tail.is_empty() {
-        let mut src_pixels = [U8x4::new(0); 8];
+        let mut src_pixels = [U8x4::new([0; 4]); 8];
         src_pixels
             .iter_mut()
             .zip(tail.iter())
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x4::new(0); 8];
+        let mut dst_pixels = [U8x4::new([0; 4]); 8];
         let mut pixels = neon_utils::load_deintrel_u8x8x4(src_pixels.as_slice(), 0);
         pixels = divide_alpha_8_pixels(pixels);
         let dst_ptr = dst_pixels.as_mut_ptr() as *mut u8;
