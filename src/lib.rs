@@ -3,7 +3,7 @@
 pub use alpha::errors::*;
 pub use color::mappers::*;
 pub use color::PixelComponentMapper;
-pub use convolution::FilterType;
+pub use convolution::*;
 pub use dynamic_image_view::{
     change_type_of_pixel_components_dyn, DynamicImageView, DynamicImageViewMut,
 };

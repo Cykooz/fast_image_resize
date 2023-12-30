@@ -407,7 +407,7 @@ mod not_u8x4 {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2923557],
+                [2923555],
             );
         }
     }
@@ -435,7 +435,7 @@ mod not_u8x4 {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1148811406],
+                [1148811829],
             );
         }
     }
@@ -463,7 +463,7 @@ mod not_u8x4 {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2923557, 6122818],
+                [2923555, 6122718],
             );
         }
     }
@@ -495,7 +495,7 @@ mod not_u8x4 {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1146283728, 2364890194],
+                [1146284886, 2364890085],
             );
         }
     }
@@ -527,7 +527,7 @@ mod not_u8x4 {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2942479, 2947850, 2885072],
+                [2942547, 2947799, 2885025],
             );
         }
     }
@@ -559,7 +559,7 @@ mod not_u8x4 {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1156107005, 1158443335, 1135101759],
+                [1156107445, 1158443938, 1135102297],
             );
         }
     }
@@ -814,11 +814,16 @@ mod not_u8x4 {
 }
 
 mod u8x4 {
+    use std::f64::consts::PI;
+
+    use fast_image_resize::Filter;
+
     use super::*;
+
+    type P = U8x4;
 
     #[test]
     fn downscale_u8x4() {
-        type P = U8x4;
         P::downscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
@@ -843,20 +848,19 @@ mod u8x4 {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2942479, 2947850, 2885072, 6122818],
+                [2942547, 2947799, 2885025, 6122718],
             );
 
             P::downscale_test(
                 ResizeAlg::SuperSampling(FilterType::Lanczos3, 2),
                 cpu_extensions,
-                [2942546, 2947627, 2884866, 6123158],
+                [2942426, 2947750, 2884861, 6123019],
             );
         }
     }
 
     #[test]
     fn upscale_u8x4() {
-        type P = U8x4;
         P::upscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
@@ -881,8 +885,64 @@ mod u8x4 {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1155201788, 1152688479, 1123328716, 2364890194],
+                [1155201879, 1152689565, 1123329272, 2364890085],
             );
         }
+    }
+
+    #[test]
+    fn custom_filter_u8x4() {
+        std::env::set_var("DONT_SAVE_RESULT", "1");
+        const LANCZOS3_RESULT: [u64; 4] = [2942547, 2947799, 2885025, 6122718];
+        const LANCZOS4_RESULT: [u64; 4] = [2943083, 2948315, 2885436, 6122629];
+
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Lanczos3),
+            CpuExtensions::None,
+            LANCZOS3_RESULT,
+        );
+
+        fn sinc_filter(mut x: f64) -> f64 {
+            if x == 0.0 {
+                1.0
+            } else {
+                x *= PI;
+                x.sin() / x
+            }
+        }
+
+        fn lanczos3_filter(x: f64) -> f64 {
+            if (-3.0..3.0).contains(&x) {
+                sinc_filter(x) * sinc_filter(x / 3.)
+            } else {
+                0.0
+            }
+        }
+
+        for bad_support in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(Filter::new("bad_support", &lanczos3_filter, bad_support).is_err());
+        }
+
+        let my_lanczos3 = Filter::new("MyLanczos3", &lanczos3_filter, 3.0).unwrap();
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Custom(my_lanczos3)),
+            CpuExtensions::None,
+            LANCZOS3_RESULT,
+        );
+
+        fn lanczos4_filter(x: f64) -> f64 {
+            if (-4.0..4.0).contains(&x) {
+                sinc_filter(x) * sinc_filter(x / 4.)
+            } else {
+                0.0
+            }
+        }
+
+        let my_lanczos4 = Filter::new("MyLanczos4", &lanczos4_filter, 4.0).unwrap();
+        P::downscale_test(
+            ResizeAlg::Convolution(FilterType::Custom(my_lanczos4)),
+            CpuExtensions::None,
+            LANCZOS4_RESULT,
+        );
     }
 }

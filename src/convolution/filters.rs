@@ -1,6 +1,76 @@
 use std::f64::consts::PI;
+use std::fmt::{Debug, Formatter};
+use thiserror::Error;
 
 pub type FilterFn<'a> = &'a dyn Fn(f64) -> f64;
+
+/// Description of custom filter for image convolution.
+#[derive(Clone, Copy)]
+pub struct Filter<'f> {
+    /// Name of filter
+    name: &'static str,
+    /// Filter function
+    func: FilterFn<'f>,
+    /// Minimal "radius" of kernel in pixels
+    support: f64,
+}
+
+impl<'f> PartialEq for Filter<'f> {
+    fn eq(&self, other: &Self) -> bool {
+        self.support == other.support && self.name == other.name
+    }
+}
+
+impl<'f> Eq for Filter<'f> {}
+
+impl<'f> Debug for Filter<'f> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Filter")
+            .field("name", &self.name)
+            .field("support", &self.support)
+            .finish()
+    }
+}
+
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateFilterError {
+    /// Value of 'support' argument must be finite and greater than 0.0
+    #[error("Value of 'support' argument must be finite and greater than 0.0")]
+    InvalidSupport,
+}
+
+impl<'f> Filter<'f> {
+    /// # Arguments
+    ///
+    /// * `name` - Name of filter
+    /// * `func` - Filter function
+    /// * `support` - Minimal "radius" of kernel in pixels
+    pub fn new(
+        name: &'static str,
+        func: FilterFn<'f>,
+        support: f64,
+    ) -> Result<Self, CreateFilterError> {
+        if support.is_finite() && support > 0.0 {
+            Ok(Self {
+                name,
+                func,
+                support,
+            })
+        } else {
+            Err(CreateFilterError::InvalidSupport)
+        }
+    }
+
+    /// Name of filter
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+
+    /// Minimal "radius" of kernel in pixels
+    pub fn support(&self) -> f64 {
+        self.support
+    }
+}
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -43,11 +113,13 @@ pub enum FilterType {
     /// Minimal kernel size 6x6 px.
     #[default]
     Lanczos3,
+    /// Custom filter function.
+    Custom(Filter<'static>),
 }
 
 /// Returns reference to filter function and value of `filter_support`.
 #[inline]
-pub fn get_filter_func(filter_type: FilterType) -> (FilterFn<'static>, f64) {
+pub(crate) fn get_filter_func(filter_type: FilterType) -> (FilterFn<'static>, f64) {
     match filter_type {
         FilterType::Box => (&box_filter, 0.5),
         FilterType::Bilinear => (&bilinear_filter, 1.0),
@@ -55,6 +127,7 @@ pub fn get_filter_func(filter_type: FilterType) -> (FilterFn<'static>, f64) {
         FilterType::CatmullRom => (&catmul_filter, 2.0),
         FilterType::Mitchell => (&mitchell_filter, 2.0),
         FilterType::Lanczos3 => (&lanczos_filter, 3.0),
+        FilterType::Custom(custom) => (custom.func, custom.support),
     }
 }
 

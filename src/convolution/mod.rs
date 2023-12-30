@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-pub use filters::{get_filter_func, FilterType};
+pub use filters::*;
 
 use crate::pixels::PixelExt;
 use crate::CpuExtensions;
@@ -50,20 +50,20 @@ where
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Bound {
+pub(crate) struct Bound {
     pub start: u32,
     pub size: u32,
 }
 
 #[derive(Debug, Clone)]
-pub struct Coefficients {
+pub(crate) struct Coefficients {
     pub values: Vec<f64>,
     pub window_size: usize,
     pub bounds: Vec<Bound>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct CoefficientsChunk<'a> {
+pub(crate) struct CoefficientsChunk<'a> {
     pub start: u32,
     pub values: &'a [f64],
 }
@@ -85,7 +85,7 @@ impl Coefficients {
     }
 }
 
-pub fn precompute_coefficients(
+pub(crate) fn precompute_coefficients(
     in_size: NonZeroU32,
     in0: f64, // Left border for cropping
     in1: f64, // Right border for cropping
