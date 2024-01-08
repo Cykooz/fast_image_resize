@@ -236,6 +236,13 @@ fn insert_string_into_file(path: &Path, placeholder_name: &str, string: &str) {
     std::fs::write(path, content).expect("Unable to save string into file");
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+static TEMPLATES_PATH: &str = "benches/templates/*.tera";
+
+// WASI doesn't support `std::fs::canonicalize` function
+#[cfg(target_arch = "wasm32")]
+static TEMPLATES_PATH: &str = "/benches/templates/*.tera";
+
 fn write_bench_results_into_file(md_table: &str) {
     let (arch_id, arch_name) = get_arch_id_and_name();
     let file_name = format!("benchmarks-{}.md", arch_id);
@@ -245,7 +252,7 @@ fn write_bench_results_into_file(md_table: &str) {
     }
     let file_path = file_path_buf.as_path();
 
-    let tera_engine = match tera::Tera::new("benches/templates/**/*.tera") {
+    let tera_engine = match tera::Tera::new(TEMPLATES_PATH) {
         Ok(t) => t,
         Err(e) => {
             println!("Parsing error(s): {}", e);

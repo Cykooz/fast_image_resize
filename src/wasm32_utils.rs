@@ -53,7 +53,7 @@ pub(crate) unsafe fn i32x4_extend_low_ptr_u8(buf: &[u8], index: usize) -> v128 {
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn i32x4_extend_low_ptr_u8x4(buf: &[U8x4], index: usize) -> v128 {
-    let v: u32 = buf.get_unchecked(index).0;
+    let v: u32 = u32::from_le_bytes(buf.get_unchecked(index).0);
     u32x4_extend_low_u16x8(i16x8_extend_low_u8x16(u32x4(v, 0, 0, 0)))
 }
 

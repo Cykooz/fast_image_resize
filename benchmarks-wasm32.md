@@ -6,16 +6,16 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 3800 MHz
 - Ubuntu 22.04 (linux 6.2.0)
-- Rust 1.74.0
+- Rust 1.75.0
 - criterion = "0.5.1"
-- fast_image_resize = "2.7.3"
-- wasmtime = "15.0.0"
+- fast_image_resize = "3.0.0"
+- wasmtime = "16.0.0"
 
 
 Other libraries used to compare of resizing speed:
 
 - image = "0.24.7" (<https://crates.io/crates/image>)
-- resize = "0.8.2" (<https://crates.io/crates/resize>)
+- resize = "0.8.3" (<https://crates.io/crates/resize>)
 
 
 Resize algorithms:
@@ -39,10 +39,10 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image       |  18.64  |   -   |  102.37  | 187.12  |  271.19  |
-| resize      |    -    | 34.45 |  60.83   | 112.43  |  163.63  |
-| fir rust    |  0.38   | 35.45 |  52.91   |  89.97  |  127.45  |
-| fir simd128 |  0.38   | 14.51 |  15.56   |  20.86  |  29.45   |
+| image       |  19.06  |   -   |  99.24   | 180.42  |  264.28  |
+| resize      |    -    | 33.91 |  60.04   | 114.44  |  167.43  |
+| fir rust    |  0.38   | 45.67 |  81.65   | 155.12  |  228.96  |
+| fir simd128 |  0.38   | 5.34  |   7.07   |  12.27  |  18.58   |
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
@@ -59,9 +59,9 @@ Pipeline:
 
 |             | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize      |    -    | 40.11  |  72.74   | 138.09  |  202.86  |
-| fir rust    |  0.26   | 107.99 |  159.85  | 280.66  |  405.81  |
-| fir simd128 |  0.26   | 15.62  |  17.45   |  23.01  |  30.34   |
+| resize      |    -    | 40.06  |  73.00   | 138.37  |  203.32  |
+| fir rust    |  0.25   | 100.39 |  146.20  | 239.29  |  332.48  |
+| fir simd128 |  0.25   | 12.04  |  14.62   |  21.49  |  29.35   |
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
@@ -77,10 +77,10 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image       |  17.15  |   -   |  80.67   | 142.93  |  204.28  |
-| resize      |    -    | 18.09 |  29.02   |  52.82  |  76.89   |
-| fir rust    |  0.21   | 18.73 |  27.08   |  44.55  |  63.67   |
-| fir simd128 |  0.21   | 8.88  |   7.82   |  8.74   |  12.57   |
+| image       |  17.07  |   -   |  80.15   | 142.65  |  205.30  |
+| resize      |    -    | 18.11 |  28.94   |  52.80  |  76.84   |
+| fir rust    |  0.21   | 15.75 |  27.82   |  51.37  |  76.51   |
+| fir simd128 |  0.21   | 2.56  |   3.00   |  4.51   |   7.31   |
 <!-- bench_compare_l end -->
 
 <!-- bench_compare_la start -->
@@ -99,8 +99,8 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| fir rust    |  0.19   | 56.80 |  92.73   | 161.42  |  254.34  |
-| fir simd128 |  0.19   | 16.29 |  16.33   |  18.41  |  24.30   |
+| fir rust    |  0.19   | 52.58 |  80.84   | 137.68  |  198.83  |
+| fir simd128 |  0.19   | 7.52  |   8.69   |  11.61  |  16.30   |
 <!-- bench_compare_la end -->
 
 <!-- bench_compare_rgb16 start -->
@@ -116,10 +116,10 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image       |  19.04  |   -   |  96.74   | 174.32  |  252.87  |
-| resize      |    -    | 32.56 |  58.90   | 111.59  |  160.42  |
-| fir rust    |  0.43   | 41.31 |  62.32   | 105.37  |  148.85  |
-| fir simd128 |  0.43   | 33.22 |  52.13   |  89.63  |  128.82  |
+| image       |  19.11  |   -   |  96.10   | 173.83  |  252.76  |
+| resize      |    -    | 32.49 |  57.32   | 109.01  |  158.75  |
+| fir rust    |  0.43   | 40.56 |  62.58   | 109.75  |  155.99  |
+| fir simd128 |  0.43   | 33.12 |  52.11   |  89.83  |  129.08  |
 <!-- bench_compare_rgb16 end -->
 
 <!-- bench_compare_rgba16 start -->
@@ -136,9 +136,9 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| resize      |    -    | 40.16 |  74.19   | 140.44  |  207.71  |
-| fir rust    |  0.37   | 93.26 |  121.24  | 177.01  |  235.33  |
-| fir simd128 |  0.37   | 54.35 |  77.83   | 125.41  |  174.12  |
+| resize      |    -    | 40.13 |  74.22   | 140.36  |  207.29  |
+| fir rust    |  0.37   | 89.89 |  120.31  | 181.49  |  244.81  |
+| fir simd128 |  0.37   | 53.75 |  77.43   | 124.93  |  173.79  |
 <!-- bench_compare_rgba16 end -->
 
 <!-- bench_compare_l16 start -->
@@ -154,10 +154,10 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image       |  18.53  |   -   |  81.21   | 143.82  |  205.26  |
-| resize      |    -    | 19.85 |  31.37   |  54.48  |  78.40   |
-| fir rust    |  0.19   | 20.78 |  29.80   |  46.92  |  65.02   |
-| fir simd128 |  0.19   | 12.12 |  17.97   |  30.17  |  43.23   |
+| image       |  17.48  |   -   |  80.39   | 142.73  |  205.56  |
+| resize      |    -    | 18.15 |  29.73   |  54.43  |  78.61   |
+| fir rust    |  0.19   | 19.81 |  29.13   |  47.86  |  66.83   |
+| fir simd128 |  0.19   | 12.27 |  18.43   |  30.00  |  43.25   |
 <!-- bench_compare_l16 end -->
 
 <!-- bench_compare_la16 start -->
@@ -176,6 +176,6 @@ Pipeline:
 
 |             | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |-------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| fir rust    |  0.27   | 50.38 |  67.82   | 103.23  |  138.77  |
-| fir simd128 |  0.27   | 30.33 |  42.07   |  67.68  |  93.42   |
+| fir rust    |  0.23   | 50.38 |  68.90   | 106.26  |  143.58  |
+| fir simd128 |  0.23   | 30.37 |  42.05   |  67.08  |  93.66   |
 <!-- bench_compare_la16 end -->
