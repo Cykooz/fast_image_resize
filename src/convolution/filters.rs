@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 use std::fmt::{Debug, Formatter};
 use thiserror::Error;
 
-pub type FilterFn<'a> = &'a dyn Fn(f64) -> f64;
+type FilterFn<'a> = &'a dyn Fn(f64) -> f64;
 
 /// Description of custom filter for image convolution.
 #[derive(Clone, Copy)]
@@ -72,6 +72,7 @@ impl<'f> Filter<'f> {
     }
 }
 
+/// Type of filter used for image convolution.
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FilterType {
@@ -114,6 +115,38 @@ pub enum FilterType {
     #[default]
     Lanczos3,
     /// Custom filter function.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use fast_image_resize::{Filter, FilterType};
+    ///
+    /// fn sinc_filter(mut x: f64) -> f64 {
+    ///     if x == 0.0 {
+    ///         1.0
+    ///     } else {
+    ///         x *= std::f64::consts::PI;
+    ///         x.sin() / x
+    ///     }
+    /// }
+    ///
+    /// fn lanczos4_filter(x: f64) -> f64 {
+    ///     if (-4.0..4.0).contains(&x) {
+    ///         sinc_filter(x) * sinc_filter(x / 4.)
+    ///     } else {
+    ///         0.0
+    ///     }
+    /// }
+    ///
+    /// let lanczos4 = FilterType::Custom(
+    ///     Filter::new("Lanczos4", &lanczos4_filter, 4.0).unwrap()
+    /// );
+    ///
+    /// assert_eq!(
+    ///     format!("{:?}", lanczos4),
+    ///     "Custom(Filter { name: \"Lanczos4\", support: 4.0 })"
+    /// );
+    /// ```
     Custom(Filter<'static>),
 }
 
