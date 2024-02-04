@@ -13,10 +13,10 @@
 - Significantly improved (4.5 times on `x86_64`) speed of vertical convolution pass implemented 
   in native Rust for `U8`, `U8x2`, `U8x3` and `U8x4` images.
 - Changed order of convolution passes for `U8`, `U8x2`, `U8x3` and `U8x4` images.
-  Now the vertical pass is the first and the horizontal pass is the second.
-- **BREAKING**: The type of the `CropBox` fields has been changed to `f64`. Now you can use
+  Now a vertical pass is the first and a horizontal pass is the second.
+- **BREAKING**: Type of the `CropBox` fields has been changed to `f64`. Now you can use
   fractional size and position of crop box.
-- **BREAKING**: The type of `centering` argument of `ImageView::set_crop_box_to_fit_dst_size()`
+- **BREAKING**: Type of the `centering` argument of `ImageView::set_crop_box_to_fit_dst_size()`
   and `DynamicImageView::set_crop_box_to_fit_dst_size()` methods has been changed to `Optional<(f64, f64)>`. 
 - **BREAKING**: The `crop_box` argument of `ImageViewMut::crop()` and `DynamicImageViewMut::crop()` 
   methods has been replaced with separate `left`, `top`, `width` and `height` arguments.
