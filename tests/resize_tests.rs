@@ -860,11 +860,51 @@ mod not_u8x4 {
 mod u8x4 {
     use std::f64::consts::PI;
 
-    use fast_image_resize::Filter;
+    use fast_image_resize::{CropBoxError, Filter, ImageView};
 
     use super::*;
 
     type P = U8x4;
+
+    #[test]
+    fn set_crop_box() {
+        let mut view: ImageView<P> =
+            ImageView::from_buffer(nonzero(1), nonzero(1), &[0, 0, 0, 0]).unwrap();
+
+        for (left, top) in [(1., 0.), (0., 1.)] {
+            assert_eq!(
+                view.set_crop_box(CropBox {
+                    left,
+                    top,
+                    width: 1.,
+                    height: 1.
+                }),
+                Err(CropBoxError::PositionIsOutOfImageBoundaries)
+            );
+        }
+        for (width, height) in [(2., 1.), (1., 2.)] {
+            assert_eq!(
+                view.set_crop_box(CropBox {
+                    left: 0.,
+                    top: 0.,
+                    width,
+                    height
+                }),
+                Err(CropBoxError::SizeIsOutOfImageBoundaries)
+            );
+        }
+        for (width, height) in [(0., 1.), (1., 0.), (-1., 1.), (1., -1.)] {
+            assert_eq!(
+                view.set_crop_box(CropBox {
+                    left: 0.,
+                    top: 0.,
+                    width,
+                    height
+                }),
+                Err(CropBoxError::WidthOrHeightLessOrEqualToZero)
+            );
+        }
+    }
 
     #[test]
     fn downscale_u8x4() {

@@ -126,6 +126,9 @@ where
         let width_f = self.width().get() as f64;
         let height_f = self.height().get() as f64;
 
+        if crop_box.width <= 0. || crop_box.height <= 0. {
+            return Err(CropBoxError::WidthOrHeightLessOrEqualToZero);
+        }
         if crop_box.left < 0.
             || crop_box.top < 0.
             || crop_box.left >= width_f

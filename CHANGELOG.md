@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- **BREAKING**: Added a new variant of enum `CropBoxError::WidthOrHeightLessOrEqualToZero`.
+
 ## [3.0.0] - 2024-02-04
 
 ### Added
