@@ -47,6 +47,9 @@ testing = { path = "testing" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 nix = { version = "0.27", default-features = false, features = ["sched"] }
+
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))'.dev-dependencies]
 libvips = "=1.4.3"
 
 

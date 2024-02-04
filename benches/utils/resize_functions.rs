@@ -86,11 +86,11 @@ pub fn resize_resize<Format, Out>(
 /// Resize image with help of "libvips" crate (https://crates.io/crates/libvips)
 
 pub fn libvips_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup, has_alpha: bool) {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
     vips::libvips_resize_inner::<P>(bench_group, has_alpha);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
 mod vips {
     use libvips::ops::{self, BandFormat, Kernel, ReduceOptions};
     use libvips::{VipsApp, VipsImage};
@@ -99,7 +99,6 @@ mod vips {
 
     const SAMPLE_SIZE: usize = 100;
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn libvips_resize_inner<P: PixelTestingExt>(
         bench_group: &mut BenchGroup,
         has_alpha: bool,
