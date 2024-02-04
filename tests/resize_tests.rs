@@ -61,10 +61,10 @@ fn resize_to_same_size_after_cropping() {
     let mut src_view = src_image.view();
     src_view
         .set_crop_box(CropBox {
-            top: 10,
-            left: 10,
-            width,
-            height,
+            top: 10.,
+            left: 10.,
+            width: width.get() as _,
+            height: height.get() as _,
         })
         .unwrap();
 
@@ -110,10 +110,10 @@ fn resize_to_same_width<const C: usize>(
     let mut src_view = src_image.view();
     src_view
         .set_crop_box(CropBox {
-            left: 10,
-            top: 0,
-            width,
-            height: src_height,
+            left: 10.,
+            top: 0.,
+            width: width.get() as _,
+            height: src_height.get() as _,
         })
         .unwrap();
 
@@ -164,10 +164,10 @@ fn resize_to_same_height<const C: usize>(
     let mut src_view = src_image.view();
     src_view
         .set_crop_box(CropBox {
-            left: 0,
-            top: 10,
-            width: src_width,
-            height,
+            left: 0.,
+            top: 10.,
+            width: src_width.get() as _,
+            height: height.get() as _,
         })
         .unwrap();
 
@@ -810,6 +810,50 @@ mod not_u8x4 {
                 [296888688348, 296243667797, 288698172180, 607776760273],
             );
         }
+    }
+
+    #[test]
+    fn fractional_cropping() {
+        let mut src_buf = [0, 0, 0, 0, 255, 0, 0, 0, 0];
+        let src_image =
+            Image::from_slice_u8(nonzero(3), nonzero(3), &mut src_buf, PixelType::U8).unwrap();
+        let mut dst_image = Image::new(nonzero(1), nonzero(1), PixelType::U8);
+        let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Box));
+
+        // Resize without cropping
+        resizer
+            .resize(&src_image.view(), &mut dst_image.view_mut())
+            .unwrap();
+        assert_eq!(dst_image.buffer()[0], (255.0f32 / 9.0).round() as u8);
+
+        // Resize with fractional cropping
+        let mut src_view = src_image.view();
+        src_view
+            .set_crop_box(CropBox {
+                left: 0.5,
+                top: 0.5,
+                width: 2.,
+                height: 2.,
+            })
+            .unwrap();
+        resizer
+            .resize(&src_view, &mut dst_image.view_mut())
+            .unwrap();
+        assert_eq!(dst_image.buffer()[0], (255.0f32 / 4.0).round() as u8);
+
+        // Resize with integer cropping
+        src_view
+            .set_crop_box(CropBox {
+                left: 1.,
+                top: 1.,
+                width: 1.,
+                height: 1.,
+            })
+            .unwrap();
+        resizer
+            .resize(&src_view, &mut dst_image.view_mut())
+            .unwrap();
+        assert_eq!(dst_image.buffer()[0], 255);
     }
 }
 

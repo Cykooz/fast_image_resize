@@ -127,7 +127,7 @@ impl<'a> DynamicImageView<'a> {
         &mut self,
         dst_width: NonZeroU32,
         dst_height: NonZeroU32,
-        centering: Option<(f32, f32)>,
+        centering: Option<(f64, f64)>,
     ) {
         dynamic_map!(self, |typed_image| typed_image
             .set_crop_box_to_fit_dst_size(dst_width, dst_height, centering))
@@ -148,8 +148,17 @@ impl<'a> DynamicImageViewMut<'a> {
     }
 
     /// Create cropped version of the view.
-    pub fn crop(self, crop_box: CropBox) -> Result<Self, CropBoxError> {
-        Ok(dynamic_mut_map!(self, typed_image => typed_image.crop(crop_box)?))
+    pub fn crop(
+        self,
+        left: u32,
+        top: u32,
+        width: NonZeroU32,
+        height: NonZeroU32,
+    ) -> Result<Self, CropBoxError> {
+        Ok(dynamic_mut_map!(
+            self,
+            typed_image => typed_image.crop(left, top, width, height)?
+        ))
     }
 }
 

@@ -266,17 +266,17 @@ where
 {
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();
-    let x_scale = crop_box.width.get() as f64 / dst_width as f64;
-    let y_scale = crop_box.height.get() as f64 / dst_image.height().get() as f64;
+    let x_scale = crop_box.width / dst_width as f64;
+    let y_scale = crop_box.height / dst_image.height().get() as f64;
 
     // Pretabulate horizontal pixel positions
-    let x_in_start = crop_box.left as f64 + x_scale * 0.5;
+    let x_in_start = crop_box.left + x_scale * 0.5;
     let max_src_x = src_image.width().get() as usize;
     let x_in_tab: Vec<usize> = (0..dst_width)
         .map(|x| ((x_in_start + x_scale * x as f64) as usize).min(max_src_x))
         .collect();
 
-    let y_in_start = crop_box.top as f64 + y_scale * 0.5;
+    let y_in_start = crop_box.top + y_scale * 0.5;
 
     let src_rows =
         src_image.iter_rows_with_step(y_in_start, y_scale, dst_image.height().get() as usize);
@@ -303,26 +303,28 @@ fn resample_convolution<P>(
     let dst_height = dst_image.height();
     let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
 
-    let need_horizontal = dst_width != crop_box.width;
+    let need_horizontal =
+        dst_width.get() as f64 != crop_box.width || crop_box.left != crop_box.left.round();
     let horiz_coeffs = need_horizontal.then(|| {
         test_log!("compute horizontal convolution coefficients");
         convolution::precompute_coefficients(
             src_image.width(),
-            crop_box.left as f64,
-            crop_box.left as f64 + crop_box.width.get() as f64,
+            crop_box.left,
+            crop_box.left + crop_box.width,
             dst_width,
             filter_fn,
             filter_support,
         )
     });
 
-    let need_vertical = dst_height != crop_box.height;
+    let need_vertical =
+        dst_height.get() as f64 != crop_box.height || crop_box.top != crop_box.top.round();
     let vert_coeffs = need_vertical.then(|| {
         test_log!("compute vertical convolution coefficients");
         convolution::precompute_coefficients(
             src_image.height(),
-            crop_box.top as f64,
-            crop_box.top as f64 + crop_box.height.get() as f64,
+            crop_box.top,
+            crop_box.top + crop_box.height,
             dst_height,
             filter_fn,
             filter_support,
@@ -397,7 +399,7 @@ fn resample_convolution<P>(
             P::horiz_convolution(
                 src_image,
                 dst_image,
-                crop_box.top,
+                crop_box.top as u32, // crop_box.top is exactly an integer if vertical pass is not required
                 horiz_coeffs,
                 cpu_extensions,
             );
@@ -406,7 +408,7 @@ fn resample_convolution<P>(
             P::vert_convolution(
                 src_image,
                 dst_image,
-                crop_box.left,
+                crop_box.left as u32, // crop_box.left is exactly an integer if horizontal pass is not required
                 vert_coeffs,
                 cpu_extensions,
             );
@@ -429,19 +431,17 @@ fn resample_super_sampling<P>(
     let crop_box = src_image.crop_box();
     let dst_width = dst_image.width().get();
     let dst_height = dst_image.height().get();
-    let width_scale = crop_box.width.get() as f32 / dst_width as f32;
-    let height_scale = crop_box.height.get() as f32 / dst_height as f32;
+    let width_scale = crop_box.width / dst_width as f64;
+    let height_scale = crop_box.height / dst_height as f64;
     // It makes sense to resize the image in two steps only if the image
     // size is greater than the required size by multiplicity times.
-    let factor = width_scale.min(height_scale) / multiplicity as f32;
+    let factor = width_scale.min(height_scale) / multiplicity as f64;
     if factor > 1.2 {
         // First step is resizing the source image by fastest algorithm.
         // The temporary image will be about ``multiplicity`` times larger
         // than required.
-        let tmp_width =
-            NonZeroU32::new((crop_box.width.get() as f32 / factor).round() as u32).unwrap();
-        let tmp_height =
-            NonZeroU32::new((crop_box.height.get() as f32 / factor).round() as u32).unwrap();
+        let tmp_width = NonZeroU32::new((crop_box.width / factor).round() as u32).unwrap();
+        let tmp_height = NonZeroU32::new((crop_box.height / factor).round() as u32).unwrap();
 
         let mut tmp_img = get_temp_image_from_buffer(temp_buffer, tmp_width, tmp_height);
         resample_nearest(src_image, &mut tmp_img.dst_view());

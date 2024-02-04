@@ -69,12 +69,7 @@ fn crop_view_mut() {
 
     let mut cropped_dst_view = dst_image
         .view_mut()
-        .crop(fr::CropBox {
-            left: 10,
-            top: 10,
-            width: nonzero(44),
-            height: nonzero(12),
-        })
+        .crop(10, 10, nonzero(44), nonzero(12))
         .unwrap();
     assert_eq!(cropped_dst_view.width().get(), 44);
     assert_eq!(cropped_dst_view.height().get(), 12);

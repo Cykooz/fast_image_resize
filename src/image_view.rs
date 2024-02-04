@@ -6,14 +6,14 @@ use std::slice;
 use crate::pixels::{GetCount, IntoPixelComponent, PixelComponent, PixelExt};
 use crate::{CropBoxError, DifferentDimensionsError, ImageBufferError, ImageRowsError, PixelType};
 
-/// Parameters of crop box that may be used with [`ImageView`]
+/// A crop box parameters that may be used with [`ImageView`]
 /// and [`DynamicImageView`](crate::DynamicImageView)
 #[derive(Debug, Clone, Copy)]
 pub struct CropBox {
-    pub left: u32,
-    pub top: u32,
-    pub width: NonZeroU32,
-    pub height: NonZeroU32,
+    pub left: f64,
+    pub top: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 /// Generic immutable image view.
@@ -42,10 +42,10 @@ where
             width,
             height,
             crop_box: CropBox {
-                left: 0,
-                top: 0,
-                width,
-                height,
+                left: 0.,
+                top: 0.,
+                width: width.get() as _,
+                height: height.get() as _,
             },
             rows,
         })
@@ -70,10 +70,10 @@ where
             width,
             height,
             crop_box: CropBox {
-                left: 0,
-                top: 0,
-                width,
-                height,
+                left: 0.,
+                top: 0.,
+                width: width.get() as _,
+                height: height.get() as _,
             },
             rows,
         })
@@ -97,10 +97,10 @@ where
             width,
             height,
             crop_box: CropBox {
-                left: 0,
-                top: 0,
-                width,
-                height,
+                left: 0.,
+                top: 0.,
+                width: width.get() as _,
+                height: height.get() as _,
             },
             rows,
         })
@@ -123,12 +123,19 @@ where
     }
 
     pub fn set_crop_box(&mut self, crop_box: CropBox) -> Result<(), CropBoxError> {
-        if crop_box.left >= self.width.get() || crop_box.top >= self.height.get() {
+        let width_f = self.width().get() as f64;
+        let height_f = self.height().get() as f64;
+
+        if crop_box.left < 0.
+            || crop_box.top < 0.
+            || crop_box.left >= width_f
+            || crop_box.top >= height_f
+        {
             return Err(CropBoxError::PositionIsOutOfImageBoundaries);
         }
-        let right = crop_box.left + crop_box.width.get();
-        let bottom = crop_box.top + crop_box.height.get();
-        if right > self.width.get() || bottom > self.height.get() {
+        let right = crop_box.left + crop_box.width;
+        let bottom = crop_box.top + crop_box.height;
+        if right > width_f || bottom > height_f {
             return Err(CropBoxError::SizeIsOutOfImageBoundaries);
         }
         self.crop_box = crop_box;
@@ -152,7 +159,7 @@ where
         &mut self,
         dst_width: NonZeroU32,
         dst_height: NonZeroU32,
-        centering: Option<(f32, f32)>,
+        centering: Option<(f64, f64)>,
     ) {
         // This function based on code of ImageOps.fit() from Pillow package.
         // https://github.com/python-pillow/Pillow/blob/master/src/PIL/ImageOps.py
@@ -163,15 +170,15 @@ where
         };
 
         // calculate aspect ratios
-        let width = self.width.get() as f32;
-        let height = self.height.get() as f32;
+        let width = self.width.get() as f64;
+        let height = self.height.get() as f64;
         let image_ratio = width / height;
-        let required_ration = dst_width.get() as f32 / dst_height.get() as f32;
+        let required_ration = dst_width.get() as f64 / dst_height.get() as f64;
 
         let crop_width;
         let crop_height;
         // figure out if the sides or top/bottom will be cropped off
-        if (image_ratio - required_ration).abs() < f32::EPSILON {
+        if (image_ratio - required_ration).abs() < f64::EPSILON {
             // The image is already the needed ratio
             crop_width = width;
             crop_height = height;
@@ -189,10 +196,10 @@ where
         let crop_top = (height - crop_height) * centering.1;
 
         self.set_crop_box(CropBox {
-            left: crop_left.round() as u32,
-            top: crop_top.round() as u32,
-            width: NonZeroU32::new(crop_width.round() as u32).unwrap(),
-            height: NonZeroU32::new(crop_height.round() as u32).unwrap(),
+            left: crop_left,
+            top: crop_top,
+            width: crop_width,
+            height: crop_height,
         })
         .unwrap();
     }
@@ -259,11 +266,11 @@ where
     #[inline(always)]
     pub(crate) fn iter_cropped_rows<'s>(&'s self) -> impl Iterator<Item = &'a [P]> + 's {
         let first_row = self.crop_box.top as usize;
-        let last_row = first_row + self.crop_box.height.get() as usize;
+        let last_row = first_row + self.crop_box.height as usize;
         let rows = unsafe { self.rows.get_unchecked(first_row..last_row) };
 
         let first_col = self.crop_box.left as usize;
-        let last_col = first_col + self.crop_box.width.get() as usize;
+        let last_col = first_col + self.crop_box.width as usize;
         rows.iter()
             // Safety guaranteed by method 'set_crop_box'
             .map(move |row| unsafe { row.get_unchecked(first_col..last_col) })
@@ -379,7 +386,17 @@ where
         src_view: &ImageView<P>,
     ) -> Result<(), DifferentDimensionsError> {
         let src_crop_box = src_view.crop_box();
-        if self.width != src_crop_box.width || self.height != src_crop_box.height {
+        if src_crop_box.left != src_crop_box.left.round()
+            || src_crop_box.top != src_crop_box.top.round()
+            || src_crop_box.width != src_crop_box.width.round()
+            || src_crop_box.height != src_crop_box.height.round()
+        {
+            // The crop box has fractional part in some his part
+            return Err(DifferentDimensionsError);
+        }
+        if self.width.get() != src_crop_box.width as u32
+            || self.height.get() != src_crop_box.height as u32
+        {
             return Err(DifferentDimensionsError);
         }
         self.rows
@@ -390,26 +407,32 @@ where
     }
 
     /// Create cropped version of the view.
-    pub fn crop(self, crop_box: CropBox) -> Result<Self, CropBoxError> {
-        if crop_box.left >= self.width.get() || crop_box.top >= self.height.get() {
+    pub fn crop(
+        self,
+        left: u32,
+        top: u32,
+        width: NonZeroU32,
+        height: NonZeroU32,
+    ) -> Result<Self, CropBoxError> {
+        if left >= self.width.get() || top >= self.height.get() {
             return Err(CropBoxError::PositionIsOutOfImageBoundaries);
         }
-        let right = crop_box.left + crop_box.width.get();
-        let bottom = crop_box.top + crop_box.height.get();
+        let right = left + width.get();
+        let bottom = top + height.get();
         if right > self.width.get() || bottom > self.height.get() {
             return Err(CropBoxError::SizeIsOutOfImageBoundaries);
         }
-        let row_range = (crop_box.left as usize)..(right as usize);
+        let row_range = (left as usize)..(right as usize);
         let rows = self
             .rows
             .into_iter()
-            .skip(crop_box.top as usize)
-            .take(crop_box.height.get() as usize)
+            .skip(top as usize)
+            .take(height.get() as usize)
             .map(|row| unsafe { row.get_unchecked_mut(row_range.clone()) })
             .collect();
         Ok(Self {
-            width: crop_box.width,
-            height: crop_box.height,
+            width,
+            height,
             rows,
         })
     }
@@ -430,10 +453,10 @@ where
             width: view.width,
             height: view.height,
             crop_box: CropBox {
-                left: 0,
-                top: 0,
-                width: view.width,
-                height: view.height,
+                left: 0.,
+                top: 0.,
+                width: view.width.get() as _,
+                height: view.height.get() as _,
             },
             rows,
         }
@@ -511,12 +534,12 @@ mod tests {
         let image_view: ImageViewMut<crate::pixels::U8> =
             ImageViewMut::from_buffer(image.width(), image.height(), image.buffer_mut()).unwrap();
         let cropped_view = image_view
-            .crop(CropBox {
-                left: 10,
-                top: 10,
-                width: NonZeroU32::new(44).unwrap(),
-                height: NonZeroU32::new(12).unwrap(),
-            })
+            .crop(
+                10,
+                10,
+                NonZeroU32::new(44).unwrap(),
+                NonZeroU32::new(12).unwrap(),
+            )
             .unwrap();
         assert_eq!(cropped_view.width().get(), 44);
         assert_eq!(cropped_view.height().get(), 12);
