@@ -2,13 +2,8 @@
 
 ### Added
 
-- **BREAKING**: Added a new variant of enum `CropBoxError::WidthOrHeightLessOrEqualToZero`.
-
-## [3.0.0] - 2024-02-04
-
-### Added
-
 - Added `Custom` variant for `FilterType` enum and corresponding `Filter` structure.
+- **BREAKING**: Added a new variant of enum `CropBoxError::WidthOrHeightLessOrEqualToZero`.
 
 ### Changed
 
