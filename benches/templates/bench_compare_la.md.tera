@@ -7,7 +7,7 @@ Pipeline:
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
   has converted into grayscale image with alpha channel (two bytes per pixel).
-- Numbers in table is mean duration of image resizing in milliseconds.
+- Numbers in table are mean duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
