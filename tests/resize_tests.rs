@@ -1004,10 +1004,10 @@ mod u8x4 {
         }
 
         for bad_support in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-            assert!(Filter::new("bad_support", &lanczos3_filter, bad_support).is_err());
+            assert!(Filter::new("bad_support", lanczos3_filter, bad_support).is_err());
         }
 
-        let my_lanczos3 = Filter::new("MyLanczos3", &lanczos3_filter, 3.0).unwrap();
+        let my_lanczos3 = Filter::new("MyLanczos3", lanczos3_filter, 3.0).unwrap();
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Custom(my_lanczos3)),
             CpuExtensions::None,
@@ -1022,7 +1022,7 @@ mod u8x4 {
             }
         }
 
-        let my_lanczos4 = Filter::new("MyLanczos4", &lanczos4_filter, 4.0).unwrap();
+        let my_lanczos4 = Filter::new("MyLanczos4", lanczos4_filter, 4.0).unwrap();
         P::downscale_test(
             ResizeAlg::Convolution(FilterType::Custom(my_lanczos4)),
             CpuExtensions::None,
