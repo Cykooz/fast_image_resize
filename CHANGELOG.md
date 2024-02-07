@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [3.0.2] - 2024-02-07
 
 ### Added
 
