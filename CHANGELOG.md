@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed version of `num-traits` in the `Cargo.toml`.
+
 ## [3.0.2] - 2024-02-07
 
 ### Added
