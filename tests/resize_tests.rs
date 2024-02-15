@@ -1,12 +1,14 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
+use image::io::Reader as ImageReader;
+
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    testing as fr_testing, CpuExtensions, CropBox, DifferentTypesOfPixelsError, DynamicImageView,
-    FilterType, Image, PixelType, ResizeAlg, Resizer,
+    testing as fr_testing, CpuExtensions, CropBox, CropBoxError, DifferentTypesOfPixelsError,
+    DynamicImageView, Filter, FilterType, Image, ImageView, PixelType, ResizeAlg, Resizer,
 };
-use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
+use testing::{cpu_ext_into_str, image_checksum, nonzero, save_result, PixelTestingExt};
 
 fn get_new_height(src_image: &DynamicImageView, new_width: u32) -> u32 {
     let scale = new_width as f32 / src_image.width().get() as f32;
@@ -860,8 +862,6 @@ mod not_u8x4 {
 mod u8x4 {
     use std::f64::consts::PI;
 
-    use fast_image_resize::{CropBoxError, Filter, ImageView};
-
     use super::*;
 
     type P = U8x4;
@@ -877,7 +877,7 @@ mod u8x4 {
                     left,
                     top,
                     width: 1.,
-                    height: 1.
+                    height: 1.,
                 }),
                 Err(CropBoxError::PositionIsOutOfImageBoundaries)
             );
@@ -888,7 +888,7 @@ mod u8x4 {
                     left: 0.,
                     top: 0.,
                     width,
-                    height
+                    height,
                 }),
                 Err(CropBoxError::SizeIsOutOfImageBoundaries)
             );
@@ -899,7 +899,7 @@ mod u8x4 {
                     left: 0.,
                     top: 0.,
                     width,
-                    height
+                    height,
                 }),
                 Err(CropBoxError::WidthOrHeightLessOrEqualToZero)
             );
@@ -1028,5 +1028,66 @@ mod u8x4 {
             CpuExtensions::None,
             LANCZOS4_RESULT,
         );
+    }
+
+    #[test]
+    fn cropping() {
+        let img = ImageReader::open("./data/crop_test.png")
+            .unwrap()
+            .decode()
+            .unwrap();
+        let width = nonzero(img.width());
+        let height = nonzero(img.height());
+        let src_image =
+            Image::from_vec_u8(width, height, img.to_rgba8().into_raw(), PixelType::U8x4).unwrap();
+
+        let mut src_view = src_image.view();
+        src_view
+            .set_crop_box(CropBox {
+                left: 521.,
+                top: 1414.,
+                width: 1485.,
+                height: 1486.,
+            })
+            .unwrap();
+
+        let mut dst_image = Image::new(nonzero(1279), nonzero(1280), PixelType::U8x4);
+
+        let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+
+        let mut cpu_extensions_vec = vec![CpuExtensions::None];
+        #[cfg(target_arch = "x86_64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Sse4_1);
+            cpu_extensions_vec.push(CpuExtensions::Avx2);
+        }
+        #[cfg(target_arch = "aarch64")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Neon);
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            cpu_extensions_vec.push(CpuExtensions::Simd128);
+        }
+        let mut results = vec![];
+        for cpu_extensions in cpu_extensions_vec {
+            unsafe {
+                resizer.set_cpu_extensions(cpu_extensions);
+            }
+            let mut dst_view = dst_image.view_mut();
+            resizer.resize(&src_view, &mut dst_view).unwrap();
+            let cpu_ext_str = cpu_ext_into_str(cpu_extensions);
+            save_result(&dst_image, &format!("crop_test-{}.png", cpu_ext_str));
+            results.push((image_checksum::<U8x4, 4>(&dst_image), cpu_ext_str));
+        }
+
+        for (checksum, cpu_ext_str) in results {
+            assert_eq!(
+                checksum,
+                [0, 236287962, 170693682, 417465600],
+                "checksum of result image was resized with cpu_extensions={} is incorrect",
+                cpu_ext_str
+            );
+        }
     }
 }

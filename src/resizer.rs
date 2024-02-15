@@ -363,7 +363,6 @@ fn resample_convolution<P>(
                     cpu_extensions,
                 );
             } else {
-                let y_first = vert_coeffs.bounds[0].start;
                 let x_first = horiz_coeffs.bounds[0].start;
                 // Last used col in the source image
                 let last_x_bound = horiz_coeffs.bounds.last().unwrap();
@@ -376,7 +375,7 @@ fn resample_convolution<P>(
                 P::vert_convolution(
                     src_image,
                     &mut tmp_dst_view,
-                    y_first,
+                    x_first,
                     vert_coeffs,
                     cpu_extensions,
                 );

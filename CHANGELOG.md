@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed error with incorrect cropping of source image.
+
 ## [3.0.3] - 2024-02-07
 
 ### Fixed
