@@ -2,9 +2,12 @@ use crate::alpha::common::{div_and_clip, mul_div_255, RECIP_ALPHA};
 use crate::pixels::U8x4;
 use crate::{ImageView, ImageViewMut};
 
-pub(crate) fn multiply_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageViewMut<U8x4>) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+pub(crate) fn multiply_alpha(
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
+) {
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         for (src_pixel, dst_pixel) in src_row.iter().zip(dst_row.iter_mut()) {
@@ -13,8 +16,8 @@ pub(crate) fn multiply_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageV
     }
 }
 
-pub(crate) fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -48,9 +51,12 @@ fn multiply_alpha_pixel(mut pixel: U8x4) -> U8x4 {
 // Divide
 
 #[inline]
-pub(crate) fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageViewMut<U8x4>) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+pub(crate) fn divide_alpha(
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
+) {
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
@@ -58,8 +64,8 @@ pub(crate) fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageVie
 }
 
 #[inline]
-pub(crate) fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         row.iter_mut().for_each(|pixel| {
             *pixel = divide_alpha_pixel(*pixel);
         });

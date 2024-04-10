@@ -1,18 +1,21 @@
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ImageRowsError {
-    #[error("Count of rows don't match to image height")]
-    InvalidRowsCount,
-    #[error("Size of row don't match to image width")]
-    InvalidRowSize,
+#[non_exhaustive]
+pub enum ImageError {
+    #[error("Pixel type of image is not supported")]
+    UnsupportedPixelType,
 }
+
+#[derive(Error, Debug, Clone, Copy)]
+#[error("Size of slice with pixels is smaller than required")]
+pub struct InvalidPixelsSliceSize;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageBufferError {
     #[error("Size of buffer is smaller than required")]
     InvalidBufferSize,
-    #[error("Alignment of buffer don't match to alignment of u32")]
+    #[error("Alignment of buffer don't match to alignment of required pixel type")]
     InvalidBufferAlignment,
 }
 
@@ -26,9 +29,16 @@ pub enum CropBoxError {
     WidthOrHeightLessOrEqualToZero,
 }
 
-#[derive(Error, Debug, Clone, Copy)]
-#[error("Type of pixels of the source image is not equal to pixel type of the destination image")]
-pub struct DifferentTypesOfPixelsError;
+#[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ResizeError {
+    #[error("Source or destination image is not supported")]
+    ImageError(#[from] ImageError),
+    #[error("Pixel type of source image does not match to destination image")]
+    PixelTypesAreDifferent,
+    #[error("Source cropping option is invalid: {0}")]
+    SrcCroppingError(#[from] CropBoxError),
+}
 
 #[derive(Error, Debug, Clone, Copy)]
 #[error(
@@ -38,6 +48,8 @@ pub struct DifferentDimensionsError;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MappingError {
+    #[error("Source or destination image is not supported")]
+    ImageError(#[from] ImageError),
     #[error("The dimensions of the source image are not equal to the dimensions of the destination image")]
     DifferentDimensions,
     #[error("Unsupported combination of pixels of source and/or destination images")]

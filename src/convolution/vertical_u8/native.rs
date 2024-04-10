@@ -1,16 +1,16 @@
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::PixelExt;
+use crate::image_view::{ImageView, ImageViewMut};
+use crate::pixels::InnerPixel;
 use crate::utils::foreach_with_pre_reading;
-use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
 pub(crate) fn vert_convolution<T>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+    src_image: &impl ImageView<Pixel = T>,
+    dst_image: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
 ) where
-    T: PixelExt<Component = u8>,
+    T: InnerPixel<Component = u8>,
 {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
@@ -18,7 +18,7 @@ pub(crate) fn vert_convolution<T>(
     let initial = 1 << (precision - 1);
     let src_x_initial = offset as usize * T::count_of_components();
 
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_image.iter_rows_mut(0);
     let coeffs_chunks_iter = coefficients_chunks.into_iter();
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
@@ -95,7 +95,7 @@ pub(crate) fn vert_convolution<T>(
 
 #[inline(always)]
 pub(crate) fn convolution_by_u8<T>(
-    src_image: &ImageView<T>,
+    src_image: &impl ImageView<Pixel = T>,
     normalizer: &optimisations::Normalizer16,
     initial: i32,
     dst_components: &mut [u8],
@@ -104,7 +104,7 @@ pub(crate) fn convolution_by_u8<T>(
     ks: &[i16],
 ) -> usize
 where
-    T: PixelExt<Component = u8>,
+    T: InnerPixel<Component = u8>,
 {
     for dst_component in dst_components {
         let mut ss = initial;
@@ -122,7 +122,7 @@ where
 
 #[inline(always)]
 fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
-    src_image: &ImageView<T>,
+    src_image: &impl ImageView<Pixel = T>,
     normalizer: &optimisations::Normalizer16,
     initial: i32,
     dst_chunks: &mut [[u8; CHUNK_SIZE]],
@@ -131,7 +131,7 @@ fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
     ks: &[i16],
 ) -> usize
 where
-    T: PixelExt<Component = u8>,
+    T: InnerPixel<Component = u8>,
 {
     for dst_chunk in dst_chunks {
         let mut ss = [initial; CHUNK_SIZE];

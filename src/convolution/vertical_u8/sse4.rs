@@ -2,46 +2,45 @@ use std::arch::x86_64::*;
 
 use crate::convolution::vertical_u8::native;
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::PixelExt;
-use crate::simd_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::pixels::InnerPixel;
+use crate::{simd_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn vert_convolution<T>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
 ) where
-    T: PixelExt<Component = u8>,
+    T: InnerPixel<Component = u8>,
 {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
 
     macro_rules! call {
         ($imm8:expr) => {{
-            vert_convolution_p::<T, $imm8>(src_image, dst_image, offset, normalizer);
+            vert_convolution_p::<T, $imm8>(src_view, dst_view, offset, normalizer);
         }};
     }
     constify_imm8!(precision, call);
 }
 
 fn vert_convolution_p<T, const PRECISION: i32>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     normalizer: optimisations::Normalizer16,
 ) where
-    T: PixelExt<Component = u8>,
+    T: InnerPixel<Component = u8>,
 {
     let coefficients_chunks = normalizer.normalized_chunks();
     let src_x = offset as usize * T::count_of_components();
 
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
             vert_convolution_into_one_row::<T, PRECISION>(
-                src_image,
+                src_view,
                 dst_row,
                 src_x,
                 coeffs_chunk,
@@ -52,16 +51,18 @@ fn vert_convolution_p<T, const PRECISION: i32>(
 }
 
 #[target_feature(enable = "sse4.1")]
-unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECISION: i32>(
-    src_img: &ImageView<T>,
+unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
+    src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
     coeffs_chunk: optimisations::CoefficientsI16Chunk,
     normalizer: &optimisations::Normalizer16,
-) {
+) where
+    T: InnerPixel<Component = u8>,
+{
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
-    let max_y = y_start + coeffs.len() as u32;
+    let max_rows = coeffs.len() as u32;
     let mut dst_u8 = T::components_mut(dst_row);
 
     let initial = _mm_set1_epi32(1 << (PRECISION - 1));
@@ -79,7 +80,7 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
 
         let mut y: u32 = 0;
 
-        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
 
@@ -120,37 +121,38 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
         }
 
         if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let mmk = _mm_set1_epi32(k as i32);
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let mmk = _mm_set1_epi32(k as i32);
 
-            let source1 = simd_utils::loadu_si128(components, src_x); // top line
+                let source1 = simd_utils::loadu_si128(components, src_x); // top line
 
-            let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
-            let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
-            sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
+                let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
+                let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
+                sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
+                let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
+                sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
 
-            let source = _mm_unpackhi_epi8(source1, _mm_setzero_si128());
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss2 = _mm_add_epi32(sss2, _mm_madd_epi16(pix, mmk));
-            let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
-            sss3 = _mm_add_epi32(sss3, _mm_madd_epi16(pix, mmk));
+                let source = _mm_unpackhi_epi8(source1, _mm_setzero_si128());
+                let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
+                sss2 = _mm_add_epi32(sss2, _mm_madd_epi16(pix, mmk));
+                let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
+                sss3 = _mm_add_epi32(sss3, _mm_madd_epi16(pix, mmk));
 
-            let source1 = simd_utils::loadu_si128(components, src_x + 16); // top line
+                let source1 = simd_utils::loadu_si128(components, src_x + 16); // top line
 
-            let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss4 = _mm_add_epi32(sss4, _mm_madd_epi16(pix, mmk));
-            let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
-            sss5 = _mm_add_epi32(sss5, _mm_madd_epi16(pix, mmk));
+                let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
+                let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
+                sss4 = _mm_add_epi32(sss4, _mm_madd_epi16(pix, mmk));
+                let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
+                sss5 = _mm_add_epi32(sss5, _mm_madd_epi16(pix, mmk));
 
-            let source = _mm_unpackhi_epi8(source1, _mm_setzero_si128());
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss6 = _mm_add_epi32(sss6, _mm_madd_epi16(pix, mmk));
-            let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
-            sss7 = _mm_add_epi32(sss7, _mm_madd_epi16(pix, mmk));
+                let source = _mm_unpackhi_epi8(source1, _mm_setzero_si128());
+                let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
+                sss6 = _mm_add_epi32(sss6, _mm_madd_epi16(pix, mmk));
+                let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
+                sss7 = _mm_add_epi32(sss7, _mm_madd_epi16(pix, mmk));
+            }
         }
 
         sss0 = _mm_srai_epi32::<PRECISION>(sss0);
@@ -183,7 +185,7 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
         let mut sss1 = initial; // right row
         let mut y: u32 = 0;
 
-        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
@@ -202,17 +204,18 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
         }
 
         if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let mmk = _mm_set1_epi32(k as i32);
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let mmk = _mm_set1_epi32(k as i32);
 
-            let source1 = simd_utils::loadl_epi64(components, src_x); // top line
+                let source1 = simd_utils::loadl_epi64(components, src_x); // top line
 
-            let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
-            let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
-            sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
-            let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
-            sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
+                let source = _mm_unpacklo_epi8(source1, _mm_setzero_si128());
+                let pix = _mm_unpacklo_epi8(source, _mm_setzero_si128());
+                sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
+                let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
+                sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
+            }
         }
 
         sss0 = _mm_srai_epi32::<PRECISION>(sss0);
@@ -232,7 +235,7 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
         let mut sss = initial;
         let mut y: u32 = 0;
 
-        for src_rows in src_img.iter_2_rows(y_start, max_y) {
+        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
@@ -249,11 +252,12 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
         }
 
         if let Some(&k) = coeffs.get(y as usize) {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let pix = simd_utils::mm_cvtepu8_epi32_from_u8(components, src_x);
-            let mmk = _mm_set1_epi32(k as i32);
-            sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let pix = simd_utils::mm_cvtepu8_epi32_from_u8(components, src_x);
+                let mmk = _mm_set1_epi32(k as i32);
+                sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));
+            }
         }
 
         sss = _mm_srai_epi32::<PRECISION>(sss);
@@ -268,7 +272,7 @@ unsafe fn vert_convolution_into_one_row<T: PixelExt<Component = u8>, const PRECI
     dst_u8 = dst_chunks_4.into_remainder();
     if !dst_u8.is_empty() {
         native::convolution_by_u8(
-            src_img,
+            src_view,
             normalizer,
             1 << (PRECISION - 1),
             dst_u8,

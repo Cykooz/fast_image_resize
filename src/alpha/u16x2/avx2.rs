@@ -8,11 +8,11 @@ use super::sse4;
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn multiply_alpha(
-    src_image: &ImageView<U16x2>,
-    dst_image: &mut ImageViewMut<U16x2>,
+    src_view: &impl ImageView<Pixel = U16x2>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x2>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         multiply_alpha_row(src_row, dst_row);
@@ -20,8 +20,8 @@ pub(crate) unsafe fn multiply_alpha(
 }
 
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U16x2>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -115,11 +115,11 @@ unsafe fn multiply_alpha_8_pixels(pixels: __m256i) -> __m256i {
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn divide_alpha(
-    src_image: &ImageView<U16x2>,
-    dst_image: &mut ImageViewMut<U16x2>,
+    src_view: &impl ImageView<Pixel = U16x2>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x2>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
@@ -127,8 +127,8 @@ pub(crate) unsafe fn divide_alpha(
 }
 
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U16x2>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U16x2>) {
+    for row in image_view.iter_rows_mut(0) {
         divide_alpha_row_inplace(row);
     }
 }

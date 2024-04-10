@@ -1,39 +1,38 @@
 use std::arch::x86_64::*;
 
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::PixelExt;
-use crate::simd_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::pixels::InnerPixel;
+use crate::{simd_utils, ImageView, ImageViewMut};
 
 pub(crate) fn vert_convolution<T>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
 ) where
-    T: PixelExt<Component = u16>,
+    T: InnerPixel<Component = u16>,
 {
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let src_x = offset as usize * T::count_of_components();
 
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(src_image, dst_row, src_x, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u16(src_view, dst_row, src_x, coeffs_chunk, &normalizer);
         }
     }
 }
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
-    src_img: &ImageView<T>,
+    src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
     coeffs_chunk: optimisations::CoefficientsI32Chunk,
     normalizer: &optimisations::Normalizer32,
 ) where
-    T: PixelExt<Component = u16>,
+    T: InnerPixel<Component = u16>,
 {
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
@@ -93,7 +92,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         // 16 components / 4 per register = 4 registers
         let mut sum = [initial; 4];
 
-        for (s_row, &coeff) in src_img.iter_rows(y_start).zip(coeffs) {
+        for (s_row, &coeff) in src_view.iter_rows(y_start).zip(coeffs) {
             let components = T::components(s_row);
             let coeff_i64x4 = _mm256_set1_epi64x(coeff as i64);
             let source = simd_utils::loadu_si256(components, src_x);
@@ -124,7 +123,7 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
         let mut sum = [initial; 4];
         let mut buf = [0u16; 16];
 
-        for (s_row, &coeff) in src_img.iter_rows(y_start).zip(coeffs) {
+        for (s_row, &coeff) in src_view.iter_rows(y_start).zip(coeffs) {
             let components = T::components(s_row);
             for (i, &v) in components
                 .get_unchecked(src_x..)

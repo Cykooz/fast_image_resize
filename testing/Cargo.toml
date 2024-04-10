@@ -5,8 +5,8 @@ edition = "2021"
 
 
 [dependencies]
-fast_image_resize = {path=".."}
-image = "0.24"
+fast_image_resize = { path = ".." }
+image = "0.25.1"
 
 
 [package.metadata.release]

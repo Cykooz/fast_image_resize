@@ -1,5 +1,4 @@
 use std::ffi::OsStr;
-use std::num::NonZeroU32;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
@@ -10,13 +9,19 @@ use log::debug;
 use once_cell::sync::Lazy;
 
 use fast_image_resize as fr;
+use fast_image_resize::images::Image;
+use fast_image_resize::ResizeOptions;
 
 mod structs;
 
 #[derive(Parser)]
 #[clap(author = "Kirill K.")]
 #[clap(version, about, long_about = None)]
+#[clap(disable_help_flag = true)]
 struct Cli {
+    #[clap(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     /// Path to source image file
     #[clap(value_parser)]
     source_path: PathBuf,
@@ -69,19 +74,11 @@ fn main() -> Result<()> {
 }
 
 fn resize(cli: &Cli) -> Result<()> {
-    let (mut src_image, color_type, orig_pixel_type) = open_source_image(cli)?;
+    let (src_image, color_type, orig_pixel_type) = open_source_image(cli)?;
     let mut dst_image = create_destination_image(cli, &src_image);
 
-    let mul_div = fr::MulDiv::default();
     let algorithm = get_resizing_algorithm(cli);
     let mut resizer = fr::Resizer::new(algorithm);
-
-    if color_type.has_alpha() {
-        debug!("Multiply color channels of the source image by alpha channel");
-        mul_div
-            .multiply_alpha_inplace(&mut src_image.view_mut())
-            .with_context(|| "Failed to multiply color channels by alpha")?;
-    }
 
     debug!(
         "Resize the source image into {}x{}",
@@ -89,20 +86,13 @@ fn resize(cli: &Cli) -> Result<()> {
         dst_image.height()
     );
     resizer
-        .resize(&src_image.view(), &mut dst_image.view_mut())
+        .resize(&src_image, &mut dst_image, None)
         .with_context(|| "Failed to resize image")?;
-
-    if color_type.has_alpha() {
-        debug!("Divide color channels of the result image by alpha channel");
-        mul_div
-            .divide_alpha_inplace(&mut dst_image.view_mut())
-            .with_context(|| "Failed to divide color channels by alpha")?;
-    }
 
     save_result(cli, dst_image, color_type, orig_pixel_type)
 }
 
-fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::PixelType)> {
+fn open_source_image(cli: &Cli) -> Result<(Image<'static>, ColorType, fr::PixelType)> {
     let source_path = &cli.source_path;
     debug!("Opening the source image {:?}", source_path);
     let image = ImageReader::open(source_path)
@@ -110,12 +100,10 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::Pi
         .decode()
         .with_context(|| "Failed to decode source image")?;
 
-    let src_width = NonZeroU32::new(image.width())
-        .with_context(|| "Failed to get width of the source image")?;
-    let src_height = NonZeroU32::new(image.height())
-        .with_context(|| "Failed to get height of the source image")?;
-
+    let src_width = image.width();
+    let src_height = image.height();
     let color_type = image.color();
+
     let (src_buffer, pixel_type, mut internal_pixel_type) = match color_type {
         ColorType::L8 => (
             image.to_luma8().into_raw(),
@@ -189,19 +177,18 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::Pi
         internal_pixel_type = pixel_type;
     }
 
-    let mut src_image = fr::Image::from_vec_u8(src_width, src_height, src_buffer, pixel_type)
+    let mut src_image = Image::from_vec_u8(src_width, src_height, src_buffer, pixel_type)
         .with_context(|| "Failed to create source image pixels container")?;
 
     src_image = match cli.colorspace {
         structs::ColorSpace::NonLinear => {
             debug!("Convert the source image from non-linear colorspace into linear");
             let mut linear_src_image =
-                fr::Image::new(src_image.width(), src_image.height(), internal_pixel_type);
+                Image::new(src_image.width(), src_image.height(), internal_pixel_type);
             if color_type.has_color() {
-                SRGB_TO_RGB.forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
+                SRGB_TO_RGB.forward_map(&src_image, &mut linear_src_image)?;
             } else {
-                GAMMA22_TO_LINEAR
-                    .forward_map(&src_image.view(), &mut linear_src_image.view_mut())?;
+                GAMMA22_TO_LINEAR.forward_map(&src_image, &mut linear_src_image)?;
             }
             linear_src_image
         }
@@ -209,11 +196,8 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::Pi
             if internal_pixel_type != pixel_type {
                 // Convert components of source image into version with high precision
                 let mut hi_src_image =
-                    fr::Image::new(src_image.width(), src_image.height(), internal_pixel_type);
-                fr::change_type_of_pixel_components_dyn(
-                    &src_image.view(),
-                    &mut hi_src_image.view_mut(),
-                )?;
+                    Image::new(src_image.width(), src_image.height(), internal_pixel_type);
+                fr::change_type_of_pixel_components(&src_image, &mut hi_src_image)?;
                 hi_src_image
             } else {
                 src_image
@@ -224,24 +208,22 @@ fn open_source_image(cli: &Cli) -> Result<(fr::Image<'static>, ColorType, fr::Pi
     Ok((src_image, color_type, pixel_type))
 }
 
-fn create_destination_image(cli: &Cli, src_image: &fr::Image) -> fr::Image<'static> {
-    let aspect_ratio = src_image.width().get() as f32 / src_image.height().get() as f32;
+fn create_destination_image(cli: &Cli, src_image: &Image) -> Image<'static> {
+    if src_image.width() == 0 || src_image.height() == 0 {
+        return Image::new(0, 0, src_image.pixel_type());
+    }
+
+    let aspect_ratio = src_image.width() as f32 / src_image.height() as f32;
 
     let (dst_width, dst_height) = match (cli.width, cli.height) {
         (None, None) => (src_image.width(), src_image.height()),
         (Some(width), None) => {
             let width = width.calculate_size(src_image.width());
-            (
-                width,
-                get_non_zero_u32((width.get() as f32 / aspect_ratio).round() as u32),
-            )
+            (width, (width as f32 / aspect_ratio).round() as u32)
         }
         (None, Some(height)) => {
             let height = height.calculate_size(src_image.height());
-            (
-                get_non_zero_u32((height.get() as f32 * aspect_ratio).round() as u32),
-                height,
-            )
+            ((height as f32 * aspect_ratio).round() as u32, height)
         }
         (Some(width), Some(height)) => (
             width.calculate_size(src_image.width()),
@@ -249,11 +231,7 @@ fn create_destination_image(cli: &Cli, src_image: &fr::Image) -> fr::Image<'stat
         ),
     };
 
-    fr::Image::new(dst_width, dst_height, src_image.pixel_type())
-}
-
-fn get_non_zero_u32(v: u32) -> NonZeroU32 {
-    NonZeroU32::new(v).unwrap_or(NonZeroU32::new(1).unwrap())
+    Image::new(dst_width, dst_height, src_image.pixel_type())
 }
 
 fn get_resizing_algorithm(cli: &Cli) -> fr::ResizeAlg {
@@ -267,7 +245,7 @@ fn get_resizing_algorithm(cli: &Cli) -> fr::ResizeAlg {
 
 fn save_result(
     cli: &Cli,
-    mut image: fr::Image,
+    mut image: Image,
     color_type: ColorType,
     pixel_type: fr::PixelType,
 ) -> Result<()> {
@@ -293,23 +271,18 @@ fn save_result(
     image = match cli.colorspace {
         structs::ColorSpace::NonLinear => {
             debug!("Convert the result image from linear colorspace into non-linear");
-            let mut non_linear_dst_image =
-                fr::Image::new(image.width(), image.height(), pixel_type);
+            let mut non_linear_dst_image = Image::new(image.width(), image.height(), pixel_type);
             if color_type.has_color() {
-                SRGB_TO_RGB.backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
+                SRGB_TO_RGB.backward_map(&image, &mut non_linear_dst_image)?;
             } else {
-                GAMMA22_TO_LINEAR
-                    .backward_map(&image.view(), &mut non_linear_dst_image.view_mut())?;
+                GAMMA22_TO_LINEAR.backward_map(&image, &mut non_linear_dst_image)?;
             }
             non_linear_dst_image
         }
         _ => {
             if image.pixel_type() != pixel_type {
-                let mut lo_src_image = fr::Image::new(image.width(), image.height(), pixel_type);
-                fr::change_type_of_pixel_components_dyn(
-                    &image.view(),
-                    &mut lo_src_image.view_mut(),
-                )?;
+                let mut lo_src_image = Image::new(image.width(), image.height(), pixel_type);
+                fr::change_type_of_pixel_components(&image, &mut lo_src_image)?;
                 lo_src_image
             } else {
                 image
@@ -321,8 +294,8 @@ fn save_result(
     image::save_buffer(
         result_path,
         image.buffer(),
-        image.width().get(),
-        image.height().get(),
+        image.width(),
+        image.height(),
         color_type,
     )
     .with_context(|| "Failed to save the result image")?;

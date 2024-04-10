@@ -7,6 +7,7 @@ use std::slice;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum PixelType {
+    U8,
     U8x2,
     U8x3,
     U8x4,
@@ -16,7 +17,6 @@ pub enum PixelType {
     U16x4,
     I32,
     F32,
-    U8,
 }
 
 impl PixelType {
@@ -95,29 +95,39 @@ where
 impl PixelComponent for u8 {
     type CountOfComponentValues = Values<256>;
 }
+
 impl PixelComponent for u16 {
     type CountOfComponentValues = Values<65536>;
 }
+
 impl PixelComponent for i32 {
     type CountOfComponentValues = Values<0>;
 }
+
 impl PixelComponent for f32 {
     type CountOfComponentValues = Values<0>;
 }
 
-pub trait IntoPixelType {
-    fn pixel_type() -> PixelType;
+// Prevent users from implementing the InnerPixel trait.
+mod private {
+    pub trait Sealed {}
 }
 
-/// Additional information about pixel type.
-pub trait PixelExt
-where
-    Self: Copy + Clone + Sized + Debug + PartialEq + IntoPixelType,
+/// Inner trait that provides additional information about pixel type.
+///
+/// Don't use this trait in your code. You must use the "child"
+/// trait [PixelTrait](crate::PixelTrait) instead.
+///
+/// This trait is sealed and cannot be implemented for types outside this crate.
+pub trait InnerPixel:
+    private::Sealed + Copy + Clone + Sized + Debug + PartialEq + Default + 'static
 {
     /// Type of pixel components
     type Component: PixelComponent;
     /// Type that provides information about a count of pixel's components
     type CountOfComponents: GetCount;
+
+    fn pixel_type() -> PixelType;
 
     /// Count of pixel's components
     fn count_of_components() -> usize {
@@ -129,11 +139,15 @@ where
         Self::Component::count_of_values()
     }
 
+    fn components_is_u8() -> bool {
+        Self::count_of_component_values() == 256
+    }
+
     /// Size of pixel in bytes
     ///
     /// Example:
     /// ```
-    /// # use fast_image_resize::pixels::{U8x2, U8x3, U8, PixelExt};
+    /// # use fast_image_resize::pixels::{U8x2, U8x3, U8, InnerPixel};
     /// assert_eq!(U8x3::size(), 3);
     /// assert_eq!(U8x2::size(), 2);
     /// assert_eq!(U8::size(), 1);
@@ -155,12 +169,17 @@ where
         let components_ptr = buf.as_mut_ptr() as *mut Self::Component;
         unsafe { slice::from_raw_parts_mut(components_ptr, size) }
     }
+
+    /// Returns empty pixel value
+    fn empty() -> Self {
+        Self::default()
+    }
 }
 
 /// Generic type of pixel.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Default)]
 #[repr(C)]
-pub struct Pixel<T, C, const COUNT_OF_COMPONENTS: usize>(
+pub struct Pixel<T: Default, C, const COUNT_OF_COMPONENTS: usize>(
     pub T,
     PhantomData<[C; COUNT_OF_COMPONENTS]>,
 )
@@ -170,7 +189,7 @@ where
 
 impl<T, C, const COUNT_OF_COMPONENTS: usize> Pixel<T, C, COUNT_OF_COMPONENTS>
 where
-    T: Sized + Copy + Clone + PartialEq + 'static,
+    T: Sized + Copy + Clone + PartialEq + Default + 'static,
     C: PixelComponent,
 {
     #[inline(always)]
@@ -179,22 +198,17 @@ where
     }
 }
 
-impl<T, C, const COUNT_OF_COMPONENTS: usize> PixelExt for Pixel<T, C, COUNT_OF_COMPONENTS>
-where
-    Self: IntoPixelType + Debug,
-    T: Sized + Copy + Clone + PartialEq + 'static,
-    C: PixelComponent,
-{
-    type Component = C;
-    type CountOfComponents = Count<COUNT_OF_COMPONENTS>;
-}
-
 macro_rules! pixel_struct {
     ($name:ident, $type:tt, $comp_type:tt, $comp_count:literal, $pixel_type:expr, $doc:expr) => {
         #[doc = $doc]
         pub type $name = Pixel<$type, $comp_type, $comp_count>;
 
-        impl IntoPixelType for $name {
+        impl private::Sealed for $name {}
+
+        impl InnerPixel for $name {
+            type Component = $comp_type;
+            type CountOfComponents = Count<$comp_count>;
+
             fn pixel_type() -> PixelType {
                 $pixel_type
             }
@@ -214,7 +228,7 @@ macro_rules! pixel_struct {
 pixel_struct!(U8, u8, u8, 1, PixelType::U8, "One byte per pixel (e.g. L8)");
 pixel_struct!(
     U8x2,
-    u16,
+    [u8; 2],
     u8,
     2,
     PixelType::U8x2,

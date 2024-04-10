@@ -1,21 +1,19 @@
-use crate::get_non_zero_u32;
-use fast_image_resize as fr;
-use std::num::{NonZeroU16, NonZeroU32, ParseIntError};
+use std::num::ParseIntError;
 use std::str::FromStr;
+
+use fast_image_resize as fr;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Size {
-    Pixels(NonZeroU32),
-    Percent(NonZeroU16),
+    Pixels(u32),
+    Percent(u16),
 }
 
 impl Size {
-    pub fn calculate_size(&self, src_size: NonZeroU32) -> NonZeroU32 {
+    pub fn calculate_size(&self, src_size: u32) -> u32 {
         match *self {
             Self::Pixels(size) => size,
-            Self::Percent(percent) => get_non_zero_u32(
-                (src_size.get() as f32 * percent.get() as f32 / 100.).round() as u32,
-            ),
+            Self::Percent(percent) => (src_size as f32 * percent as f32 / 100.).round() as u32,
         }
     }
 }
@@ -25,9 +23,9 @@ impl FromStr for Size {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(percent_str) = s.strip_suffix('%') {
-            NonZeroU16::from_str(percent_str).map(Self::Percent)
+            u16::from_str(percent_str).map(Self::Percent)
         } else {
-            NonZeroU32::from_str(s).map(Self::Pixels)
+            u32::from_str(s).map(Self::Pixels)
         }
     }
 }

@@ -1,6 +1,5 @@
 use crate::pixels::U16x4;
-use crate::CpuExtensions;
-use crate::{ImageView, ImageViewMut};
+use crate::{CpuExtensions, ImageError, ImageView, ImageViewMut};
 
 use super::AlphaMulDiv;
 
@@ -16,66 +15,76 @@ mod wasm32;
 
 impl AlphaMulDiv for U16x4 {
     fn multiply_alpha(
-        src_image: &ImageView<Self>,
-        dst_image: &mut ImageViewMut<Self>,
+        src_view: &impl ImageView<Pixel = Self>,
+        dst_view: &mut impl ImageViewMut<Pixel = Self>,
         cpu_extensions: CpuExtensions,
-    ) {
+    ) -> Result<(), ImageError> {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha(src_image, dst_image) },
+            CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha(src_view, dst_view) },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_image, dst_image) },
+            CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_view, dst_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_image, dst_image) },
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_view, dst_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_image, dst_image) },
-            _ => native::multiply_alpha(src_image, dst_image),
+            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_view, dst_view) },
+            _ => native::multiply_alpha(src_view, dst_view),
         }
+        Ok(())
     }
 
-    fn multiply_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions) {
+    fn multiply_alpha_inplace(
+        image_view: &mut impl ImageViewMut<Pixel = Self>,
+        cpu_extensions: CpuExtensions,
+    ) -> Result<(), ImageError> {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha_inplace(image) },
+            CpuExtensions::Avx2 => unsafe { avx2::multiply_alpha_inplace(image_view) },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image) },
+            CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image) },
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image) },
-            _ => native::multiply_alpha_inplace(image),
+            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image_view) },
+            _ => native::multiply_alpha_inplace(image_view),
         }
+        Ok(())
     }
 
     fn divide_alpha(
-        src_image: &ImageView<Self>,
-        dst_image: &mut ImageViewMut<Self>,
+        src_view: &impl ImageView<Pixel = Self>,
+        dst_view: &mut impl ImageViewMut<Pixel = Self>,
         cpu_extensions: CpuExtensions,
-    ) {
+    ) -> Result<(), ImageError> {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => unsafe { avx2::divide_alpha(src_image, dst_image) },
+            CpuExtensions::Avx2 => unsafe { avx2::divide_alpha(src_view, dst_view) },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha(src_image, dst_image) },
+            CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha(src_view, dst_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::divide_alpha(src_image, dst_image) },
+            CpuExtensions::Neon => unsafe { neon::divide_alpha(src_view, dst_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha(src_image, dst_image) },
-            _ => native::divide_alpha(src_image, dst_image),
+            CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha(src_view, dst_view) },
+            _ => native::divide_alpha(src_view, dst_view),
         }
+        Ok(())
     }
 
-    fn divide_alpha_inplace(image: &mut ImageViewMut<Self>, cpu_extensions: CpuExtensions) {
+    fn divide_alpha_inplace(
+        image_view: &mut impl ImageViewMut<Pixel = Self>,
+        cpu_extensions: CpuExtensions,
+    ) -> Result<(), ImageError> {
         match cpu_extensions {
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Avx2 => unsafe { avx2::divide_alpha_inplace(image) },
+            CpuExtensions::Avx2 => unsafe { avx2::divide_alpha_inplace(image_view) },
             #[cfg(target_arch = "x86_64")]
-            CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha_inplace(image) },
+            CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha_inplace(image_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::divide_alpha_inplace(image) },
+            CpuExtensions::Neon => unsafe { neon::divide_alpha_inplace(image_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha_inplace(image) },
-            _ => native::divide_alpha_inplace(image),
+            CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha_inplace(image_view) },
+            _ => native::divide_alpha_inplace(image_view),
         }
+        Ok(())
     }
 }

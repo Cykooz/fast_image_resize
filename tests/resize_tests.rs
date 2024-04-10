@@ -3,16 +3,17 @@ use std::fmt::Debug;
 
 use image::io::Reader as ImageReader;
 
+use fast_image_resize::images::{Image, TypedImage, TypedImageMut};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    testing as fr_testing, CpuExtensions, CropBox, CropBoxError, DifferentTypesOfPixelsError,
-    DynamicImageView, Filter, FilterType, Image, ImageView, PixelType, ResizeAlg, Resizer,
+    testing as fr_testing, CpuExtensions, CropBox, CropBoxError, Filter, FilterType, IntoImageView,
+    PixelTrait, PixelType, ResizeAlg, ResizeError, ResizeOptions, Resizer, SrcCropping,
 };
-use testing::{cpu_ext_into_str, image_checksum, nonzero, save_result, PixelTestingExt};
+use testing::{cpu_ext_into_str, image_checksum, save_result, PixelTestingExt};
 
-fn get_new_height(src_image: &DynamicImageView, new_width: u32) -> u32 {
-    let scale = new_width as f32 / src_image.width().get() as f32;
-    (src_image.height().get() as f32 * scale).round() as u32
+fn get_new_height(src_image: &impl IntoImageView, new_width: u32) -> u32 {
+    let scale = new_width as f32 / src_image.width() as f32;
+    (src_image.height() as f32 * scale).round() as u32
 }
 
 const NEW_WIDTH: u32 = 255;
@@ -20,28 +21,30 @@ const NEW_BIG_WIDTH: u32 = 5016;
 
 #[test]
 fn try_resize_to_other_pixel_type() {
+    let mut resizer = Resizer::new(ResizeAlg::Nearest);
     let src_image = U8x4::load_big_src_image();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    let mut dst_image = Image::new(nonzero(1024), nonzero(256), PixelType::U8);
+    let mut dst_image = Image::new(1024, 256, PixelType::U8);
     assert!(matches!(
-        resizer.resize(&src_image.view(), &mut dst_image.view_mut()),
-        Err(DifferentTypesOfPixelsError)
+        resizer.resize(&src_image, &mut dst_image, None),
+        Err(ResizeError::PixelTypesAreDifferent)
     ));
 }
 
 #[test]
 fn resize_to_same_size() {
-    let width = nonzero(100);
-    let height = nonzero(80);
+    let width = 100;
+    let height = 80;
     let buffer: Vec<u8> = (0..8000)
         .map(|v| (v & 0xff) as u8)
         .flat_map(|v| [v; 4])
         .collect();
     let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8x4).unwrap();
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
+    let src_view: TypedImage<U8x4> = src_image.typed_image().unwrap();
+    let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     resizer
-        .resize(&src_image.view(), &mut dst_image.view_mut())
+        .resize_typed(&src_view, &mut dst_view, None)
         .unwrap();
     assert!(matches!(
         src_image.buffer().cmp(dst_image.buffer()),
@@ -51,29 +54,31 @@ fn resize_to_same_size() {
 
 #[test]
 fn resize_to_same_size_after_cropping() {
-    let width = nonzero(100);
-    let height = nonzero(80);
-    let src_width = nonzero(120);
-    let src_height = nonzero(100);
+    let width = 100;
+    let height = 80;
+    let src_width = 120;
+    let src_height = 100;
     let buffer: Vec<u8> = (0..12000)
         .map(|v| (v & 0xff) as u8)
         .flat_map(|v| [v; 4])
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8x4).unwrap();
-    let mut src_view = src_image.view();
-    src_view
-        .set_crop_box(CropBox {
-            top: 10.,
-            left: 10.,
-            width: width.get() as _,
-            height: height.get() as _,
-        })
-        .unwrap();
+    let src_view = src_image.typed_image::<U8x4>().unwrap();
 
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
+    let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    let options = ResizeOptions {
+        cropping: SrcCropping::Crop(CropBox {
+            top: 10.,
+            left: 10.,
+            width: width as _,
+            height: height as _,
+        }),
+        ..Default::default()
+    };
     resizer
-        .resize(&src_view, &mut dst_image.view_mut())
+        .resize_typed(&src_view, &mut dst_view, &options)
         .unwrap();
 
     let cropped_buffer: Vec<u8> = (0..12000u32)
@@ -100,33 +105,32 @@ fn resize_to_same_width<const C: usize>(
     create_pixel: fn(v: u8) -> [u8; C],
 ) {
     fr_testing::clear_log();
-    let width = nonzero(100);
-    let height = nonzero(80);
-    let src_width = nonzero(120);
-    let src_height = nonzero(100);
+    let width = 100;
+    let height = 80;
+    let src_width = 120;
+    let src_height = 100;
     // Image columns are made up of pixels of the same color.
     let buffer: Vec<u8> = (0..12000)
         .flat_map(|v| create_pixel((v % 120) as u8))
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
-    let mut src_view = src_image.view();
-    src_view
-        .set_crop_box(CropBox {
-            left: 10.,
-            top: 0.,
-            width: width.get() as _,
-            height: src_height.get() as _,
-        })
-        .unwrap();
 
     let mut dst_image = Image::new(width, height, pixel_type);
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
+
     resizer
-        .resize(&src_view, &mut dst_image.view_mut())
+        .resize(
+            &src_image,
+            &mut dst_image,
+            &ResizeOptions::new()
+                .crop(10., 0., width as _, src_height as _)
+                .use_alpha(false),
+        )
         .unwrap();
+
     let expected_result: Vec<u8> = (0..8000u32)
         .flat_map(|v| create_pixel((10 + v % 100) as u8))
         .collect();
@@ -154,24 +158,15 @@ fn resize_to_same_height<const C: usize>(
     create_pixel: fn(v: u8) -> [u8; C],
 ) {
     fr_testing::clear_log();
-    let width = nonzero(100);
-    let height = nonzero(80);
-    let src_width = nonzero(120);
-    let src_height = nonzero(100);
+    let width = 100;
+    let height = 80;
+    let src_width = 120;
+    let src_height = 100;
     // Image rows are made up of pixels of the same color.
     let buffer: Vec<u8> = (0..12000)
         .flat_map(|v| create_pixel((v / 120) as u8))
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
-    let mut src_view = src_image.view();
-    src_view
-        .set_crop_box(CropBox {
-            left: 0.,
-            top: 10.,
-            width: src_width.get() as _,
-            height: height.get() as _,
-        })
-        .unwrap();
 
     let mut dst_image = Image::new(width, height, pixel_type);
     let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
@@ -179,8 +174,15 @@ fn resize_to_same_height<const C: usize>(
         resizer.set_cpu_extensions(cpu_extensions);
     }
     resizer
-        .resize(&src_view, &mut dst_image.view_mut())
+        .resize(
+            &src_image,
+            &mut dst_image,
+            &ResizeOptions::new()
+                .crop(0., 10., src_width as _, height as _)
+                .use_alpha(false),
+        )
         .unwrap();
+
     let expected_result: Vec<u8> = (0..8000u32)
         .flat_map(|v| create_pixel((10 + v / 100) as u8))
         .collect();
@@ -271,8 +273,8 @@ trait ResizeTest<const CC: usize> {
 
 impl<T, C, const CC: usize> ResizeTest<CC> for Pixel<T, C, CC>
 where
-    Self: PixelTestingExt,
-    T: Sized + Copy + Clone + Debug + PartialEq + 'static,
+    Self: PixelTestingExt + PixelTrait,
+    T: Sized + Copy + Clone + Debug + PartialEq + Default + 'static,
     C: PixelComponent,
 {
     fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]) {
@@ -291,10 +293,11 @@ where
         unsafe {
             resizer.set_cpu_extensions(cpu_extensions);
         }
-        let image_view = image.view();
-        let new_height = get_new_height(&image_view, NEW_WIDTH);
-        let mut result = Image::new(nonzero(NEW_WIDTH), nonzero(new_height), image.pixel_type());
-        assert!(resizer.resize(&image_view, &mut result.view_mut()).is_ok());
+        let new_height = get_new_height(&image, NEW_WIDTH);
+        let mut result = Image::new(NEW_WIDTH, new_height, image.pixel_type());
+        resizer
+            .resize(&image, &mut result, &ResizeOptions::new().use_alpha(false))
+            .unwrap();
 
         let alg_name = match resize_alg {
             ResizeAlg::Nearest => "nearest",
@@ -317,9 +320,9 @@ where
             alg_name,
             cpu_ext_into_str(cpu_extensions),
         );
-        testing::save_result(&result, &name);
+        save_result(&result, &name);
         assert_eq!(
-            testing::image_checksum::<Self, CC>(&result),
+            image_checksum::<Self, CC>(&result),
             checksum,
             "Error in checksum for {cpu_extensions:?}",
         );
@@ -341,15 +344,11 @@ where
         unsafe {
             resizer.set_cpu_extensions(cpu_extensions);
         }
-        let new_height = get_new_height(&image.view(), NEW_BIG_WIDTH);
-        let mut result = Image::new(
-            nonzero(NEW_BIG_WIDTH),
-            nonzero(new_height),
-            image.pixel_type(),
-        );
-        assert!(resizer
-            .resize(&image.view(), &mut result.view_mut())
-            .is_ok());
+        let new_height = get_new_height(&image, NEW_BIG_WIDTH);
+        let mut result = Image::new(NEW_BIG_WIDTH, new_height, image.pixel_type());
+        resizer
+            .resize(&image, &mut result, &ResizeOptions::new().use_alpha(false))
+            .unwrap();
 
         let alg_name = match resize_alg {
             ResizeAlg::Nearest => "nearest",
@@ -372,9 +371,9 @@ where
             alg_name,
             cpu_ext_into_str(cpu_extensions),
         );
-        testing::save_result(&result, &name);
+        save_result(&result, &name);
         assert_eq!(
-            testing::image_checksum::<Self, CC>(&result),
+            image_checksum::<Self, CC>(&result),
             checksum,
             "Error in checksum for {:?}",
             cpu_extensions
@@ -817,43 +816,31 @@ mod not_u8x4 {
     #[test]
     fn fractional_cropping() {
         let mut src_buf = [0, 0, 0, 0, 255, 0, 0, 0, 0];
-        let src_image =
-            Image::from_slice_u8(nonzero(3), nonzero(3), &mut src_buf, PixelType::U8).unwrap();
-        let mut dst_image = Image::new(nonzero(1), nonzero(1), PixelType::U8);
+        let src_image = Image::from_slice_u8(3, 3, &mut src_buf, PixelType::U8).unwrap();
+        let mut dst_image = Image::new(1, 1, PixelType::U8);
         let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Box));
 
         // Resize without cropping
-        resizer
-            .resize(&src_image.view(), &mut dst_image.view_mut())
-            .unwrap();
+        resizer.resize(&src_image, &mut dst_image, None).unwrap();
         assert_eq!(dst_image.buffer()[0], (255.0f32 / 9.0).round() as u8);
 
         // Resize with fractional cropping
-        let mut src_view = src_image.view();
-        src_view
-            .set_crop_box(CropBox {
-                left: 0.5,
-                top: 0.5,
-                width: 2.,
-                height: 2.,
-            })
-            .unwrap();
         resizer
-            .resize(&src_view, &mut dst_image.view_mut())
+            .resize(
+                &src_image,
+                &mut dst_image,
+                &ResizeOptions::new().crop(0.5, 0.5, 2., 2.),
+            )
             .unwrap();
         assert_eq!(dst_image.buffer()[0], (255.0f32 / 4.0).round() as u8);
 
         // Resize with integer cropping
-        src_view
-            .set_crop_box(CropBox {
-                left: 1.,
-                top: 1.,
-                width: 1.,
-                height: 1.,
-            })
-            .unwrap();
         resizer
-            .resize(&src_view, &mut dst_image.view_mut())
+            .resize(
+                &src_image,
+                &mut dst_image,
+                &ResizeOptions::new().crop(1., 1., 1., 1.),
+            )
             .unwrap();
         assert_eq!(dst_image.buffer()[0], 255);
     }
@@ -862,46 +849,45 @@ mod not_u8x4 {
 mod u8x4 {
     use std::f64::consts::PI;
 
+    use fast_image_resize::ResizeError;
+
     use super::*;
 
     type P = U8x4;
 
     #[test]
-    fn set_crop_box() {
-        let mut view: ImageView<P> =
-            ImageView::from_buffer(nonzero(1), nonzero(1), &[0, 0, 0, 0]).unwrap();
+    fn invalid_crop_box() {
+        let mut resizer = Resizer::new(ResizeAlg::Nearest);
+        let src_image = Image::new(1, 1, P::pixel_type());
+        let mut dst_image = Image::new(2, 2, P::pixel_type());
+
+        let mut options = ResizeOptions::new();
 
         for (left, top) in [(1., 0.), (0., 1.)] {
+            options = options.crop(left, top, 1., 1.);
             assert_eq!(
-                view.set_crop_box(CropBox {
-                    left,
-                    top,
-                    width: 1.,
-                    height: 1.,
-                }),
-                Err(CropBoxError::PositionIsOutOfImageBoundaries)
+                resizer.resize(&src_image, &mut dst_image, &options),
+                Err(ResizeError::SrcCroppingError(
+                    CropBoxError::PositionIsOutOfImageBoundaries
+                ))
             );
         }
         for (width, height) in [(2., 1.), (1., 2.)] {
+            options = options.crop(0., 0., width, height);
             assert_eq!(
-                view.set_crop_box(CropBox {
-                    left: 0.,
-                    top: 0.,
-                    width,
-                    height,
-                }),
-                Err(CropBoxError::SizeIsOutOfImageBoundaries)
+                resizer.resize(&src_image, &mut dst_image, &options),
+                Err(ResizeError::SrcCroppingError(
+                    CropBoxError::SizeIsOutOfImageBoundaries
+                ))
             );
         }
         for (width, height) in [(0., 1.), (1., 0.), (-1., 1.), (1., -1.)] {
+            options = options.crop(0., 0., width, height);
             assert_eq!(
-                view.set_crop_box(CropBox {
-                    left: 0.,
-                    top: 0.,
-                    width,
-                    height,
-                }),
-                Err(CropBoxError::WidthOrHeightLessOrEqualToZero)
+                resizer.resize(&src_image, &mut dst_image, &options),
+                Err(ResizeError::SrcCroppingError(
+                    CropBoxError::WidthOrHeightLessOrEqualToZero
+                ))
             );
         }
     }
@@ -1036,22 +1022,14 @@ mod u8x4 {
             .unwrap()
             .decode()
             .unwrap();
-        let width = nonzero(img.width());
-        let height = nonzero(img.height());
+        let width = img.width();
+        let height = img.height();
         let src_image =
             Image::from_vec_u8(width, height, img.to_rgba8().into_raw(), PixelType::U8x4).unwrap();
 
-        let mut src_view = src_image.view();
-        src_view
-            .set_crop_box(CropBox {
-                left: 521.,
-                top: 1414.,
-                width: 1485.,
-                height: 1486.,
-            })
-            .unwrap();
+        let options = ResizeOptions::new().crop(521., 1414., 1485., 1486.);
 
-        let mut dst_image = Image::new(nonzero(1279), nonzero(1280), PixelType::U8x4);
+        let mut dst_image = Image::new(1279, 1280, PixelType::U8x4);
 
         let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
 
@@ -1074,8 +1052,9 @@ mod u8x4 {
             unsafe {
                 resizer.set_cpu_extensions(cpu_extensions);
             }
-            let mut dst_view = dst_image.view_mut();
-            resizer.resize(&src_view, &mut dst_view).unwrap();
+            resizer
+                .resize(&src_image, &mut dst_image, &options)
+                .unwrap();
             let cpu_ext_str = cpu_ext_into_str(cpu_extensions);
             save_result(&dst_image, &format!("crop_test-{}.png", cpu_ext_str));
             results.push((image_checksum::<U8x4, 4>(&dst_image), cpu_ext_str));

@@ -1,42 +1,35 @@
+use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
-use fast_image_resize::Image;
+use fast_image_resize::ResizeOptions;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
-use std::num::NonZeroU32;
-use testing::{cpu_ext_into_str, nonzero, PixelTestingExt};
+use testing::{cpu_ext_into_str, PixelTestingExt};
 
 mod utils;
 
 const NEW_SIZE: u32 = 695;
 
 fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
-    let image = U8x4::load_big_square_src_image();
-    let mut res_image = Image::new(nonzero(NEW_SIZE), nonzero(NEW_SIZE), image.pixel_type());
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
+    let src_image = U8x4::load_big_square_src_image();
+    let mut dst_image = Image::new(NEW_SIZE, NEW_SIZE, PixelType::U8x4);
     let mut resizer = Resizer::new(ResizeAlg::Nearest);
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     utils::bench(bench_group, 100, "U8x4 Nearest", "rust", |bencher| {
-        bencher.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
+        bencher.iter(|| resizer.resize(&src_image, &mut dst_image, None).unwrap())
     });
 }
 
+#[cfg(not(feature = "only_u8x4"))]
 fn native_nearest_u8_bench(bench_group: &mut utils::BenchGroup) {
-    let image = U8::load_big_square_src_image();
-    let mut res_image = Image::new(nonzero(NEW_SIZE), nonzero(NEW_SIZE), image.pixel_type());
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
+    let src_image = U8::load_big_square_src_image();
+    let mut dst_image = Image::new(NEW_SIZE, NEW_SIZE, PixelType::U8);
     let mut resizer = Resizer::new(ResizeAlg::Nearest);
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     utils::bench(bench_group, 100, "U8 Nearest", "rust", |bencher| {
-        bencher.iter(|| {
-            resizer.resize(&src_image, &mut dst_image).unwrap();
-        })
+        bencher.iter(|| resizer.resize(&src_image, &mut dst_image, None).unwrap())
     });
 }
 
@@ -45,14 +38,13 @@ fn downscale_bench(
     image: &Image<'static>,
     cpu_extensions: CpuExtensions,
     filter_type: FilterType,
-    dst_width: NonZeroU32,
-    dst_height: NonZeroU32,
+    dst_width: u32,
+    dst_height: u32,
     name_prefix: &str,
 ) {
     let mut res_image = Image::new(dst_width, dst_height, image.pixel_type());
-    let src_image = image.view();
-    let mut dst_image = res_image.view_mut();
     let mut resizer = Resizer::new(ResizeAlg::Convolution(filter_type));
+    let options = ResizeOptions::new().use_alpha(false);
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
@@ -66,11 +58,7 @@ fn downscale_bench(
         100,
         &format!("{:?} {:?}", image.pixel_type(), filter_type),
         &format!("{}{}", cpu_ext_into_str(cpu_extensions), prefix),
-        |bencher| {
-            bencher.iter(|| {
-                resizer.resize(&src_image, &mut dst_image).unwrap();
-            })
-        },
+        |bencher| bencher.iter(|| resizer.resize(image, &mut res_image, &options).unwrap()),
     );
 }
 
@@ -122,7 +110,7 @@ pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
                 &image,
                 cpu_extension,
                 FilterType::Lanczos3,
-                nonzero(NEW_SIZE),
+                NEW_SIZE,
                 image.height(),
                 "H",
             );
@@ -132,7 +120,7 @@ pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
                 cpu_extension,
                 FilterType::Lanczos3,
                 image.height(),
-                nonzero(NEW_SIZE),
+                NEW_SIZE,
                 "V",
             );
         }
@@ -188,8 +176,8 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
                 &image,
                 cpu_extension,
                 FilterType::Lanczos3,
-                nonzero(NEW_SIZE),
-                nonzero(NEW_SIZE),
+                NEW_SIZE,
+                NEW_SIZE,
                 "",
             );
         }
@@ -200,12 +188,12 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
     native_nearest_u8_bench(bench_group);
 }
 
-fn main1() {
+fn main() {
     let results = utils::run_bench(resize_bench, "Resize");
     println!("{}", utils::build_md_table(&results));
 }
 
-fn main() {
+fn main2() {
     let results = utils::run_bench(resize_in_one_dimension_bench, "Resize one dimension");
     println!("{}", utils::build_md_table(&results));
 }

@@ -4,8 +4,8 @@ use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
 pub(crate) fn horiz_convolution(
-    src_image: &ImageView<U16>,
-    dst_image: &mut ImageViewMut<U16>,
+    src_view: &impl ImageView<Pixel = U16>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -14,8 +14,8 @@ pub(crate) fn horiz_convolution(
     let coefficients_chunks = normalizer.normalized_chunks();
     let initial = 1i64 << (precision - 1);
 
-    let src_rows = src_image.iter_rows(offset);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(offset);
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, src_row) in dst_rows.zip(src_rows) {
         for (&coeffs_chunk, dst_pixel) in coefficients_chunks.iter().zip(dst_row.iter_mut()) {
             let first_x_src = coeffs_chunk.start as usize;

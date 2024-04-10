@@ -1,27 +1,26 @@
 use std::arch::x86_64::*;
 
 use crate::pixels::U8x4;
-use crate::simd_utils;
 use crate::utils::foreach_with_pre_reading;
-use crate::{ImageView, ImageViewMut};
+use crate::{simd_utils, ImageView, ImageViewMut};
 
 use super::sse4;
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn multiply_alpha(
-    src_image: &ImageView<U8x4>,
-    dst_image: &mut ImageViewMut<U8x4>,
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         multiply_alpha_row(src_row, dst_row);
     }
 }
 
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -108,9 +107,12 @@ unsafe fn multiply_alpha_8_pixels(pixels: __m256i) -> __m256i {
 // Divide
 
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageViewMut<U8x4>) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+pub(crate) unsafe fn divide_alpha(
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
+) {
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
@@ -118,8 +120,8 @@ pub(crate) unsafe fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut I
 }
 
 #[target_feature(enable = "avx2")]
-pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         divide_alpha_row_inplace(row);
     }
 }

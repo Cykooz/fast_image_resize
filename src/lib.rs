@@ -1,30 +1,37 @@
 #![doc = include_str!("../README.md")]
+//!
+//! ## Feature flags
+#![doc = document_features::document_features!()]
 
 pub use alpha::errors::*;
+pub use array_chunks::*;
+pub use change_components_type::*;
 pub use color::mappers::*;
 pub use color::PixelComponentMapper;
 pub use convolution::*;
-pub use dynamic_image_view::{
-    change_type_of_pixel_components_dyn, DynamicImageView, DynamicImageViewMut,
-};
+pub use cpu_extensions::CpuExtensions;
+pub use crop_box::*;
 pub use errors::*;
-pub use image_view::{change_type_of_pixel_components, CropBox, ImageView, ImageViewMut};
+pub use image_view::*;
 pub use mul_div::MulDiv;
 pub use pixels::PixelType;
-pub use resizer::{CpuExtensions, ResizeAlg, Resizer};
+pub use resizer::{ResizeAlg, ResizeOptions, Resizer, SrcCropping};
 
-pub use crate::image::Image;
+use crate::alpha::AlphaMulDiv;
 
 #[macro_use]
 mod utils;
 
 mod alpha;
+mod array_chunks;
+mod change_components_type;
 mod color;
 mod convolution;
-mod dynamic_image_view;
+mod cpu_extensions;
+mod crop_box;
 mod errors;
-mod image;
 mod image_view;
+pub mod images;
 mod mul_div;
 #[cfg(target_arch = "aarch64")]
 mod neon_utils;
@@ -36,3 +43,9 @@ mod simd_utils;
 pub mod testing;
 #[cfg(target_arch = "wasm32")]
 mod wasm32_utils;
+
+/// This trait must be used in your code instead of [InnerPixel](crate::pixels::InnerPixel).
+#[allow(private_bounds)]
+pub trait PixelTrait: Convolution + AlphaMulDiv {}
+
+impl<P: Convolution + AlphaMulDiv> PixelTrait for P {}

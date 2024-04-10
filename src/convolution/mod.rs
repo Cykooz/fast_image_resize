@@ -1,10 +1,7 @@
-use std::num::NonZeroU32;
-
 pub use filters::*;
 
-use crate::pixels::PixelExt;
-use crate::CpuExtensions;
-use crate::{ImageView, ImageViewMut};
+use crate::pixels::InnerPixel;
+use crate::{CpuExtensions, ImageView, ImageViewMut};
 
 #[macro_use]
 mod macros;
@@ -28,21 +25,18 @@ cfg_if::cfg_if! {
     }
 }
 
-pub(crate) trait Convolution
-where
-    Self: PixelExt,
-{
+pub(crate) trait Convolution: InnerPixel {
     fn horiz_convolution(
-        src_image: &ImageView<Self>,
-        dst_image: &mut ImageViewMut<Self>,
+        src_view: &impl ImageView<Pixel = Self>,
+        dst_view: &mut impl ImageViewMut<Pixel = Self>,
         offset: u32,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
     );
 
     fn vert_convolution(
-        src_image: &ImageView<Self>,
-        dst_image: &mut ImageViewMut<Self>,
+        src_view: &impl ImageView<Pixel = Self>,
+        dst_view: &mut impl ImageViewMut<Pixel = Self>,
         offset: u32,
         coeffs: Coefficients,
         cpu_extensions: CpuExtensions,
@@ -55,7 +49,7 @@ pub(crate) struct Bound {
     pub size: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct Coefficients {
     pub values: Vec<f64>,
     pub window_size: usize,
@@ -86,17 +80,20 @@ impl Coefficients {
 }
 
 pub(crate) fn precompute_coefficients(
-    in_size: NonZeroU32,
+    in_size: u32,
     in0: f64, // Left border for cropping
     in1: f64, // Right border for cropping
-    out_size: NonZeroU32,
+    out_size: u32,
     filter: fn(f64) -> f64,
     filter_support: f64,
 ) -> Coefficients {
-    let in_size = in_size.get();
-    let out_size = out_size.get();
-
+    if in_size == 0 || out_size == 0 {
+        return Coefficients::default();
+    }
     let scale = (in1 - in0) / out_size as f64;
+    if scale <= 0. {
+        return Coefficients::default();
+    }
     let filter_scale = scale.max(1.0);
 
     // Determine filter radius size (length of resampling filter)

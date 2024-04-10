@@ -3,13 +3,12 @@ use std::intrinsics::transmute;
 
 use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::U8x3;
-use crate::simd_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::{simd_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: &ImageView<U8x3>,
-    dst_image: &mut ImageViewMut<U8x3>,
+    src_view: &impl ImageView<Pixel = U8x3>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x3>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -18,39 +17,36 @@ pub(crate) fn horiz_convolution(
 
     macro_rules! call {
         ($imm8:expr) => {{
-            horiz_convolution_p::<$imm8>(src_image, dst_image, offset, normalizer);
+            horiz_convolution_p::<$imm8>(src_view, dst_view, offset, normalizer);
         }};
     }
     constify_imm8!(precision, call);
 }
 
 fn horiz_convolution_p<const PRECISION: i32>(
-    src_image: &ImageView<U8x3>,
-    dst_image: &mut ImageViewMut<U8x3>,
+    src_view: &impl ImageView<Pixel = U8x3>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x3>,
     offset: u32,
     normalizer: optimisations::Normalizer16,
 ) {
     let coefficients_chunks = normalizer.normalized_chunks();
-    let dst_height = dst_image.height().get();
+    let dst_height = dst_view.height();
 
-    let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
-    let dst_iter = dst_image.iter_4_rows_mut();
+    let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
+    let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
             horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
-    let mut yy = dst_height - dst_height % 4;
-    while yy < dst_height {
+    let yy = dst_height - dst_height % 4;
+    let src_rows = src_view.iter_rows(yy + offset);
+    let dst_rows = dst_view.iter_rows_mut(yy);
+    for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row::<PRECISION>(
-                src_image.get_row(yy + offset).unwrap(),
-                dst_image.get_row_mut(yy).unwrap(),
-                &coefficients_chunks,
-            );
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &coefficients_chunks);
         }
-        yy += 1;
     }
 }
 
@@ -64,7 +60,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
 #[target_feature(enable = "sse4.1")]
 unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x3]; 4],
-    dst_rows: [&mut &mut [U8x3]; 4],
+    dst_rows: [&mut [U8x3]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
 ) {
     let zero = _mm_setzero_si128();

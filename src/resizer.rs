@@ -1,86 +1,13 @@
-use std::num::NonZeroU32;
-
-use crate::convolution::{self, Convolution, FilterType};
-use crate::image::InnerImage;
-use crate::pixels::PixelExt;
+use crate::convolution::{self, FilterType};
+use crate::crop_box::CroppedSrcImageView;
+use crate::image_view::{try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut};
+use crate::images::TypedImageMut;
+use crate::pixels::{self, InnerPixel};
 use crate::{
-    DifferentTypesOfPixelsError, DynamicImageView, DynamicImageViewMut, ImageView, ImageViewMut,
+    CpuExtensions, CropBox, DifferentDimensionsError, MulDiv, PixelTrait, PixelType, ResizeError,
 };
 
-/// SIMD extension of CPU.
-/// Specific variants depends from target architecture.
-/// Look at source code to see all available variants.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CpuExtensions {
-    None,
-    #[cfg(target_arch = "x86_64")]
-    /// SIMD extension of x86_64 architecture
-    Sse4_1,
-    #[cfg(target_arch = "x86_64")]
-    /// SIMD extension of x86_64 architecture
-    Avx2,
-    #[cfg(target_arch = "aarch64")]
-    /// SIMD extension of Arm64 architecture
-    Neon,
-    #[cfg(target_arch = "wasm32")]
-    /// SIMD extension of Wasm32 architecture
-    Simd128,
-}
-
-impl CpuExtensions {
-    /// Returns `true` if your CPU support the extension.
-    pub fn is_supported(&self) -> bool {
-        match self {
-            #[cfg(target_arch = "x86_64")]
-            Self::Avx2 => is_x86_feature_detected!("avx2"),
-            #[cfg(target_arch = "x86_64")]
-            Self::Sse4_1 => is_x86_feature_detected!("sse4.1"),
-            #[cfg(target_arch = "aarch64")]
-            Self::Neon => true,
-            #[cfg(target_arch = "wasm32")]
-            Self::Simd128 => true,
-            Self::None => true,
-        }
-    }
-}
-
-impl Default for CpuExtensions {
-    #[cfg(target_arch = "x86_64")]
-    fn default() -> Self {
-        if is_x86_feature_detected!("avx2") {
-            Self::Avx2
-        } else if is_x86_feature_detected!("sse4.1") {
-            Self::Sse4_1
-        } else {
-            Self::None
-        }
-    }
-
-    #[cfg(target_arch = "aarch64")]
-    fn default() -> Self {
-        use std::arch::is_aarch64_feature_detected;
-        if is_aarch64_feature_detected!("neon") {
-            Self::Neon
-        } else {
-            Self::None
-        }
-    }
-    #[cfg(target_arch = "wasm32")]
-    fn default() -> Self {
-        Self::Simd128
-    }
-
-    #[cfg(not(any(
-        target_arch = "x86_64",
-        target_arch = "aarch64",
-        target_arch = "wasm32"
-    )))]
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ResizeAlg {
     Nearest,
@@ -94,11 +21,81 @@ impl Default for ResizeAlg {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+#[non_exhaustive]
+pub enum SrcCropping {
+    #[default]
+    None,
+    Crop(CropBox),
+    FitIntoDestination((f64, f64)),
+}
+
+/// Options for configuring resize process.
+#[derive(Debug, Clone, Copy)]
+pub struct ResizeOptions {
+    /// Default: [SrcCropping::None].
+    pub cropping: SrcCropping,
+    /// Default: `true`.
+    pub mul_div_alpha: bool,
+}
+
+impl Default for ResizeOptions {
+    fn default() -> Self {
+        Self {
+            cropping: Default::default(),
+            mul_div_alpha: true,
+        }
+    }
+}
+
+impl ResizeOptions {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Set crop box for source image.
+    pub fn crop(mut self, left: f64, top: f64, width: f64, height: f64) -> Self {
+        self.cropping = SrcCropping::Crop(CropBox {
+            left,
+            top,
+            width,
+            height,
+        });
+        self
+    }
+
+    /// Fit source image into the aspect ratio of destination image without distortions.
+    ///
+    /// `centering` used to control the cropping position. Use (0.5, 0.5) for
+    /// center cropping (e.g. if cropping the width, take 50% off
+    /// of the left side, and therefore 50% off the right side).
+    /// (0.0, 0.0) will crop from the top left corner (i.e. if
+    /// cropping the width, take all the crop off of the right
+    /// side, and if cropping the height, take all of it off the
+    /// bottom). (1.0, 0.0) will crop from the bottom left
+    /// corner, etc. (i.e. if cropping the width, take all the
+    /// crop off the left side, and if cropping the height take
+    /// none from the top, and therefore all off the bottom).
+    pub fn fit_into_destination(mut self, centering: Option<(f64, f64)>) -> Self {
+        self.cropping = SrcCropping::FitIntoDestination(centering.unwrap_or((0.5, 0.5)));
+        self
+    }
+
+    /// Enable or disable consideration of the alpha channel when resizing.
+    pub fn use_alpha(mut self, v: bool) -> Self {
+        self.mul_div_alpha = v;
+        self
+    }
+}
+
 /// Methods of this structure used to resize images.
 #[derive(Default, Debug, Clone)]
 pub struct Resizer {
     pub algorithm: ResizeAlg,
     cpu_extensions: CpuExtensions,
+    mul_div: MulDiv,
+    default_options: ResizeOptions,
+    alpha_buffer: Vec<u8>,
     convolution_buffer: Vec<u8>,
     super_sampling_buffer: Vec<u8>,
 }
@@ -117,111 +114,135 @@ impl Resizer {
 
     /// Resize source image to the size of destination image and save
     /// the result to the latter's pixel buffer.
-    ///
-    /// This method doesn't multiply source image and doesn't divide
-    /// destination image by alpha channel.
-    /// You must use [MulDiv](crate::MulDiv) for these actions.
-    pub fn resize(
+    pub fn resize<'o>(
         &mut self,
-        src_image: &DynamicImageView,
-        dst_image: &mut DynamicImageViewMut,
-    ) -> Result<(), DifferentTypesOfPixelsError> {
+        src_image: &impl IntoImageView,
+        dst_image: &mut impl IntoImageViewMut,
+        options: impl Into<Option<&'o ResizeOptions>>,
+    ) -> Result<(), ResizeError> {
+        let src_pixel_type = try_pixel_type(src_image)?;
+        let dst_pixel_type = try_pixel_type(dst_image)?;
+        if src_pixel_type != dst_pixel_type {
+            return Err(ResizeError::PixelTypesAreDifferent);
+        }
+
+        use PixelType as PT;
+
+        macro_rules! match_img {
+            (
+                $src_image: ident,
+                $dst_image: ident,
+                $(($p: path, $pt: path),)*
+            ) => (
+                match src_pixel_type {
+                    $(
+                        $p => {
+                            match (
+                                $src_image.image_view::<$pt>(),
+                                $dst_image.image_view_mut::<$pt>(),
+                            ) {
+                                (Some(src), Some(mut dst)) => self.resize_typed(&src, &mut dst, options),
+                                _ => Err(ResizeError::PixelTypesAreDifferent),
+                            }
+                        }
+                    )*
+                    _ => Err(ResizeError::PixelTypesAreDifferent),
+                }
+            )
+        }
+
         #[cfg(not(feature = "only_u8x4"))]
-        match (src_image, dst_image) {
-            (DynamicImageView::U8(src), DynamicImageViewMut::U8(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U8x2(src), DynamicImageViewMut::U8x2(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U8x3(src), DynamicImageViewMut::U8x3(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U8x4(src), DynamicImageViewMut::U8x4(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U16(src), DynamicImageViewMut::U16(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U16x2(src), DynamicImageViewMut::U16x2(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U16x3(src), DynamicImageViewMut::U16x3(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::U16x4(src), DynamicImageViewMut::U16x4(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::I32(src), DynamicImageViewMut::I32(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            (DynamicImageView::F32(src), DynamicImageViewMut::F32(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            _ => {
-                return Err(DifferentTypesOfPixelsError);
-            }
-        }
+        #[allow(unreachable_patterns)]
+        let result = match_img!(
+            src_image,
+            dst_image,
+            (PT::U8, pixels::U8),
+            (PT::U8x2, pixels::U8x2),
+            (PT::U8x3, pixels::U8x3),
+            (PT::U8x4, pixels::U8x4),
+            (PT::U16, pixels::U16),
+            (PT::U16x2, pixels::U16x2),
+            (PT::U16x3, pixels::U16x3),
+            (PT::U16x4, pixels::U16x4),
+            (PT::I32, pixels::I32),
+            (PT::F32, pixels::F32),
+        );
+
         #[cfg(feature = "only_u8x4")]
-        match (src_image, dst_image) {
-            (DynamicImageView::U8x4(src), DynamicImageViewMut::U8x4(dst)) => {
-                self.resize_inner(src, dst);
-            }
-            _ => {
-                return Err(DifferentTypesOfPixelsError);
-            }
-        }
-        Ok(())
+        let result = match_img!(src_image, dst_image, (PT::U8x4, pixels::U8x4),);
+
+        result
     }
 
-    fn resize_inner<P>(&mut self, src_image: &ImageView<P>, dst_image: &mut ImageViewMut<P>)
-    where
-        P: Convolution,
-    {
-        if dst_image.copy_from_view(src_image).is_ok() {
-            // If `copy_from_view()` has returned `Ok` then
+    /// Resize source image to the size of destination image
+    /// and save the result to the latter's pixel buffer.
+    pub fn resize_typed<'o, P: PixelTrait>(
+        &mut self,
+        src_view: &impl ImageView<Pixel = P>,
+        dst_view: &mut impl ImageViewMut<Pixel = P>,
+        options: impl Into<Option<&'o ResizeOptions>>,
+    ) -> Result<(), ResizeError> {
+        let options = options.into().unwrap_or(&self.default_options);
+
+        let crop_box = match options.cropping {
+            SrcCropping::None => CropBox {
+                left: 0.,
+                top: 0.,
+                width: src_view.width() as _,
+                height: src_view.height() as _,
+            },
+            SrcCropping::Crop(crop_box) => crop_box,
+            SrcCropping::FitIntoDestination(centering) => CropBox::fit_src_into_dst_size(
+                src_view.width(),
+                src_view.height(),
+                dst_view.width(),
+                dst_view.height(),
+                Some(centering),
+            ),
+        };
+        let cropped_src_view = CroppedSrcImageView::cropped(src_view, crop_box)?;
+
+        if copy_image(&cropped_src_view, dst_view).is_ok() {
+            // If `copy_image()` returns `Ok` it means that
             // the size of the destination image is equal to
             // the size of the cropped source image.
-            return;
+            return Ok(());
         }
+
         match self.algorithm {
-            ResizeAlg::Nearest => resample_nearest(src_image, dst_image),
-            ResizeAlg::Convolution(filter_type) => {
-                let convolution_buffer = &mut self.convolution_buffer;
-                resample_convolution(
-                    src_image,
-                    dst_image,
-                    filter_type,
-                    self.cpu_extensions,
-                    convolution_buffer,
-                )
-            }
-            ResizeAlg::SuperSampling(filter_type, multiplicity) => {
-                let convolution_buffer = &mut self.convolution_buffer;
-                let super_sampling_buffer = &mut self.super_sampling_buffer;
-                resample_super_sampling(
-                    src_image,
-                    dst_image,
-                    filter_type,
-                    multiplicity,
-                    self.cpu_extensions,
-                    super_sampling_buffer,
-                    convolution_buffer,
-                )
-            }
+            ResizeAlg::Nearest => resample_nearest(&cropped_src_view, dst_view),
+            ResizeAlg::Convolution(filter_type) => self.resample_convolution(
+                &cropped_src_view,
+                dst_view,
+                filter_type,
+                options.mul_div_alpha,
+            ),
+            ResizeAlg::SuperSampling(filter_type, multiplicity) => self.resample_super_sampling(
+                &cropped_src_view,
+                dst_view,
+                filter_type,
+                multiplicity,
+                options.mul_div_alpha,
+            ),
         }
+        Ok(())
     }
 
     /// Returns the size of internal buffers used to store the results of
     /// intermediate resizing steps.
     pub fn size_of_internal_buffers(&self) -> usize {
-        (self.convolution_buffer.capacity() + self.super_sampling_buffer.capacity())
+        (self.alpha_buffer.capacity()
+            + self.convolution_buffer.capacity()
+            + self.super_sampling_buffer.capacity())
             * std::mem::size_of::<u8>()
     }
 
     /// Deallocates the internal buffers used to store the results of
     /// intermediate resizing steps.
     pub fn reset_internal_buffers(&mut self) {
+        if self.alpha_buffer.capacity() > 0 {
+            self.alpha_buffer = Vec::new();
+        }
         if self.convolution_buffer.capacity() > 0 {
             self.convolution_buffer = Vec::new();
         }
@@ -240,47 +261,259 @@ impl Resizer {
     /// that is not actually supported by your CPU.
     pub unsafe fn set_cpu_extensions(&mut self, extensions: CpuExtensions) {
         self.cpu_extensions = extensions;
+        self.mul_div.set_cpu_extensions(extensions);
+    }
+
+    fn resample_convolution<P: PixelTrait>(
+        &mut self,
+        cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
+        dst_view: &mut impl ImageViewMut<Pixel = P>,
+        filter_type: FilterType,
+        use_alpha: bool,
+    ) {
+        if use_alpha && self.mul_div.is_supported(P::pixel_type()) {
+            let src_view = cropped_src_view.image_view();
+            let mut alpha_buffer = std::mem::take(&mut self.alpha_buffer);
+
+            let mut premultiplied_src =
+                get_temp_image_from_buffer(&mut alpha_buffer, src_view.width(), src_view.height());
+
+            if self
+                .mul_div
+                .multiply_alpha_typed(src_view, &mut premultiplied_src)
+                .is_ok()
+            {
+                // SAFETY: `premultiplied_src` has the same size as `src_view`
+                let cropped_premultiplied_src = unsafe {
+                    CroppedSrcImageView::cropped_unchecked(
+                        &premultiplied_src,
+                        cropped_src_view.crop_box(),
+                    )
+                };
+                self.do_convolution(&cropped_premultiplied_src, dst_view, filter_type);
+                self.mul_div.divide_alpha_inplace_typed(dst_view).unwrap();
+                self.alpha_buffer = alpha_buffer;
+                return;
+            }
+            self.alpha_buffer = alpha_buffer;
+        }
+
+        self.do_convolution(cropped_src_view, dst_view, filter_type);
+    }
+
+    fn do_convolution<P: PixelTrait>(
+        &mut self,
+        cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
+        dst_view: &mut impl ImageViewMut<Pixel = P>,
+        filter_type: FilterType,
+    ) {
+        let src_view = cropped_src_view.image_view();
+        let crop_box = cropped_src_view.crop_box();
+        let (dst_width, dst_height) = (dst_view.width(), dst_view.height());
+        if dst_width == 0 || dst_height == 0 || crop_box.width <= 0. || crop_box.height <= 0. {
+            return;
+        }
+
+        let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
+
+        let need_horizontal =
+            dst_width as f64 != crop_box.width || crop_box.left != crop_box.left.round();
+        let horiz_coeffs = need_horizontal.then(|| {
+            test_log!("compute horizontal convolution coefficients");
+            convolution::precompute_coefficients(
+                src_view.width(),
+                crop_box.left,
+                crop_box.left + crop_box.width,
+                dst_width,
+                filter_fn,
+                filter_support,
+            )
+        });
+
+        let need_vertical =
+            dst_height as f64 != crop_box.height || crop_box.top != crop_box.top.round();
+        let vert_coeffs = need_vertical.then(|| {
+            test_log!("compute vertical convolution coefficients");
+            convolution::precompute_coefficients(
+                src_view.height(),
+                crop_box.top,
+                crop_box.top + crop_box.height,
+                dst_height,
+                filter_fn,
+                filter_support,
+            )
+        });
+
+        match (horiz_coeffs, vert_coeffs) {
+            (Some(mut horiz_coeffs), Some(mut vert_coeffs)) => {
+                if P::components_is_u8() {
+                    // For an u8-based images it is faster to do the vertical pass first
+                    // instead of the horizontal.
+                    let x_first = horiz_coeffs.bounds[0].start;
+                    // Last used col in the source image
+                    let last_x_bound = horiz_coeffs.bounds.last().unwrap();
+                    let x_last = last_x_bound.start + last_x_bound.size;
+                    let temp_width = x_last - x_first;
+                    let mut temp_image = get_temp_image_from_buffer(
+                        &mut self.convolution_buffer,
+                        temp_width,
+                        dst_height,
+                    );
+
+                    P::vert_convolution(
+                        src_view,
+                        &mut temp_image,
+                        x_first,
+                        vert_coeffs,
+                        self.cpu_extensions,
+                    );
+
+                    // Shift bounds for horizontal pass
+                    horiz_coeffs
+                        .bounds
+                        .iter_mut()
+                        .for_each(|b| b.start -= x_first);
+                    P::horiz_convolution(
+                        &temp_image,
+                        dst_view,
+                        0,
+                        horiz_coeffs,
+                        self.cpu_extensions,
+                    );
+                } else {
+                    let y_first = vert_coeffs.bounds[0].start;
+                    // Last used row in the source image
+                    let last_y_bound = vert_coeffs.bounds.last().unwrap();
+                    let y_last = last_y_bound.start + last_y_bound.size;
+                    let temp_height = y_last - y_first;
+                    let mut temp_image = get_temp_image_from_buffer(
+                        &mut self.convolution_buffer,
+                        dst_width,
+                        temp_height,
+                    );
+                    P::horiz_convolution(
+                        src_view,
+                        &mut temp_image,
+                        y_first,
+                        horiz_coeffs,
+                        self.cpu_extensions,
+                    );
+
+                    // Shift bounds for vertical pass
+                    vert_coeffs
+                        .bounds
+                        .iter_mut()
+                        .for_each(|b| b.start -= y_first);
+                    P::vert_convolution(&temp_image, dst_view, 0, vert_coeffs, self.cpu_extensions);
+                }
+            }
+            (Some(horiz_coeffs), None) => {
+                P::horiz_convolution(
+                    src_view,
+                    dst_view,
+                    crop_box.top as u32, // crop_box.top is exactly an integer if vertical pass is not required
+                    horiz_coeffs,
+                    self.cpu_extensions,
+                );
+            }
+            (None, Some(vert_coeffs)) => {
+                P::vert_convolution(
+                    src_view,
+                    dst_view,
+                    crop_box.left as u32, // crop_box.left is exactly an integer if horizontal pass is not required
+                    vert_coeffs,
+                    self.cpu_extensions,
+                );
+            }
+            _ => {}
+        }
+    }
+
+    fn resample_super_sampling<P: PixelTrait>(
+        &mut self,
+        cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
+        dst_view: &mut impl ImageViewMut<Pixel = P>,
+        filter_type: FilterType,
+        multiplicity: u8,
+        use_alpha: bool,
+    ) {
+        let crop_box = cropped_src_view.crop_box();
+        let dst_width = dst_view.width();
+        let dst_height = dst_view.height();
+        if dst_width == 0 || dst_height == 0 || crop_box.width <= 0. || crop_box.height <= 0. {
+            return;
+        }
+
+        let width_scale = crop_box.width / dst_width as f64;
+        let height_scale = crop_box.height / dst_height as f64;
+        // It makes sense to resize the image in two steps only if the image
+        // size is greater than the required size by multiplicity times.
+        let factor = width_scale.min(height_scale) / multiplicity as f64;
+        if factor > 1.2 {
+            // First step is resizing the source image by fastest algorithm.
+            // The temporary image will be about ``multiplicity`` times larger
+            // than required.
+            let tmp_width = (crop_box.width / factor).round() as u32;
+            let tmp_height = (crop_box.height / factor).round() as u32;
+
+            let mut super_sampling_buffer = std::mem::take(&mut self.super_sampling_buffer);
+            let mut tmp_img =
+                get_temp_image_from_buffer(&mut super_sampling_buffer, tmp_width, tmp_height);
+            resample_nearest(cropped_src_view, &mut tmp_img);
+            // Second step is resizing the temporary image with a convolution.
+            let cropped_tmp_img = CroppedSrcImageView::new(&tmp_img);
+            self.resample_convolution(&cropped_tmp_img, dst_view, filter_type, use_alpha);
+            self.super_sampling_buffer = super_sampling_buffer;
+        } else {
+            // There is no point in doing the resizing in two steps.
+            // We immediately resize the original image with a convolution.
+            self.resample_convolution(cropped_src_view, dst_view, filter_type, use_alpha);
+        }
     }
 }
 
 /// Creates inner image container from part of given buffer.
-/// Buffer may be expanded if it size is less than required for image.
-fn get_temp_image_from_buffer<P: PixelExt>(
+/// Buffer may be expanded if its size is less than required for image.
+fn get_temp_image_from_buffer<P: PixelTrait>(
     buffer: &mut Vec<u8>,
-    width: NonZeroU32,
-    height: NonZeroU32,
-) -> InnerImage<P> {
-    let pixels_count = (width.get() * height.get()) as usize;
+    width: u32,
+    height: u32,
+) -> TypedImageMut<P> {
+    let pixels_count = width as usize * height as usize;
     // Add pixel size as gap for alignment of resulted buffer.
     let buf_size = pixels_count * P::size() + P::size();
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
     }
     let pixels = unsafe { buffer.align_to_mut::<P>().1 };
-    InnerImage::new(width, height, &mut pixels[0..pixels_count])
+    TypedImageMut::from_pixels(width, height, &mut pixels[0..pixels_count]).unwrap()
 }
 
-fn resample_nearest<P>(src_image: &ImageView<P>, dst_image: &mut ImageViewMut<P>)
-where
-    P: PixelExt,
-{
-    let crop_box = src_image.crop_box();
-    let dst_width = dst_image.width().get();
+fn resample_nearest<P: InnerPixel>(
+    cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
+    dst_view: &mut impl ImageViewMut<Pixel = P>,
+) {
+    let (dst_width, dst_height) = (dst_view.width(), dst_view.height());
+    let src_view = cropped_src_view.image_view();
+    let crop_box = cropped_src_view.crop_box();
+    if dst_width == 0 || dst_height == 0 || crop_box.width <= 0. || crop_box.height <= 0. {
+        return;
+    }
     let x_scale = crop_box.width / dst_width as f64;
-    let y_scale = crop_box.height / dst_image.height().get() as f64;
+    let y_scale = crop_box.height / dst_height as f64;
 
     // Pretabulate horizontal pixel positions
+
     let x_in_start = crop_box.left + x_scale * 0.5;
-    let max_src_x = src_image.width().get() as usize;
+    let max_src_x = src_view.width() as usize;
     let x_in_tab: Vec<usize> = (0..dst_width)
         .map(|x| ((x_in_start + x_scale * x as f64) as usize).min(max_src_x))
         .collect();
 
     let y_in_start = crop_box.top + y_scale * 0.5;
 
-    let src_rows =
-        src_image.iter_rows_with_step(y_in_start, y_scale, dst_image.height().get() as usize);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows_with_step(y_in_start, y_scale, dst_height);
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (out_row, in_row) in dst_rows.zip(src_rows) {
         for (&x_in, out_pixel) in x_in_tab.iter().zip(out_row.iter_mut()) {
             // Safety of value of x_in guaranteed by algorithm of creating of x_in_tab
@@ -289,178 +522,44 @@ where
     }
 }
 
-fn resample_convolution<P>(
-    src_image: &ImageView<P>,
-    dst_image: &mut ImageViewMut<P>,
-    filter_type: FilterType,
-    cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u8>,
-) where
-    P: Convolution,
+/// Copy pixels from src_view into dst_view.
+pub(crate) fn copy_image<S, P: PixelTrait>(
+    cropped_src_view: &CroppedSrcImageView<S>,
+    dst_view: &mut impl ImageViewMut<Pixel = P>,
+) -> Result<(), DifferentDimensionsError>
+where
+    S: ImageView<Pixel = P>,
 {
-    let crop_box = src_image.crop_box();
-    let dst_width = dst_image.width();
-    let dst_height = dst_image.height();
-    let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
-
-    let need_horizontal =
-        dst_width.get() as f64 != crop_box.width || crop_box.left != crop_box.left.round();
-    let horiz_coeffs = need_horizontal.then(|| {
-        test_log!("compute horizontal convolution coefficients");
-        convolution::precompute_coefficients(
-            src_image.width(),
-            crop_box.left,
-            crop_box.left + crop_box.width,
-            dst_width,
-            filter_fn,
-            filter_support,
-        )
-    });
-
-    let need_vertical =
-        dst_height.get() as f64 != crop_box.height || crop_box.top != crop_box.top.round();
-    let vert_coeffs = need_vertical.then(|| {
-        test_log!("compute vertical convolution coefficients");
-        convolution::precompute_coefficients(
-            src_image.height(),
-            crop_box.top,
-            crop_box.top + crop_box.height,
-            dst_height,
-            filter_fn,
-            filter_support,
-        )
-    });
-
-    match (horiz_coeffs, vert_coeffs) {
-        (Some(mut horiz_coeffs), Some(mut vert_coeffs)) => {
-            if P::count_of_component_values() > 256 {
-                let y_first = vert_coeffs.bounds[0].start;
-                // Last used row in the source image
-                let last_y_bound = vert_coeffs.bounds.last().unwrap();
-                let y_last = last_y_bound.start + last_y_bound.size;
-                let temp_height = NonZeroU32::new(y_last - y_first).unwrap();
-                let mut temp_image =
-                    get_temp_image_from_buffer(temp_buffer, dst_width, temp_height);
-                let mut tmp_dst_view = temp_image.dst_view();
-                P::horiz_convolution(
-                    src_image,
-                    &mut tmp_dst_view,
-                    y_first,
-                    horiz_coeffs,
-                    cpu_extensions,
-                );
-
-                // Shift bounds for vertical pass
-                vert_coeffs
-                    .bounds
-                    .iter_mut()
-                    .for_each(|b| b.start -= y_first);
-                P::vert_convolution(
-                    &tmp_dst_view.into(),
-                    dst_image,
-                    0,
-                    vert_coeffs,
-                    cpu_extensions,
-                );
-            } else {
-                let x_first = horiz_coeffs.bounds[0].start;
-                // Last used col in the source image
-                let last_x_bound = horiz_coeffs.bounds.last().unwrap();
-                let x_last = last_x_bound.start + last_x_bound.size;
-                let temp_width = NonZeroU32::new(x_last - x_first).unwrap();
-                let mut temp_image =
-                    get_temp_image_from_buffer(temp_buffer, temp_width, dst_height);
-                let mut tmp_dst_view = temp_image.dst_view();
-
-                P::vert_convolution(
-                    src_image,
-                    &mut tmp_dst_view,
-                    x_first,
-                    vert_coeffs,
-                    cpu_extensions,
-                );
-
-                // Shift bounds for horizontal pass
-                horiz_coeffs
-                    .bounds
-                    .iter_mut()
-                    .for_each(|b| b.start -= x_first);
-                P::horiz_convolution(
-                    &tmp_dst_view.into(),
-                    dst_image,
-                    0,
-                    horiz_coeffs,
-                    cpu_extensions,
-                );
-            }
-        }
-        (Some(horiz_coeffs), None) => {
-            P::horiz_convolution(
-                src_image,
-                dst_image,
-                crop_box.top as u32, // crop_box.top is exactly an integer if vertical pass is not required
-                horiz_coeffs,
-                cpu_extensions,
-            );
-        }
-        (None, Some(vert_coeffs)) => {
-            P::vert_convolution(
-                src_image,
-                dst_image,
-                crop_box.left as u32, // crop_box.left is exactly an integer if horizontal pass is not required
-                vert_coeffs,
-                cpu_extensions,
-            );
-        }
-        _ => {}
+    let crop_box = cropped_src_view.crop_box();
+    if crop_box.left != crop_box.left.round()
+        || crop_box.top != crop_box.top.round()
+        || crop_box.width != crop_box.width.round()
+        || crop_box.height != crop_box.height.round()
+    {
+        // The crop box has fractional part in some his part
+        return Err(DifferentDimensionsError);
     }
+    if dst_view.width() != crop_box.width as u32 || dst_view.height() != crop_box.height as u32 {
+        return Err(DifferentDimensionsError);
+    }
+    if dst_view.width() > 0 && dst_view.height() > 0 {
+        dst_view
+            .iter_rows_mut(0)
+            .zip(iter_cropped_rows(cropped_src_view))
+            .for_each(|(d, s)| d.copy_from_slice(s));
+    }
+    Ok(())
 }
 
-fn resample_super_sampling<P>(
-    src_image: &ImageView<P>,
-    dst_image: &mut ImageViewMut<P>,
-    filter_type: FilterType,
-    multiplicity: u8,
-    cpu_extensions: CpuExtensions,
-    temp_buffer: &mut Vec<u8>,
-    convolution_temp_buffer: &mut Vec<u8>,
-) where
-    P: Convolution,
-{
-    let crop_box = src_image.crop_box();
-    let dst_width = dst_image.width().get();
-    let dst_height = dst_image.height().get();
-    let width_scale = crop_box.width / dst_width as f64;
-    let height_scale = crop_box.height / dst_height as f64;
-    // It makes sense to resize the image in two steps only if the image
-    // size is greater than the required size by multiplicity times.
-    let factor = width_scale.min(height_scale) / multiplicity as f64;
-    if factor > 1.2 {
-        // First step is resizing the source image by fastest algorithm.
-        // The temporary image will be about ``multiplicity`` times larger
-        // than required.
-        let tmp_width = NonZeroU32::new((crop_box.width / factor).round() as u32).unwrap();
-        let tmp_height = NonZeroU32::new((crop_box.height / factor).round() as u32).unwrap();
-
-        let mut tmp_img = get_temp_image_from_buffer(temp_buffer, tmp_width, tmp_height);
-        resample_nearest(src_image, &mut tmp_img.dst_view());
-        // Second step is resizing the temporary image with a convolution.
-        resample_convolution(
-            &tmp_img.src_view(),
-            dst_image,
-            filter_type,
-            cpu_extensions,
-            convolution_temp_buffer,
-        );
-    } else {
-        // There is no point in doing the resizing in two steps.
-        // We immediately resize the original image with a convolution.
-        resample_convolution(
-            src_image,
-            dst_image,
-            filter_type,
-            cpu_extensions,
-            convolution_temp_buffer,
-        );
-    }
+fn iter_cropped_rows<'a, S: ImageView>(
+    cropped_src_view: &'a CroppedSrcImageView<S>,
+) -> impl Iterator<Item = &'a [S::Pixel]> {
+    let crop_box = cropped_src_view.crop_box();
+    let rows = cropped_src_view
+        .image_view()
+        .iter_rows(crop_box.top.max(0.) as u32)
+        .take(crop_box.height.max(0.) as usize);
+    let first_col = crop_box.left.max(0.) as usize;
+    let last_col = first_col + crop_box.width.max(0.) as usize;
+    rows.map(move |row| unsafe { row.get_unchecked(first_col..last_col) })
 }

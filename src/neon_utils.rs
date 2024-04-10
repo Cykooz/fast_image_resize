@@ -1,6 +1,6 @@
 use std::arch::aarch64::*;
 
-use crate::pixels::PixelExt;
+use crate::pixels::InnerPixel;
 
 #[inline(always)]
 pub unsafe fn load_u8x1<T>(buf: &[T], index: usize) -> uint8x8_t {
@@ -103,7 +103,7 @@ pub unsafe fn load_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x1x3<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x1x3<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x4x3_t {
@@ -115,7 +115,7 @@ pub unsafe fn load_deintrel_u16x1x3<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x2x3<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x2x3<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x4x3_t {
@@ -127,7 +127,7 @@ pub unsafe fn load_deintrel_u16x2x3<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x3<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x4x3<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x4x3_t {
@@ -135,7 +135,7 @@ pub unsafe fn load_deintrel_u16x4x3<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x4<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x4x4<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x4x4_t {
@@ -143,7 +143,7 @@ pub unsafe fn load_deintrel_u16x4x4<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x4x2<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x4x2<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x4x2_t {
@@ -151,7 +151,7 @@ pub unsafe fn load_deintrel_u16x4x2<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x2<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x8x2<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x8x2_t {
@@ -159,7 +159,7 @@ pub unsafe fn load_deintrel_u16x8x2<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x3<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x8x3<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x8x3_t {
@@ -167,7 +167,7 @@ pub unsafe fn load_deintrel_u16x8x3<T: PixelExt<Component = u16>>(
 }
 
 #[inline(always)]
-pub unsafe fn load_deintrel_u16x8x4<T: PixelExt<Component = u16>>(
+pub unsafe fn load_deintrel_u16x8x4<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
 ) -> uint16x8x4_t {

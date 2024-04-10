@@ -1,16 +1,16 @@
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::PixelExt;
+use crate::pixels::InnerPixel;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
 
 #[inline(always)]
 pub(crate) fn vert_convolution<T>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
 ) where
-    T: PixelExt<Component = u16>,
+    T: InnerPixel<Component = u16>,
 {
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
@@ -18,7 +18,7 @@ pub(crate) fn vert_convolution<T>(
     let initial: i64 = 1 << (precision - 1);
     let src_x_initial = offset as usize * T::count_of_components();
 
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_view.iter_rows_mut(0);
     let coeffs_chunks_iter = coefficients_chunks.into_iter();
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
@@ -28,7 +28,7 @@ pub(crate) fn vert_convolution<T>(
 
         let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u16; 16]>() };
         x_src = convolution_by_chunks(
-            src_image,
+            src_view,
             &normalizer,
             initial,
             dst_chunks,
@@ -38,22 +38,14 @@ pub(crate) fn vert_convolution<T>(
         );
 
         if !tail.is_empty() {
-            convolution_by_u16(
-                src_image,
-                &normalizer,
-                initial,
-                tail,
-                x_src,
-                first_y_src,
-                ks,
-            );
+            convolution_by_u16(src_view, &normalizer, initial, tail, x_src, first_y_src, ks);
         }
     }
 }
 
 #[inline(always)]
-pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
-    src_image: &ImageView<T>,
+pub(crate) fn convolution_by_u16<T: InnerPixel<Component = u16>>(
+    src_view: &impl ImageView<Pixel = T>,
     normalizer: &optimisations::Normalizer32,
     initial: i64,
     dst_components: &mut [u16],
@@ -63,7 +55,7 @@ pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
 ) -> usize {
     for dst_component in dst_components.iter_mut() {
         let mut ss = initial;
-        let src_rows = src_image.iter_rows(first_y_src);
+        let src_rows = src_view.iter_rows(first_y_src);
         for (&k, src_row) in ks.iter().zip(src_rows) {
             // SAFETY: Alignment of src_row is greater or equal than alignment u16
             //         because one component of pixel type T is u16.
@@ -79,7 +71,7 @@ pub(crate) fn convolution_by_u16<T: PixelExt<Component = u16>>(
 
 #[inline(always)]
 fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
-    src_image: &ImageView<T>,
+    src_view: &impl ImageView<Pixel = T>,
     normalizer: &optimisations::Normalizer32,
     initial: i64,
     dst_chunks: &mut [[u16; CHUNK_SIZE]],
@@ -88,11 +80,11 @@ fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
     ks: &[i32],
 ) -> usize
 where
-    T: PixelExt<Component = u16>,
+    T: InnerPixel<Component = u16>,
 {
     for dst_chunk in dst_chunks {
         let mut ss = [initial; CHUNK_SIZE];
-        let src_rows = src_image.iter_rows(first_y_src);
+        let src_rows = src_view.iter_rows(first_y_src);
 
         foreach_with_pre_reading(
             ks.iter().zip(src_rows),

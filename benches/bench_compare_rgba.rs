@@ -17,7 +17,7 @@ pub fn bench_downscale_rgba(bench_group: &mut utils::BenchGroup) {
         src_image.height(),
     );
     utils::libvips_resize::<P>(bench_group, true);
-    utils::fir_resize_with_alpha::<P>(bench_group);
+    utils::fir_resize::<P>(bench_group, true);
 }
 
 fn main() {

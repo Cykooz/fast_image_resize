@@ -18,7 +18,7 @@ pub fn bench_downscale_l16(bench_group: &mut utils::BenchGroup) {
         src_image.height(),
     );
     utils::libvips_resize::<P>(bench_group, false);
-    utils::fir_resize::<P>(bench_group);
+    utils::fir_resize::<P>(bench_group, false);
 }
 
 fn main() {

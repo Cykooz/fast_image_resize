@@ -1,10 +1,5 @@
-use std::num::NonZeroU32;
-
-use fast_image_resize::pixels::PixelExt;
-use fast_image_resize::{
-    CpuExtensions, DynamicImageView, DynamicImageViewMut, Image, ImageView, ImageViewMut, MulDiv,
-    PixelType,
-};
+use fast_image_resize::images::{TypedImage, TypedImageMut};
+use fast_image_resize::{CpuExtensions, MulDiv, PixelTrait, PixelType};
 use testing::cpu_ext_into_str;
 
 enum Oper {
@@ -20,9 +15,7 @@ fn mul_div_alpha_test<P, const N: usize>(
     expected_pixels_tpl: [P; N],
     cpu_extensions: CpuExtensions,
 ) where
-    P: PixelExt + 'static,
-    for<'a> ImageView<'a, P>: Into<DynamicImageView<'a>>,
-    for<'a> ImageViewMut<'a, P>: Into<DynamicImageViewMut<'a>>,
+    P: PixelTrait,
 {
     if !cpu_extensions.is_supported() {
         println!(
@@ -43,21 +36,9 @@ fn mul_div_alpha_test<P, const N: usize>(
         .collect();
     let mut dst_pixels = src_pixels.clone();
 
-    let src_dyn_image_view = ImageView::from_pixels(
-        NonZeroU32::new(width).unwrap(),
-        NonZeroU32::new(height).unwrap(),
-        &src_pixels,
-    )
-    .unwrap()
-    .into();
+    let src_image = TypedImage::from_pixels(width, height, &src_pixels).unwrap();
 
-    let mut dst_dyn_image_view = ImageViewMut::from_pixels(
-        NonZeroU32::new(width).unwrap(),
-        NonZeroU32::new(height).unwrap(),
-        &mut dst_pixels,
-    )
-    .unwrap()
-    .into();
+    let mut dst_image = TypedImageMut::from_pixels(width, height, &mut dst_pixels).unwrap();
 
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
@@ -66,10 +47,10 @@ fn mul_div_alpha_test<P, const N: usize>(
 
     match oper {
         Oper::Mul => alpha_mul_div
-            .multiply_alpha(&src_dyn_image_view, &mut dst_dyn_image_view)
+            .multiply_alpha_typed(&src_image, &mut dst_image)
             .unwrap(),
         Oper::Div => alpha_mul_div
-            .divide_alpha(&src_dyn_image_view, &mut dst_dyn_image_view)
+            .divide_alpha_typed(&src_image, &mut dst_image)
             .unwrap(),
     }
 
@@ -92,19 +73,15 @@ fn mul_div_alpha_test<P, const N: usize>(
 
     // Inplace
     let mut src_pixels_clone = src_pixels.clone();
-    let mut image_view = ImageViewMut::from_pixels(
-        NonZeroU32::new(width).unwrap(),
-        NonZeroU32::new(height).unwrap(),
-        &mut src_pixels_clone,
-    )
-    .unwrap()
-    .into();
+    let mut image = TypedImageMut::from_pixels(width, height, &mut src_pixels_clone).unwrap();
 
     match oper {
         Oper::Mul => alpha_mul_div
-            .multiply_alpha_inplace(&mut image_view)
+            .multiply_alpha_inplace_typed(&mut image)
             .unwrap(),
-        Oper::Div => alpha_mul_div.divide_alpha_inplace(&mut image_view).unwrap(),
+        Oper::Div => alpha_mul_div
+            .divide_alpha_inplace_typed(&mut image)
+            .unwrap(),
     }
 
     for ((s, r), e) in src_pixels.iter().zip(src_pixels_clone).zip(expected_pixels) {
@@ -116,8 +93,10 @@ fn mul_div_alpha_test<P, const N: usize>(
 }
 
 mod u8x4 {
-    use super::*;
+    use fast_image_resize::images::Image;
     use fast_image_resize::pixels::U8x4;
+
+    use super::*;
 
     const fn p4(r: u8, g: u8, b: u8, a: u8) -> U8x4 {
         U8x4::new([r, g, b, a])
@@ -219,7 +198,7 @@ mod u8x4 {
                 i += 4;
             }
         }
-        let size = NonZeroU32::new(256).unwrap();
+        let size = 256;
         let src_image = Image::from_vec_u8(size, size, pixels, PixelType::U8x4).unwrap();
         let mut dst_image = Image::new(size, size, PixelType::U8x4);
 
@@ -242,7 +221,7 @@ mod u8x4 {
                 alpha_mul_div.set_cpu_extensions(cpu_extensions);
             }
             alpha_mul_div
-                .multiply_alpha(&src_image.view(), &mut dst_image.view_mut())
+                .multiply_alpha(&src_image, &mut dst_image)
                 .unwrap();
 
             let name = format!("multiple_alpha-{}", cpu_ext_into_str(cpu_extensions));
@@ -271,7 +250,7 @@ mod u8x4 {
                 i += 4;
             }
         }
-        let size = NonZeroU32::new(256).unwrap();
+        let size = 256;
         let src_image = Image::from_vec_u8(size, size, pixels, PixelType::U8x4).unwrap();
         let mut dst_image = Image::new(size, size, PixelType::U8x4);
 
@@ -295,7 +274,7 @@ mod u8x4 {
                 alpha_mul_div.set_cpu_extensions(cpu_extensions);
             }
             alpha_mul_div
-                .divide_alpha(&src_image.view(), &mut dst_image.view_mut())
+                .divide_alpha(&src_image, &mut dst_image)
                 .unwrap();
 
             let name = format!("divide_alpha-{}", cpu_ext_into_str(cpu_extensions));
@@ -309,11 +288,12 @@ mod u8x4 {
 
 #[cfg(not(feature = "only_u8x4"))]
 mod not_u8x4 {
-    use super::*;
     use fast_image_resize::pixels::{U16x2, U16x4, U8x2};
 
+    use super::*;
+
     const fn p2(l: u8, a: u8) -> U8x2 {
-        U8x2::new(u16::from_le_bytes([l, a]))
+        U8x2::new([l, a])
     }
 
     #[cfg(test)]

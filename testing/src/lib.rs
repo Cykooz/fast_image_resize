@@ -3,14 +3,15 @@ use std::num::NonZeroU32;
 use image::io::Reader as ImageReader;
 use image::{ColorType, DynamicImage};
 
+use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
-use fast_image_resize::{CpuExtensions, Image, PixelType};
+use fast_image_resize::{CpuExtensions, PixelType};
 
 pub fn nonzero(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()
 }
 
-pub fn image_checksum<P: PixelExt, const N: usize>(image: &Image) -> [u64; N] {
+pub fn image_checksum<P: InnerPixel, const N: usize>(image: &Image) -> [u64; N] {
     let buffer = image.buffer();
     let mut res = [0u64; N];
     let component_size = P::size() / P::count_of_components();
@@ -31,7 +32,7 @@ pub fn image_checksum<P: PixelExt, const N: usize>(image: &Image) -> [u64; N] {
     res
 }
 
-pub trait PixelTestingExt: PixelExt {
+pub trait PixelTestingExt: InnerPixel {
     fn pixel_type_str() -> &'static str {
         match Self::pixel_type() {
             PixelType::U8 => "u8",
@@ -65,8 +66,8 @@ pub trait PixelTestingExt: PixelExt {
     fn load_big_src_image() -> Image<'static> {
         let img = Self::load_big_image();
         Image::from_vec_u8(
-            nonzero(img.width()),
-            nonzero(img.height()),
+            img.width(),
+            img.height(),
             Self::img_into_bytes(img),
             Self::pixel_type(),
         )
@@ -76,8 +77,8 @@ pub trait PixelTestingExt: PixelExt {
     fn load_big_square_src_image() -> Image<'static> {
         let img = Self::load_big_square_image();
         Image::from_vec_u8(
-            nonzero(img.width()),
-            nonzero(img.height()),
+            img.width(),
+            img.height(),
             Self::img_into_bytes(img),
             Self::pixel_type(),
         )
@@ -94,8 +95,8 @@ pub trait PixelTestingExt: PixelExt {
     fn load_small_src_image() -> Image<'static> {
         let img = Self::load_small_image();
         Image::from_vec_u8(
-            nonzero(img.width()),
-            nonzero(img.height()),
+            img.width(),
+            img.height(),
             Self::img_into_bytes(img),
             Self::pixel_type(),
         )
@@ -283,7 +284,7 @@ impl PixelTestingExt for F32 {
 }
 
 pub fn save_result(image: &Image, name: &str) {
-    if std::env::var("DONT_SAVE_RESULT").unwrap_or_else(|_| "".to_owned()) == "1" {
+    if std::env::var("SAVE_RESULT").unwrap_or_else(|_| "".to_owned()) == "" {
         return;
     }
     std::fs::create_dir_all("./data/result").unwrap();
@@ -302,8 +303,8 @@ pub fn save_result(image: &Image, name: &str) {
     image::save_buffer(
         path,
         image.buffer(),
-        image.width().get(),
-        image.height().get(),
+        image.width(),
+        image.height(),
         color_type,
     )
     .unwrap();

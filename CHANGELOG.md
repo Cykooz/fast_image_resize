@@ -1,3 +1,37 @@
+## [Unreleased] - ReleaseDate
+
+A lot of breaking changes have been done in this release:
+
+- Structures `ImageView` and `ImageViewMut` have been removed. They always
+  did unnecessary memory allocation to store references to image rows.
+  Instead of these structures, the `ImageView` and `ImageViewMut` traits
+  have been added. The crate accepts any image container that provides
+  these traits.
+- Also, traits `IntoImageView` and `IntoImageViewMut` have been added.
+  They allow you to write runtime adapters to convert your particular
+  image container into something that provides `ImageView`/`ImageViewMut` trait.
+- `Resizer` now has two methods for resize:
+    - `resize()` accepts `IntoImageView` and `IntoImageViewMut` arguments;
+    - `resize_typed()` accepts `ImageView` and `ImageViewMut` arguments.
+- Resize methods also accept the `options` argument.
+  With help of this argument, you can specify:
+    - how to crop the source image;
+    - whether to multiply the source image by the alpha channel and
+      divide the destination image by the alpha channel.
+- The `MulDiv` implementation has been changed in the same way as `Resizer`.
+  It now has two versions of each method: dynamic and typed.
+- Type of image dimensions has been changed from `NonZeroU32` into `u32`.
+  Now you can create and use images with zero pixels.
+- Embedded implementation of image container `Image` moved from root of
+  the crate into module `images`.
+- Added new image containers: `TypedImage`, `TypedImageMut`, `CroppedImage`
+  and `CroppedImageMut`.
+- Added optional feature "image". It adds implementation of traits
+  `IntoImageView` and `IntoImageViewMut` for the
+  [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
+  type from the `image` crate. It allows you to use `DynamicImage` instances
+  as arguments for `Resize::resize()` method.
+
 ## [3.0.4] - 2024-02-15
 
 ### Fixed
@@ -23,15 +57,15 @@
   for `U8x3` and `U8x4` images.
 - **BREAKING**: Changed internal data type for `U8x4` structure.
   Now it is `[u8; 4]` instead of `u32`.
-- Significantly improved (4.5 times on `x86_64`) speed of vertical convolution pass implemented 
+- Significantly improved (4.5 times on `x86_64`) speed of vertical convolution pass implemented
   in native Rust for `U8`, `U8x2`, `U8x3` and `U8x4` images.
 - Changed order of convolution passes for `U8`, `U8x2`, `U8x3` and `U8x4` images.
   Now a vertical pass is the first and a horizontal pass is the second.
 - **BREAKING**: Type of the `CropBox` fields has been changed to `f64`. Now you can use
   fractional size and position of crop box.
 - **BREAKING**: Type of the `centering` argument of `ImageView::set_crop_box_to_fit_dst_size()`
-  and `DynamicImageView::set_crop_box_to_fit_dst_size()` methods has been changed to `Optional<(f64, f64)>`. 
-- **BREAKING**: The `crop_box` argument of `ImageViewMut::crop()` and `DynamicImageViewMut::crop()` 
+  and `DynamicImageView::set_crop_box_to_fit_dst_size()` methods has been changed to `Optional<(f64, f64)>`.
+- **BREAKING**: The `crop_box` argument of `ImageViewMut::crop()` and `DynamicImageViewMut::crop()`
   methods has been replaced with separate `left`, `top`, `width` and `height` arguments.
 
 ## [2.7.3] - 2023-05-07
@@ -46,7 +80,7 @@
 
 ### Fixed
 
-- Added using of (read|write)_unaligned for unaligned pointers 
+- Added using of (read|write)_unaligned for unaligned pointers
   on `arm64` and `wasm32` architectures.
   ([#15](https://github.com/Cykooz/fast_image_resize/issues/15)).
 
@@ -69,9 +103,9 @@
 
 ### Crate
 
-- Slightly improved speed of `Convolution` implementation for `U8x2` images 
+- Slightly improved speed of `Convolution` implementation for `U8x2` images
   and `Wasm32 SIMD128` instructions.
-- Method `Image::buffer_mut()` was made public 
+- Method `Image::buffer_mut()` was made public
   ([#14](https://github.com/Cykooz/fast_image_resize/pull/14))
 
 ## [2.5.0] - 2023-01-29
@@ -94,7 +128,7 @@
 - Slightly improved speed of `MulDiv` implementation for `U8x2`, `U8x4`, `U16x2` and `U16x4` images.
 - Added optimisation for processing `U16x2` images by `MulDiv` with
   helps of `NEON SIMD` instructions.
-- Excluded possibility of unnecessary operations during resize 
+- Excluded possibility of unnecessary operations during resize
   of cropped image by convolution algorithm.
 - Added implementation `From` trait to convert `ImageViewMut` into `ImageView`.
 - Added implementation `From` trait to convert `DynamicImageViewMut` into `DynamicImageView`.
@@ -139,25 +173,25 @@
 ### Crate
 
 - Breaking changes:
-  - Struct `ImageView` replaced by enum `DynamicImageView`.
-  - Struct `ImageViewMut` replaced by enum `DynamicImageViewMut`.
-  - Trait `Pixel` renamed into `PixelExt` and some its internals changed:
-    - associated type `ComponentsCount` renamed into `CountOfComponents`.
-    - associated type `ComponentCountOfValues` deleted.
-    - associated method `components_count` renamed into `count_of_components`.
-    - associated method `component_count_of_values` renamed into `count_of_component_values`.
-  - All pixel types (`U8`, `U8x2`, ...) replaced by type aliases for new 
-    generic structure `Pixel`. Use method `new()` to create 
-    instance of one pixel.
+    - Struct `ImageView` replaced by enum `DynamicImageView`.
+    - Struct `ImageViewMut` replaced by enum `DynamicImageViewMut`.
+    - Trait `Pixel` renamed into `PixelExt` and some its internals changed:
+        - associated type `ComponentsCount` renamed into `CountOfComponents`.
+        - associated type `ComponentCountOfValues` deleted.
+        - associated method `components_count` renamed into `count_of_components`.
+        - associated method `component_count_of_values` renamed into `count_of_component_values`.
+    - All pixel types (`U8`, `U8x2`, ...) replaced by type aliases for new
+      generic structure `Pixel`. Use method `new()` to create
+      instance of one pixel.
 - Added structure `PixelComponentMapper` that holds tables for mapping values of pixel's
   components in forward and backward directions.
 - Added function `create_gamma_22_mapper()` to create instance of `PixelComponentMapper`
-  that converts images with gamma 2.2 to linear colorspace and back. 
+  that converts images with gamma 2.2 to linear colorspace and back.
 - Added function `create_srgb_mapper()` to create instance of `PixelComponentMapper`
   that converts images from SRGB colorspace to linear RGB and back.
 - Added generic structs `ImageView` and `ImageViewMut`.
-- Added functions `change_type_of_pixel_components` and 
-  `change_type_of_pixel_components_dyn` that change type of pixel's 
+- Added functions `change_type_of_pixel_components` and
+  `change_type_of_pixel_components_dyn` that change type of pixel's
   components in whole image.
 - Added generic trait `IntoPixelComponent<Out: PixelComponent>`.
 - Added generic structure `Pixel` for create all types of pixels.
@@ -168,7 +202,7 @@
 
 ### Example application
 
-- Added option `--high_precision` to use `u16` as pixel components 
+- Added option `--high_precision` to use `u16` as pixel components
   for intermediate image representation.
 - Added converting of source image into linear colorspace before it will be resized.
   Destination image will be returned into original colorspace before it will be saved.
@@ -179,14 +213,14 @@
 
 ## [0.9.7] - 2022-07-14
 
-- Fixed resizing when the destination image has the same dimensions 
+- Fixed resizing when the destination image has the same dimensions
   as the source image
   ([#9](https://github.com/Cykooz/fast_image_resize/issues/9)).
 
 ## [0.9.6] - 2022-06-28
 
 - Added support of new type of pixels `PixelType::U16x4`.
-- Fixed benchmarks for resizing images with alpha channel using 
+- Fixed benchmarks for resizing images with alpha channel using
   the `resizer` crate.
 - Removed `image` crate from benchmarks for resizing images with alpha.
 - Added method `Image::copy(&self) -> Image<'static>`.
@@ -210,45 +244,45 @@
 
 ## [0.9.1] - 2022-05-12
 
-- Added optimisation for processing `U8x2` images by `MulDiv` with 
+- Added optimisation for processing `U8x2` images by `MulDiv` with
   helps of `SSE4.1` and `AVX2` instructions.
-- Added optimisation for convolution of `U16x2` images with helps of 
+- Added optimisation for convolution of `U16x2` images with helps of
   `AVX2` instructions.
 
 ## [0.9.0] - 2022-05-01
 
 - Added support of new type of pixels `PixelType::U8x2`.
 - Added into `MulDiv` support of images with pixel type `U8x2`.
-- Added method `Image::into_vec(self) -> Vec<u8>` 
+- Added method `Image::into_vec(self) -> Vec<u8>`
   ([#7](https://github.com/Cykooz/fast_image_resize/pull/7)).
 
 ## [0.8.0] - 2022-03-23
 
 - Added optimisation for convolution of U16x3 images with helps of `SSE4.1`
   and `AVX2` instructions.
-- Added partial optimisation for convolution of U8 images with helps of 
+- Added partial optimisation for convolution of U8 images with helps of
   `SSE4.1` instructions.
-- Allowed to create an instance of `Image`, `ImageVew` and `ImageViewMut` 
-  from a buffer larger than necessary 
+- Allowed to create an instance of `Image`, `ImageVew` and `ImageViewMut`
+  from a buffer larger than necessary
   ([#5](https://github.com/Cykooz/fast_image_resize/issues/5)).
 - Breaking changes:
-  - Removed methods: `Image::from_vec_u32()`, `Image::from_slice_u32()`.
-  - Removed error `InvalidBufferSizeError`.
+    - Removed methods: `Image::from_vec_u32()`, `Image::from_slice_u32()`.
+    - Removed error `InvalidBufferSizeError`.
 
 ## [0.7.0] - 2022-01-27
 
 - Added support of new type of pixels `PixelType::U16x3`.
 - Breaking changes:
-  - Added variant `U16x3` into the enum `PixelType`.
+    - Added variant `U16x3` into the enum `PixelType`.
 
 ## [0.6.0] - 2022-01-12
 
 - Added optimisation of multiplying and dividing image by alpha channel with helps
   of `SSE4.1` instructions.
-- Improved performance of dividing image by alpha channel without forced 
+- Improved performance of dividing image by alpha channel without forced
   SIMD instructions.
 - Breaking changes:
-  - Deleted variant `SSE2` from enum `CpuExtensions`.
+    - Deleted variant `SSE2` from enum `CpuExtensions`.
 
 ## [0.5.3] - 2021-12-14
 
@@ -266,17 +300,17 @@
 
 ## [0.5.0] - 2021-11-18
 
-- Added support of new type of pixels `PixelType::U8x3` (with 
+- Added support of new type of pixels `PixelType::U8x3` (with
   auto-vectorization for SSE4.1).
-- Exposed module `fast_image_resize::pixels` with types `U8x3`, 
-  `U8x4`, `F32`, `I32`, `U8` used as wrappers for represent type of 
+- Exposed module `fast_image_resize::pixels` with types `U8x3`,
+  `U8x4`, `F32`, `I32`, `U8` used as wrappers for represent type of
   one pixel of image.
-- Some optimisations in code of convolution written in Rust (without 
+- Some optimisations in code of convolution written in Rust (without
   intrinsics for SIMD).
 - Breaking changes:
-  - Added variant `U8x3` into the enum `PixelType`.
-  - Changed internal tuple structures inside of variant of `ImageRows` 
-    and `ImageRowsMut` enums.
+    - Added variant `U8x3` into the enum `PixelType`.
+    - Changed internal tuple structures inside of variant of `ImageRows`
+      and `ImageRowsMut` enums.
 
 ## [0.4.1] - 2021-11-13
 
@@ -286,10 +320,10 @@
 
 - Added support of new type of pixels `PixelType::U8` (without forced SIMD).
 - Breaking changes:
-  - `ImageData` renamed into `Image`.
-  - `SrcImageView` and `DstImageView` replaced by `ImageView`
-    and `ImageViewMut`.
-  - Method `Resizer.resize()` now returns `Result<(), DifferentTypesOfPixelsError>`.
+    - `ImageData` renamed into `Image`.
+    - `SrcImageView` and `DstImageView` replaced by `ImageView`
+      and `ImageViewMut`.
+    - Method `Resizer.resize()` now returns `Result<(), DifferentTypesOfPixelsError>`.
 
 ## [0.3.1] - 2021-10-09
 
@@ -299,10 +333,10 @@
 
 - Added method `SrcImageView.set_crop_box_to_fit_dst_size()`.
 - Fixed out-of-bounds error during resize with cropping.
-- Refactored `ImageData`. 
-  - Added methods: `from_vec_u32()`, `from_vec_u8()`, `from_slice_u32()`,
-    `from_slice_u8()`.
-  - Removed methods: `from_buffer()`, `from_pixels()`.
+- Refactored `ImageData`.
+    - Added methods: `from_vec_u32()`, `from_vec_u8()`, `from_slice_u32()`,
+      `from_slice_u8()`.
+    - Removed methods: `from_buffer()`, `from_pixels()`.
 
 ## [0.2.0] - 2021-08-02
 
