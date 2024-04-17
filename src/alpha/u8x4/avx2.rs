@@ -189,20 +189,35 @@ unsafe fn divide_alpha_8_pixels(pixels: __m256i) -> __m256i {
         13, 12, 13, 12, 13, 12, 13, 12, 9, 8, 9, 8, 9, 8, 9, 8,
     );
     let alpha_scale = _mm256_set1_ps(255.0 * 256.0);
+    let max_value = _mm256_set1_epi16(0xff);
 
     let alpha_f32 = _mm256_cvtepi32_ps(_mm256_srli_epi32::<24>(pixels));
-    let scaled_alpha_f32 = _mm256_div_ps(alpha_scale, alpha_f32);
-    let scaled_alpha_i32 = _mm256_cvtps_epi32(scaled_alpha_f32);
-    let mma0 = _mm256_shuffle_epi8(scaled_alpha_i32, shuffle1);
-    let mma1 = _mm256_shuffle_epi8(scaled_alpha_i32, shuffle2);
+    let recip_alpha_i32 = _mm256_cvtps_epi32(_mm256_div_ps(alpha_scale, alpha_f32));
 
-    let pix0 = _mm256_unpacklo_epi8(zero, pixels);
-    let pix1 = _mm256_unpackhi_epi8(zero, pixels);
+    // Recip alpha in Q8.8 format
+    let recip_alpha_lo_q8_8 = _mm256_shuffle_epi8(recip_alpha_i32, shuffle1);
+    let recip_alpha_hi_q8_8 = _mm256_shuffle_epi8(recip_alpha_i32, shuffle2);
 
-    let pix0 = _mm256_mulhi_epu16(pix0, mma0);
-    let pix1 = _mm256_mulhi_epu16(pix1, mma1);
+    // Pixels components in format Q9.7
+    let components_lo_q9_7 = _mm256_slli_epi16::<7>(_mm256_unpacklo_epi8(pixels, zero));
+    let components_hi_q9_7 = _mm256_slli_epi16::<7>(_mm256_unpackhi_epi8(pixels, zero));
+
+    // Multiplied pixels components as i16.
+    //
+    // fn _mm256_mulhrs_epi16(a: i16, b: i16) -> i16 {
+    //   let tmp: i32 = ((a as i32 * b as i32) >> 14) + 1;
+    //   (tmp >> 1) as i16
+    // }
+    let res_components_lo_i16 = _mm256_min_epu16(
+        _mm256_mulhrs_epi16(components_lo_q9_7, recip_alpha_lo_q8_8),
+        max_value,
+    );
+    let res_components_hi_i16 = _mm256_min_epu16(
+        _mm256_mulhrs_epi16(components_hi_q9_7, recip_alpha_hi_q8_8),
+        max_value,
+    );
 
     let alpha = _mm256_and_si256(pixels, alpha_mask);
-    let rgb = _mm256_packus_epi16(pix0, pix1);
+    let rgb = _mm256_packus_epi16(res_components_lo_i16, res_components_hi_i16);
     _mm256_blendv_epi8(rgb, alpha, alpha_mask)
 }

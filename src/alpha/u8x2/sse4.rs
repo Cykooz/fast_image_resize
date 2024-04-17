@@ -216,8 +216,9 @@ unsafe fn divide_alpha_8_pixels(pixels: __m128i) -> __m128i {
     let scaled_alpha_i16 = _mm_packus_epi32(scaled_alpha_lo_i32, scaled_alpha_hi_i32);
 
     let luma_i16 = _mm_and_si128(pixels, luma_mask);
-    let scaled_luma_i16 = _mm_mullo_epi16(luma_i16, scaled_alpha_i16);
-    let scaled_luma_i16 = _mm_srli_epi16::<8>(scaled_luma_i16);
+    let luma_i16 = _mm_slli_epi16::<7>(luma_i16);
+    let scaled_luma_i16 = _mm_mulhrs_epi16(luma_i16, scaled_alpha_i16);
+    let scaled_luma_i16 = _mm_min_epu16(scaled_luma_i16, luma_mask);
 
     let alpha = _mm_and_si128(pixels, alpha_mask);
     _mm_blendv_epi8(scaled_luma_i16, alpha, alpha_mask)

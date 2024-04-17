@@ -1,7 +1,7 @@
 use std::arch::wasm32::*;
 
 use crate::pixels::U8x4;
-use crate::wasm32_utils;
+use crate::wasm32_utils::u16x8_mul_add_shr16;
 use crate::{ImageView, ImageViewMut};
 
 use super::native;
@@ -171,28 +171,34 @@ unsafe fn divide_alpha_row_inplace(row: &mut [U8x4]) {
 unsafe fn divide_alpha_4_pixels(pixels: v128) -> v128 {
     const FACTOR_LO_SHUFFLE: v128 = i8x16(0, 1, 0, 1, 0, 1, -1, -1, 2, 3, 2, 3, 2, 3, -1, -1);
     const FACTOR_HI_SHUFFLE: v128 = i8x16(4, 5, 4, 5, 4, 5, -1, -1, 6, 7, 6, 7, 6, 7, -1, -1);
-    let alpha_mask = u32x4_splat(0xff000000);
+
     let alpha_scale = f32x4_splat(255.0 * 256.0);
 
     let alpha_f32 = f32x4_convert_i32x4(u32x4_shr(pixels, 24));
     // In case of zero division the result will be u32::MAX or 0.
-    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_div(alpha_scale, alpha_f32));
+    let scaled_alpha_u32 = u32x4_trunc_sat_f32x4(f32x4_add(
+        f32x4_div(alpha_scale, alpha_f32),
+        f32x4_splat(0.5),
+    ));
     // All u32::MAX values in arguments will interpreted as -1i32.
     // u16x8_narrow_i32x4() converts all negative values into 0.
     let scaled_alpha_u16 = u16x8_narrow_i32x4(scaled_alpha_u32, scaled_alpha_u32);
     let factor_lo_u16x8 = u8x16_swizzle(scaled_alpha_u16, FACTOR_LO_SHUFFLE);
     let factor_hi_u16x8 = u8x16_swizzle(scaled_alpha_u16, FACTOR_HI_SHUFFLE);
 
-    // alpha_mask's first byte is 0
+    let zero = u32x4_splat(0);
     let src_u16_lo =
-        u8x16_shuffle::<0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0, 23>(alpha_mask, pixels);
+        u8x16_shuffle::<0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0, 23>(zero, pixels);
     let src_u16_hi =
-        u8x16_shuffle::<0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31>(alpha_mask, pixels);
+        u8x16_shuffle::<0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31>(zero, pixels);
 
-    let dst_lo = wasm32_utils::u16x8_mul_shr16(src_u16_lo, factor_lo_u16x8);
-    let dst_hi = wasm32_utils::u16x8_mul_shr16(src_u16_hi, factor_hi_u16x8);
+    let color_max = u16x8_splat(0xff);
+    let dst_lo = u16x8_mul_add_shr16(src_u16_lo, factor_lo_u16x8, u32x4_splat(0x8000));
+    let dst_lo = u16x8_min(dst_lo, color_max);
+    let dst_hi = u16x8_mul_add_shr16(src_u16_hi, factor_hi_u16x8, u32x4_splat(0x8000));
+    let dst_hi = u16x8_min(dst_hi, color_max);
 
-    let alpha = v128_and(pixels, alpha_mask);
+    let alpha = v128_and(pixels, u32x4_splat(0xff000000));
     let rgb = u8x16_narrow_i16x8(dst_lo, dst_hi);
     v128_or(rgb, alpha)
 }

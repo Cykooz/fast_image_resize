@@ -190,8 +190,7 @@ unsafe fn divide_alpha_row_inplace(row: &mut [U16x4]) {
 #[target_feature(enable = "simd128")]
 unsafe fn divide_alpha_2_pixels(pixels: v128) -> v128 {
     let zero = u64x2_splat(0);
-    let alpha_mask = u64x2_splat(0xffff000000000000);
-    let alpha_max = f32x4_splat(65535.0);
+
     /*
        |R0   G0   B0   A0  | |R1   G1   B1   A1  |
        |0001 0203 0405 0607| |0809 1011 1213 1415|
@@ -208,18 +207,24 @@ unsafe fn divide_alpha_2_pixels(pixels: v128) -> v128 {
     let pix_hi_f32x4 =
         f32x4_convert_i32x4(i16x8_shuffle::<4, 12, 5, 13, 6, 14, 7, 15>(pixels, zero));
 
+    let alpha_max = f32x4_splat(65535.0);
     let scaled_pix_lo_f32x4 = f32x4_mul(pix_lo_f32x4, alpha_max);
     let scaled_pix_hi_f32x4 = f32x4_mul(pix_hi_f32x4, alpha_max);
 
     // In case of zero division the result will be u32::MAX or 0.
-    let divided_pix_lo_u32x4 =
-        u32x4_trunc_sat_f32x4(f32x4_div(scaled_pix_lo_f32x4, alpha_lo_f32x4));
-    let divided_pix_hi_u32x4 =
-        u32x4_trunc_sat_f32x4(f32x4_div(scaled_pix_hi_f32x4, alpha_hi_f32x4));
+    let divided_pix_lo_u32x4 = u32x4_trunc_sat_f32x4(f32x4_add(
+        f32x4_div(scaled_pix_lo_f32x4, alpha_lo_f32x4),
+        f32x4_splat(0.5),
+    ));
+    let divided_pix_hi_u32x4 = u32x4_trunc_sat_f32x4(f32x4_add(
+        f32x4_div(scaled_pix_hi_f32x4, alpha_hi_f32x4),
+        f32x4_splat(0.5),
+    ));
 
     // All u32::MAX values in arguments will interpreted as -1i32.
     // u16x8_narrow_i32x4() converts all negative values into 0.
     let two_pixels_i16x8 = u16x8_narrow_i32x4(divided_pix_lo_u32x4, divided_pix_hi_u32x4);
+    let alpha_mask = u64x2_splat(0xffff000000000000);
     let alpha = v128_and(pixels, alpha_mask);
     v128_or(two_pixels_i16x8, alpha)
 }

@@ -79,6 +79,14 @@ pub(crate) unsafe fn u16x8_mul_shr16(a_u16x8: v128, b_u16x8: v128) -> v128 {
     i16x8_shuffle::<1, 3, 5, 7, 9, 11, 13, 15>(lo_u32x4, hi_u32x4)
 }
 
+pub(crate) unsafe fn u16x8_mul_add_shr16(a_u16x8: v128, b_u16x8: v128, c: v128) -> v128 {
+    let lo_u32x4 = u32x4_extmul_low_u16x8(a_u16x8, b_u16x8);
+    let hi_u32x4 = u32x4_extmul_high_u16x8(a_u16x8, b_u16x8);
+    let lo_u32x4 = u32x4_add(lo_u32x4, c);
+    let hi_u32x4 = u32x4_add(hi_u32x4, c);
+    i16x8_shuffle::<1, 3, 5, 7, 9, 11, 13, 15>(lo_u32x4, hi_u32x4)
+}
+
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn i64x2_mul_lo(a: v128, b: v128) -> v128 {

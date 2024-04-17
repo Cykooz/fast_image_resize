@@ -35,16 +35,18 @@ const fn recip_alpha16_array(precision: u64) -> [u64; 65536] {
 }
 
 const PRECISION: u32 = 8;
+const ROUND_CORRECTION: u32 = 1 << (PRECISION - 1);
 const PRECISION16: u64 = 33;
+const ROUND_CORRECTION16: u64 = 1 << (PRECISION16 - 1);
 
 #[inline(always)]
 pub(crate) fn div_and_clip(v: u8, recip_alpha: u32) -> u8 {
-    ((v as u32 * recip_alpha) >> PRECISION).min(255) as u8
+    ((v as u32 * recip_alpha + ROUND_CORRECTION) >> PRECISION).min(0xff) as u8
 }
 
 #[inline(always)]
 pub(crate) fn div_and_clip16(v: u16, recip_alpha: u64) -> u16 {
-    ((v as u64 * recip_alpha) >> PRECISION16).min(65535) as u16
+    ((v as u64 * recip_alpha + ROUND_CORRECTION16) >> PRECISION16).min(0xffff) as u16
 }
 
 pub(crate) const RECIP_ALPHA: [u32; 256] = recip_alpha_array(PRECISION);
@@ -74,23 +76,20 @@ mod tests {
         let mut err_sum: i32 = 0;
         for alpha in 0..=255u8 {
             for color in 0..=255u8 {
-                let multiplied_color = (color as f64 * alpha as f64 / 255.).round().min(255.) as u8;
-
                 let expected_color = if alpha == 0 {
                     0
                 } else {
-                    let recip_alpha = 255. / alpha as f64;
-                    let res = multiplied_color as f64 * recip_alpha;
-                    res.min(255.) as u8
+                    let res = color as f64 / (alpha as f64 / 255.);
+                    res.round().min(255.) as u8
                 };
 
                 let recip_alpha = RECIP_ALPHA[alpha as usize];
-                let result_color = div_and_clip(multiplied_color, recip_alpha);
+                let result_color = div_and_clip(color, recip_alpha);
                 let delta = result_color as i32 - expected_color as i32;
                 err_sum += delta.abs();
             }
         }
-        assert_eq!(err_sum, 3468);
+        assert_eq!(err_sum, 2512);
     }
 
     #[test]

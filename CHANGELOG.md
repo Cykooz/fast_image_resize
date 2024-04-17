@@ -32,6 +32,10 @@ A lot of breaking changes have been done in this release:
   type from the `image` crate. It allows you to use `DynamicImage` instances
   as arguments for `Resize::resize()` method.
 
+### Fixed
+
+- Fixed dividing image by alpha channel.
+
 ## [3.0.4] - 2024-02-15
 
 ### Fixed

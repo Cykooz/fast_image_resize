@@ -199,8 +199,9 @@ unsafe fn divide_alpha_16_pixels(pixels: __m256i) -> __m256i {
     let scaled_alpha_i16 = _mm256_packus_epi32(scaled_alpha_lo_i32, scaled_alpha_hi_i32);
 
     let luma_i16 = _mm256_and_si256(pixels, luma_mask);
-    let scaled_luma_i16 = _mm256_mullo_epi16(luma_i16, scaled_alpha_i16);
-    let scaled_luma_i16 = _mm256_srli_epi16::<8>(scaled_luma_i16);
+    let luma_i16 = _mm256_slli_epi16::<7>(luma_i16);
+    let scaled_luma_i16 = _mm256_mulhrs_epi16(luma_i16, scaled_alpha_i16);
+    let scaled_luma_i16 = _mm256_min_epu16(scaled_luma_i16, luma_mask);
 
     let alpha = _mm256_and_si256(pixels, alpha_mask);
     _mm256_blendv_epi8(scaled_luma_i16, alpha, alpha_mask)

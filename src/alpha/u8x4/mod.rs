@@ -25,9 +25,9 @@ impl AlphaMulDiv for U8x4 {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_view, dst_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_image, dst_image) },
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_view, dst_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_image, dst_image) },
+            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_view, dst_view) },
             _ => native::multiply_alpha(src_view, dst_view),
         }
         Ok(())
@@ -43,9 +43,9 @@ impl AlphaMulDiv for U8x4 {
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image_view) },
             #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image) },
+            CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image_view) },
             #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image) },
+            CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image_view) },
             _ => native::multiply_alpha_inplace(image_view),
         }
         Ok(())

@@ -1,6 +1,7 @@
 use std::arch::wasm32::*;
 
 use crate::pixels::U8x2;
+use crate::wasm32_utils::{u16x8_mul_add_shr16, u16x8_mul_shr16};
 use crate::{ImageView, ImageViewMut};
 
 use super::native;
@@ -174,8 +175,6 @@ unsafe fn divide_alpha_row_inplace(row: &mut [U8x2]) {
 #[inline]
 #[target_feature(enable = "simd128")]
 unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
-    let alpha_mask = i16x8_splat(0xff00u16 as i16);
-    let luma_mask = i16x8_splat(0xff);
     const ALPHA32_SH_LO: v128 = i8x16(1, -1, -1, -1, 3, -1, -1, -1, 5, -1, -1, -1, 7, -1, -1, -1);
     const ALPHA32_SH_HI: v128 = i8x16(
         9, -1, -1, -1, 11, -1, -1, -1, 13, -1, -1, -1, 15, -1, -1, -1,
@@ -184,20 +183,28 @@ unsafe fn divide_alpha_8_pixels(pixels: v128) -> v128 {
 
     let alpha_lo_f32 = f32x4_convert_u32x4(u8x16_swizzle(pixels, ALPHA32_SH_LO));
     // In case of zero division the result will be u32::MAX or 0.
-    let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_div(alpha_scale, alpha_lo_f32));
+    let scaled_alpha_lo_u32 = u32x4_trunc_sat_f32x4(f32x4_add(
+        f32x4_div(alpha_scale, alpha_lo_f32),
+        f32x4_splat(0.5),
+    ));
 
-    let alpha_hi_f32 = f32x4_convert_u32x4(i8x16_swizzle(pixels, ALPHA32_SH_HI));
-    let scaled_alpha_hi_u32 = u32x4_trunc_sat_f32x4(f32x4_div(alpha_scale, alpha_hi_f32));
+    let alpha_hi_f32 = f32x4_convert_u32x4(u8x16_swizzle(pixels, ALPHA32_SH_HI));
+    let scaled_alpha_hi_u32 = u32x4_trunc_sat_f32x4(f32x4_add(
+        f32x4_div(alpha_scale, alpha_hi_f32),
+        f32x4_splat(0.5),
+    ));
 
     // All u32::MAX values in arguments will interpreted as -1i32.
     // u16x8_narrow_i32x4() converts all negative values into 0.
     let scaled_alpha_u16 = u16x8_narrow_i32x4(scaled_alpha_lo_u32, scaled_alpha_hi_u32);
 
-    let luma_u16 = v128_and(pixels, luma_mask);
-    let scaled_luma_u16 = u16x8_mul(luma_u16, scaled_alpha_u16);
-    let scaled_luma_u16 = u16x8_shr(scaled_luma_u16, 8);
+    let luma_u16 = u16x8_shl(pixels, 8);
+    let scaled_luma_u16 = u16x8_mul_add_shr16(luma_u16, scaled_alpha_u16, u32x4_splat(0x8000));
+    let luma_max = u16x8_splat(0xff);
+    let scaled_luma_u16 = u16x8_min(scaled_luma_u16, luma_max);
 
     // Blend scaled luma with original alpha channel.
+    let alpha_mask = u16x8_splat(0xff00);
     let alpha = v128_and(pixels, alpha_mask);
     v128_or(scaled_luma_u16, alpha)
 }
