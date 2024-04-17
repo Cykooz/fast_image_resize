@@ -3,13 +3,13 @@ use std::arch::wasm32::*;
 use crate::convolution::optimisations::CoefficientsI32Chunk;
 use crate::convolution::vertical_u16::native::convolution_by_u16;
 use crate::convolution::{optimisations, Coefficients};
-use crate::pixels::PixelExt;
+use crate::pixels::InnerPixel;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
 
-pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+pub(crate) fn vert_convolution<T: InnerPixel<Component = u16>>(
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -17,17 +17,17 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
     let coefficients_chunks = normalizer.normalized_chunks();
     let src_x = offset as usize * T::count_of_components();
 
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u16(src_image, dst_row, src_x, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u16(src_view, dst_row, src_x, coeffs_chunk, &normalizer);
         }
     }
 }
 
 #[target_feature(enable = "simd128")]
-unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
-    src_img: &ImageView<T>,
+unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
+    src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
     coeffs_chunk: CoefficientsI32Chunk,
@@ -77,7 +77,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
 
             for r in 0..2 {
@@ -95,16 +95,17 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         }
 
         if let Some(&k) = coeffs_reminder.first() {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let coeff_i64x2 = i64x2_splat(k as i64);
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let coeff_i64x2 = i64x2_splat(k as i64);
 
-            for x in 0..2 {
-                let source = wasm32_utils::load_v128(components, src_x + x * 8);
-                for i in 0..4 {
-                    let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
-                    sums[i][x] =
-                        i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                for x in 0..2 {
+                    let source = wasm32_utils::load_v128(components, src_x + x * 8);
+                    for i in 0..4 {
+                        let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
+                        sums[i][x] =
+                            i64x2_add(sums[i][x], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                    }
                 }
             }
         }
@@ -132,7 +133,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 i64x2_splat(two_coeffs[0] as i64),
@@ -151,13 +152,14 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         }
 
         if let Some(&k) = coeffs_reminder.first() {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let coeff_i64x2 = i64x2_splat(k as i64);
-            let source = wasm32_utils::load_v128(components, src_x);
-            for i in 0..4 {
-                let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
-                sums[i] = i64x2_add(sums[i], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let coeff_i64x2 = i64x2_splat(k as i64);
+                let source = wasm32_utils::load_v128(components, src_x);
+                for i in 0..4 {
+                    let c_i64x2 = i8x16_swizzle(source, c_shuffles[i]);
+                    sums[i] = i64x2_add(sums[i], wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                }
             }
         }
 
@@ -186,7 +188,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_img.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 i64x2_splat(two_coeffs[0] as i64),
@@ -203,15 +205,16 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
         }
 
         if let Some(&k) = coeffs_reminder.first() {
-            let s_row = src_img.get_row(y_start + y).unwrap();
-            let components = T::components(s_row);
-            let coeff_i64x2 = i64x2_splat(k as i64);
+            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+                let components = T::components(s_row);
+                let coeff_i64x2 = i64x2_splat(k as i64);
 
-            let comp_x4 = components.get_unchecked(src_x..src_x + 4);
-            let c_i64x2 = i64x2(comp_x4[0] as i64, comp_x4[1] as i64);
-            c01 = i64x2_add(c01, wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
-            let c_i64x2 = i64x2(comp_x4[2] as i64, comp_x4[3] as i64);
-            c23 = i64x2_add(c23, wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                let comp_x4 = components.get_unchecked(src_x..src_x + 4);
+                let c_i64x2 = i64x2(comp_x4[0] as i64, comp_x4[1] as i64);
+                c01 = i64x2_add(c01, wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+                let c_i64x2 = i64x2(comp_x4[2] as i64, comp_x4[3] as i64);
+                c23 = i64x2_add(c23, wasm32_utils::i64x2_mul_lo(c_i64x2, coeff_i64x2));
+            }
         }
 
         let mut dst_ptr = dst_chunk.as_mut_ptr();
@@ -232,7 +235,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: PixelExt<Component = u16>>(
     if !dst_u16.is_empty() {
         let initial = 1 << (precision - 1);
         convolution_by_u16(
-            src_img, normalizer, initial, dst_u16, src_x, y_start, coeffs,
+            src_view, normalizer, initial, dst_u16, src_x, y_start, coeffs,
         );
     }
 }

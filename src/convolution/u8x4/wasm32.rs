@@ -11,35 +11,31 @@ use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: &ImageView<U8x4>,
-    dst_image: &mut ImageViewMut<U8x4>,
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
     offset: u32,
     coeffs: Coefficients,
 ) {
     let normalizer = optimisations::Normalizer16::new(coeffs);
-    let precision = normalizer.precision();
+    let precision = normalizer.precision() as u32;
     let coefficients_chunks = normalizer.normalized_chunks();
-    let dst_height = dst_image.height().get();
+    let dst_height = dst_view.height();
 
-    let src_iter = src_image.iter_4_rows(offset, dst_height + offset);
-    let dst_iter = dst_image.iter_4_rows_mut();
+    let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
+    let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_8u4x(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, precision);
         }
     }
 
-    let mut yy = dst_height - dst_height % 4;
-    while yy < dst_height {
+    let yy = dst_height - dst_height % 4;
+    let src_rows = src_view.iter_rows(yy + offset);
+    let dst_rows = dst_view.iter_rows_mut(yy);
+    for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_8u(
-                src_image.get_row(yy + offset).unwrap(),
-                dst_image.get_row_mut(yy).unwrap(),
-                &coefficients_chunks,
-                precision,
-            );
+            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
         }
-        yy += 1;
     }
 }
 
@@ -50,11 +46,11 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "simd128")]
-unsafe fn horiz_convolution_8u4x(
+unsafe fn horiz_convolution_four_rows(
     src_rows: [&[U8x4]; 4],
-    dst_rows: [&mut &mut [U8x4]; 4],
+    dst_rows: [&mut [U8x4]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
+    precision: u32,
 ) {
     let initial = i32x4_splat(1 << (precision - 1));
     const MASK_LO: v128 = i8x16(0, -1, 4, -1, 1, -1, 5, -1, 2, -1, 6, -1, 3, -1, 7, -1);
@@ -151,15 +147,10 @@ unsafe fn horiz_convolution_8u4x(
             sss3 = i32x4_add(sss3, i32x4_dot_i16x8(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss0 = i32x4_shr(sss0, $imm8);
-                sss1 = i32x4_shr(sss1, $imm8);
-                sss2 = i32x4_shr(sss2, $imm8);
-                sss3 = i32x4_shr(sss3, $imm8);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss0 = i32x4_shr(sss0, precision);
+        sss1 = i32x4_shr(sss1, precision);
+        sss2 = i32x4_shr(sss2, precision);
+        sss3 = i32x4_shr(sss3, precision);
 
         sss0 = i16x8_narrow_i32x4(sss0, sss0);
         sss1 = i16x8_narrow_i32x4(sss1, sss1);
@@ -182,11 +173,11 @@ unsafe fn horiz_convolution_8u4x(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "simd128")]
-unsafe fn horiz_convolution_8u(
+unsafe fn horiz_convolution_one_row(
     src_row: &[U8x4],
     dst_row: &mut [U8x4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
+    precision: u32,
 ) {
     let initial = i32x4_splat(1 << (precision - 1));
     const SH1: v128 = i8x16(0, -1, 8, -1, 1, -1, 9, -1, 2, -1, 10, -1, 3, -1, 11, -1);
@@ -268,12 +259,7 @@ unsafe fn horiz_convolution_8u(
             sss = i32x4_add(sss, i32x4_dot_i16x8(pix, mmk));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = i32x4_shr(sss, $imm8);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss = i32x4_shr(sss, precision);
 
         sss = i16x8_narrow_i32x4(sss, sss);
         *dst_row.get_unchecked_mut(dst_x) =

@@ -7,19 +7,19 @@ use crate::{ImageView, ImageViewMut};
 use super::native;
 
 pub(crate) unsafe fn multiply_alpha(
-    src_image: &ImageView<U8x4>,
-    dst_image: &mut ImageViewMut<U8x4>,
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         multiply_alpha_row(src_row, dst_row);
     }
 }
 
-pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -64,13 +64,12 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U8x4]) {
 #[inline]
 #[target_feature(enable = "simd128")]
 unsafe fn multiply_alpha_4_pixels(pixels: v128) -> v128 {
-    let half = u16x8_splat(128);
-    let max_alpha = u32x4_splat(0xff000000);
     const FACTOR_MASK: v128 = i8x16(3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
 
-    let factor_pixels = u8x16_swizzle(pixels, FACTOR_MASK);
-    let factor_pixels = v128_or(factor_pixels, max_alpha);
+    let max_alpha = u32x4_splat(0xff000000);
+    let factor_pixels = v128_or(u8x16_swizzle(pixels, FACTOR_MASK), max_alpha);
 
+    let half = u16x8_splat(128);
     let src_u16_lo = u16x8_extend_low_u8x16(pixels);
     let factors = u16x8_extend_low_u8x16(factor_pixels);
     let mut dst_u16_lo = u16x8_add(u16x8_mul(src_u16_lo, factors), half);
@@ -88,16 +87,19 @@ unsafe fn multiply_alpha_4_pixels(pixels: v128) -> v128 {
 
 // Divide
 
-pub(crate) unsafe fn divide_alpha(src_image: &ImageView<U8x4>, dst_image: &mut ImageViewMut<U8x4>) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+pub(crate) unsafe fn divide_alpha(
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
+) {
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
     }
 }
 
-pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U8x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
+    for row in image_view.iter_rows_mut(0) {
         divide_alpha_row_inplace(row);
     }
 }
