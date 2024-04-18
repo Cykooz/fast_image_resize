@@ -9,11 +9,11 @@ use super::native;
 
 #[target_feature(enable = "neon")]
 pub(crate) unsafe fn multiply_alpha(
-    src_image: &ImageView<U8x2>,
-    dst_image: &mut ImageViewMut<U8x2>,
+    src_view: &impl ImageView<Pixel = U8x2>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x2>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         multiply_alpha_row(src_row, dst_row);
@@ -21,8 +21,8 @@ pub(crate) unsafe fn multiply_alpha(
 }
 
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U8x2>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x2>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -172,9 +172,12 @@ unsafe fn multiplies_alpha_8_pixels(mut pixels: uint8x8x2_t) -> uint8x8x2_t {
 // Divide
 
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn divide_alpha(src_image: &ImageView<U8x2>, dst_image: &mut ImageViewMut<U8x2>) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+pub(crate) unsafe fn divide_alpha(
+    src_view: &impl ImageView<Pixel = U8x2>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x2>,
+) {
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
@@ -182,8 +185,8 @@ pub(crate) unsafe fn divide_alpha(src_image: &ImageView<U8x2>, dst_image: &mut I
 }
 
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U8x2>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x2>) {
+    for row in image_view.iter_rows_mut(0) {
         divide_alpha_row_inplace(row);
     }
 }
@@ -221,13 +224,13 @@ unsafe fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
 
     if !src_remainder.is_empty() {
         let dst_reminder = dst_chunks.into_remainder();
-        let mut src_pixels = [U8x2::new(0); 8];
+        let mut src_pixels = [U8x2::new([0; 2]); 8];
         src_pixels
             .iter_mut()
             .zip(src_remainder)
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x2::new(0); 8];
+        let mut dst_pixels = [U8x2::new([0; 2]); 8];
         let mut pixels = neon_utils::load_deintrel_u8x8x2(&src_pixels, 0);
         pixels = divide_alpha_8_pixels(pixels);
         let dst_ptr = dst_pixels.as_mut_ptr() as *mut u8;
@@ -267,13 +270,13 @@ unsafe fn divide_alpha_row_inplace(row: &mut [U8x2]) {
 
     let reminder = chunks.into_remainder();
     if !reminder.is_empty() {
-        let mut src_pixels = [U8x2::new(0); 8];
+        let mut src_pixels = [U8x2::new([0; 2]); 8];
         src_pixels
             .iter_mut()
             .zip(reminder.iter())
             .for_each(|(d, s)| *d = *s);
 
-        let mut dst_pixels = [U8x2::new(0); 8];
+        let mut dst_pixels = [U8x2::new([0; 2]); 8];
         let mut pixels = neon_utils::load_deintrel_u8x8x2(&src_pixels, 0);
         pixels = divide_alpha_8_pixels(pixels);
         let dst_ptr = dst_pixels.as_mut_ptr() as *mut u8;

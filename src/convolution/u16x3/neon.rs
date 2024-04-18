@@ -7,8 +7,8 @@ use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(
-    src_image: &ImageView<U16x3>,
-    dst_image: &mut ImageViewMut<U16x3>,
+    src_view: &impl ImageView<Pixel = U16x3>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x3>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -16,11 +16,11 @@ pub(crate) fn horiz_convolution(
     let precision = normalizer.precision();
     let coefficients_chunks = normalizer.normalized_chunks();
 
-    let src_iter = src_image.iter_rows(offset);
-    let dst_iter = dst_image.iter_rows_mut();
+    let src_iter = src_view.iter_rows(offset);
+    let dst_iter = dst_view.iter_rows_mut(0);
     for (src_row, dst_row) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_row(src_row, dst_row, &coefficients_chunks, precision);
+            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
         }
     }
 }
@@ -31,7 +31,7 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_row(
+unsafe fn horiz_convolution_one_row(
     src_row: &[U16x3],
     dst_row: &mut [U16x3],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],

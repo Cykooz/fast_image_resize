@@ -14,7 +14,7 @@ pub(crate) fn horiz_convolution(
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
     let coefficients_chunks = normalizer.normalized_chunks();
-    let dst_height = dst_image.height().get();
+    let dst_height = dst_view.height().get();
 
     let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_view.iter_4_rows_mut();
@@ -29,7 +29,7 @@ pub(crate) fn horiz_convolution(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, &normalizer);
+            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
         }
     }
 }
@@ -117,7 +117,7 @@ unsafe fn horiz_convolution_four_rows(
             let coeff0 = vzip1_s16(coeffs_i16x4, coeffs_i16x4);
             let coeff1 = vzip2_s16(coeffs_i16x4, coeffs_i16x4);
 
-            let mut four_pixels = [U8x2::new(0); 4];
+            let mut four_pixels = [U8x2::new([0; 2]); 4];
 
             for i in 0..4 {
                 four_pixels
@@ -154,7 +154,7 @@ unsafe fn horiz_convolution_four_rows(
                 vqmovn_s32(sss),
                 vreinterpret_s16_u8(zero_u8x8),
             )));
-            dst_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s);
+            dst_rows[i].get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s).to_le_bytes();
         }
     }
 }
@@ -165,7 +165,7 @@ unsafe fn horiz_convolution_four_rows(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_row(
+unsafe fn horiz_convolution_one_row(
     src_row: &[U8x2],
     dst_row: &mut [U8x2],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
@@ -215,7 +215,7 @@ unsafe fn horiz_convolution_row(
                 .zip(coeffs)
                 .for_each(|(d, s)| *d = *s);
 
-            let mut four_pixels = [U8x2::new(0); 4];
+            let mut four_pixels = [U8x2::new([0; 2]); 4];
             four_pixels
                 .iter_mut()
                 .zip(src_row.get_unchecked(x..))
@@ -238,7 +238,7 @@ unsafe fn horiz_convolution_row(
             vqmovn_s32(sss),
             vreinterpret_s16_u8(zero_u8x8),
         )));
-        dst_row.get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s);
+        dst_row.get_unchecked_mut(dst_x).0 = vget_lane_u16::<0>(s).to_le_bytes();
     }
 }
 

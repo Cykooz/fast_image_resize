@@ -9,11 +9,11 @@ use super::native;
 
 #[target_feature(enable = "neon")]
 pub(crate) unsafe fn multiply_alpha(
-    src_image: &ImageView<U16x4>,
-    dst_image: &mut ImageViewMut<U16x4>,
+    src_view: &impl ImageView<Pixel = U16x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x4>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         multiply_alpha_row(src_row, dst_row);
@@ -21,8 +21,8 @@ pub(crate) unsafe fn multiply_alpha(
 }
 
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn multiply_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U16x4>) {
+    for row in image_view.iter_rows_mut(0) {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -107,11 +107,11 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U16x4]) {
 
 #[target_feature(enable = "neon")]
 pub(crate) unsafe fn divide_alpha(
-    src_image: &ImageView<U16x4>,
-    dst_image: &mut ImageViewMut<U16x4>,
+    src_view: &impl ImageView<Pixel = U16x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x4>,
 ) {
-    let src_rows = src_image.iter_rows(0);
-    let dst_rows = dst_image.iter_rows_mut();
+    let src_rows = src_view.iter_rows(0);
+    let dst_rows = dst_view.iter_rows_mut(0);
 
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         divide_alpha_row(src_row, dst_row);
@@ -119,8 +119,8 @@ pub(crate) unsafe fn divide_alpha(
 }
 
 #[target_feature(enable = "neon")]
-pub(crate) unsafe fn divide_alpha_inplace(image: &mut ImageViewMut<U16x4>) {
-    for row in image.iter_rows_mut() {
+pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U16x4>) {
+    for row in image_view.iter_rows_mut(0) {
         divide_alpha_row_inplace(row);
     }
 }
@@ -215,27 +215,26 @@ unsafe fn divide_alpha_8_pixels(mut pixels: uint16x8x4_t) -> uint16x8x4_t {
     let alpha_scaled_f32 = vcvtq_f32_u32(alpha_scaled_u32);
     let recip_alpha_hi_f32 = vdivq_f32(alpha_scale, alpha_scaled_f32);
 
-    pixels.0 = mul_color_recip_alpha(pixels.0, recip_alpha_lo_f32, recip_alpha_hi_f32, zero);
+    pixels.0 = neon_utils::mul_color_recip_alpha_u16x8(
+        pixels.0,
+        recip_alpha_lo_f32,
+        recip_alpha_hi_f32,
+        zero,
+    );
     pixels.0 = vandq_u16(pixels.0, nonzero_alpha_mask);
-    pixels.1 = mul_color_recip_alpha(pixels.1, recip_alpha_lo_f32, recip_alpha_hi_f32, zero);
+    pixels.1 = neon_utils::mul_color_recip_alpha_u16x8(
+        pixels.1,
+        recip_alpha_lo_f32,
+        recip_alpha_hi_f32,
+        zero,
+    );
     pixels.1 = vandq_u16(pixels.1, nonzero_alpha_mask);
-    pixels.2 = mul_color_recip_alpha(pixels.2, recip_alpha_lo_f32, recip_alpha_hi_f32, zero);
+    pixels.2 = neon_utils::mul_color_recip_alpha_u16x8(
+        pixels.2,
+        recip_alpha_lo_f32,
+        recip_alpha_hi_f32,
+        zero,
+    );
     pixels.2 = vandq_u16(pixels.2, nonzero_alpha_mask);
     pixels
-}
-
-#[inline(always)]
-unsafe fn mul_color_recip_alpha(
-    color: uint16x8_t,
-    recip_alpha_lo: float32x4_t,
-    recip_alpha_hi: float32x4_t,
-    zero: uint16x8_t,
-) -> uint16x8_t {
-    let color_lo_f32 = vcvtq_f32_u32(vreinterpretq_u32_u16(vzip1q_u16(color, zero)));
-    let res_lo_u32 = vcvtaq_u32_f32(vmulq_f32(color_lo_f32, recip_alpha_lo));
-
-    let color_hi_f32 = vcvtq_f32_u32(vreinterpretq_u32_u16(vzip2q_u16(color, zero)));
-    let res_hi_u32 = vcvtaq_u32_f32(vmulq_f32(color_hi_f32, recip_alpha_hi));
-
-    vcombine_u16(vmovn_u32(res_lo_u32), vmovn_u32(res_hi_u32))
 }

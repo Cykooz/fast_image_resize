@@ -3,28 +3,30 @@ use std::mem::transmute;
 
 use crate::convolution::{optimisations, Coefficients};
 use crate::neon_utils;
-use crate::pixels::PixelExt;
+use crate::pixels::InnerPixel;
 use crate::{ImageView, ImageViewMut};
 
-pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
-    src_image: &ImageView<T>,
-    dst_image: &mut ImageViewMut<T>,
+pub(crate) fn vert_convolution<T>(
+    src_view: &impl ImageView<Pixel = T>,
+    dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
     coeffs: Coefficients,
-) {
+) where
+    T: InnerPixel<Component = u16>,
+{
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
     let precision = normalizer.precision();
     let initial = 1i64 << (precision - 1);
     let start_src_x = offset as usize * T::count_of_components();
 
-    let mut tmp_dst = vec![0i64; dst_image.width().get() as usize * T::count_of_components()];
+    let mut tmp_dst = vec![0i64; dst_view.width().get() as usize * T::count_of_components()];
     let tmp_buf = tmp_dst.as_mut_slice();
-    let dst_rows = dst_image.iter_rows_mut();
+    let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         tmp_buf.fill(initial);
         unsafe {
-            vert_convolution_into_one_row_i64(src_image, tmp_buf, start_src_x, coeffs_chunk);
+            vert_convolution_into_one_row_i64(src_view, tmp_buf, start_src_x, coeffs_chunk);
             let dst_comp = T::components_mut(dst_row);
             macro_rules! call {
                 ($imm8:expr) => {{
@@ -37,8 +39,8 @@ pub(crate) fn vert_convolution<T: PixelExt<Component = u16>>(
 }
 
 #[target_feature(enable = "neon")]
-unsafe fn vert_convolution_into_one_row_i64<T: PixelExt<Component = u16>>(
-    src_img: &ImageView<T>,
+unsafe fn vert_convolution_into_one_row_i64<T: InnerPixel<Component = u16>>(
+    src_view: &impl ImageView<Pixel = T>,
     dst_buf: &mut [i64],
     start_src_x: usize,
     coeffs_chunk: optimisations::CoefficientsI32Chunk,
@@ -50,7 +52,7 @@ unsafe fn vert_convolution_into_one_row_i64<T: PixelExt<Component = u16>>(
     let zero_u16x8 = vdupq_n_u16(0);
     let zero_u16x4 = vdup_n_u16(0);
 
-    for (s_row, &coeff) in src_img.iter_rows(y_start).zip(coeffs) {
+    for (s_row, &coeff) in src_view.iter_rows(y_start).zip(coeffs) {
         let components = T::components(s_row);
         let coeff_i32x2 = vdup_n_s32(coeff);
 
