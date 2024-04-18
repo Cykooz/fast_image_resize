@@ -14,10 +14,10 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let coefficients_chunks = normalizer.normalized_chunks();
-    let dst_height = dst_view.height().get();
+    let dst_height = dst_view.height();
 
     let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
-    let dst_iter = dst_view.iter_4_rows_mut(0);
+    let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
             horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, &normalizer);

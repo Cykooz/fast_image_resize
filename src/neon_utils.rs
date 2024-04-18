@@ -60,10 +60,10 @@ pub unsafe fn load_deintrel_u8x16x2<T>(buf: &[T], index: usize) -> uint8x16x2_t 
     vld2q_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
 }
 
-#[inline(always)]
-pub unsafe fn load_deintrel_u8x16x3<T>(buf: &[T], index: usize) -> uint8x16x3_t {
-    vld3q_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
-}
+// #[inline(always)]
+// pub unsafe fn load_deintrel_u8x16x3<T>(buf: &[T], index: usize) -> uint8x16x3_t {
+//     vld3q_u8(buf.get_unchecked(index..).as_ptr() as *const u8)
+// }
 
 #[inline(always)]
 pub unsafe fn load_deintrel_u8x16x4<T>(buf: &[T], index: usize) -> uint8x16x4_t {
@@ -284,26 +284,26 @@ pub unsafe fn create_u8x16_from_one_u32<T>(buf: &[T], index: usize) -> uint8x16_
 /// Multiply the packed unsigned 16-bit integers in a and b, producing
 /// intermediate 32-bit integers, and store the high 16 bits of the intermediate
 /// integers in dst.
-#[inline(always)]
-pub unsafe fn mulhi_u16x8(a: uint16x8_t, b: uint16x8_t) -> uint16x8_t {
-    let a3210 = vget_low_u16(a);
-    let b3210 = vget_low_u16(b);
-    let ab3210 = vmull_u16(a3210, b3210);
-    let ab7654 = vmull_high_u16(a, b);
-    vuzp2q_u16(vreinterpretq_u16_u32(ab3210), vreinterpretq_u16_u32(ab7654))
-}
+// #[inline(always)]
+// pub unsafe fn mulhi_u16x8(a: uint16x8_t, b: uint16x8_t) -> uint16x8_t {
+//     let a3210 = vget_low_u16(a);
+//     let b3210 = vget_low_u16(b);
+//     let ab3210 = vmull_u16(a3210, b3210);
+//     let ab7654 = vmull_high_u16(a, b);
+//     vuzp2q_u16(vreinterpretq_u16_u32(ab3210), vreinterpretq_u16_u32(ab7654))
+// }
 
 /// Multiply the packed unsigned 32-bit integers in a and b, producing
 /// intermediate 64-bit integers, and store the high 32 bits of the intermediate
 /// integers in dst.
-#[inline(always)]
-pub unsafe fn mulhi_u32x4(a: uint32x4_t, b: uint32x4_t) -> uint32x4_t {
-    let a3210 = vget_low_u32(a);
-    let b3210 = vget_low_u32(b);
-    let ab3210 = vmull_u32(a3210, b3210);
-    let ab7654 = vmull_high_u32(a, b);
-    vuzp2q_u32(vreinterpretq_u32_u64(ab3210), vreinterpretq_u32_u64(ab7654))
-}
+// #[inline(always)]
+// pub unsafe fn mulhi_u32x4(a: uint32x4_t, b: uint32x4_t) -> uint32x4_t {
+//     let a3210 = vget_low_u32(a);
+//     let b3210 = vget_low_u32(b);
+//     let ab3210 = vmull_u32(a3210, b3210);
+//     let ab7654 = vmull_high_u32(a, b);
+//     vuzp2q_u32(vreinterpretq_u32_u64(ab3210), vreinterpretq_u32_u64(ab7654))
+// }
 
 #[inline]
 #[target_feature(enable = "neon")]
@@ -360,6 +360,14 @@ pub unsafe fn multiply_color_to_alpha_u16x4(color: uint16x4_t, alpha: uint16x4_t
 
 #[inline]
 #[target_feature(enable = "neon")]
+pub unsafe fn mul_color_alpha_u16x8(color: uint16x8_t, alpha: uint16x8_t) -> uint16x8_t {
+    let res_color_lo_u16 = vrshrn_n_u32::<16>(vmull_u16(vget_low_u16(color), vget_low_u16(alpha)));
+    let res_color_hi_u16 = vrshrn_n_u32::<16>(vmull_high_u16(color, alpha));
+    vcombine_u16(res_color_lo_u16, res_color_hi_u16)
+}
+
+#[inline]
+#[target_feature(enable = "neon")]
 pub unsafe fn mul_color_recip_alpha_u8x16(
     color: uint8x16_t,
     recip_alpha: uint16x8x2_t,
@@ -367,9 +375,11 @@ pub unsafe fn mul_color_recip_alpha_u8x16(
 ) -> uint8x16_t {
     let color_u16_lo = vreinterpretq_u16_u8(vzip1q_u8(zero, color));
     let color_u16_hi = vreinterpretq_u16_u8(vzip2q_u8(zero, color));
-    let res_u16_lo = multiply_color_to_alpha_u16x8(color_u16_lo, recip_alpha.0);
-    let res_u16_hi = multiply_color_to_alpha_u16x8(color_u16_hi, recip_alpha.1);
-    vcombine_u8(vmovn_u16(res_u16_lo), vmovn_u16(res_u16_hi))
+
+    let res_u16_lo = mul_color_alpha_u16x8(color_u16_lo, recip_alpha.0);
+    let res_u16_hi = mul_color_alpha_u16x8(color_u16_hi, recip_alpha.1);
+
+    vcombine_u8(vqmovn_u16(res_u16_lo), vqmovn_u16(res_u16_hi))
 }
 
 #[inline]
@@ -382,11 +392,12 @@ pub unsafe fn mul_color_recip_alpha_u8x8(
     let color_u16_lo = vreinterpret_u16_u8(vzip1_u8(zero, color));
     let color_u16_hi = vreinterpret_u16_u8(vzip2_u8(zero, color));
     let color_u16 = vcombine_u16(color_u16_lo, color_u16_hi);
-    let res_u16 = multiply_color_to_alpha_u16x8(color_u16, recip_alpha);
-    vmovn_u16(res_u16)
+
+    let res_color_u16 = mul_color_alpha_u16x8(color_u16, recip_alpha);
+    vqmovn_u16(res_color_u16)
 }
 
-#[inline(always)]
+#[inline]
 #[target_feature(enable = "neon")]
 pub unsafe fn mul_color_recip_alpha_u16x8(
     color: uint16x8_t,

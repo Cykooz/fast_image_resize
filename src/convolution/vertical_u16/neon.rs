@@ -20,7 +20,7 @@ pub(crate) fn vert_convolution<T>(
     let initial = 1i64 << (precision - 1);
     let start_src_x = offset as usize * T::count_of_components();
 
-    let mut tmp_dst = vec![0i64; dst_view.width().get() as usize * T::count_of_components()];
+    let mut tmp_dst = vec![0i64; dst_view.width() as usize * T::count_of_components()];
     let tmp_buf = tmp_dst.as_mut_slice();
     let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
