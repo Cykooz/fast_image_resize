@@ -358,16 +358,13 @@ pub unsafe fn multiply_color_to_alpha_u16x4(color: uint16x4_t, alpha: uint16x4_t
     vaddhn_u32(color_u32, vshrq_n_u32::<16>(color_u32))
 }
 
-#[inline]
-#[target_feature(enable = "neon")]
-pub unsafe fn mul_color_alpha_u16x8(color: uint16x8_t, alpha: uint16x8_t) -> uint16x8_t {
+unsafe fn mul_color_alpha_u16x8(color: uint16x8_t, alpha: uint16x8_t) -> uint16x8_t {
     let res_color_lo_u16 = vrshrn_n_u32::<16>(vmull_u16(vget_low_u16(color), vget_low_u16(alpha)));
     let res_color_hi_u16 = vrshrn_n_u32::<16>(vmull_high_u16(color, alpha));
     vcombine_u16(res_color_lo_u16, res_color_hi_u16)
 }
 
-#[inline]
-#[target_feature(enable = "neon")]
+#[inline(always)]
 pub unsafe fn mul_color_recip_alpha_u8x16(
     color: uint8x16_t,
     recip_alpha: uint16x8x2_t,
@@ -382,8 +379,7 @@ pub unsafe fn mul_color_recip_alpha_u8x16(
     vcombine_u8(vqmovn_u16(res_u16_lo), vqmovn_u16(res_u16_hi))
 }
 
-#[inline]
-#[target_feature(enable = "neon")]
+#[inline(always)]
 pub unsafe fn mul_color_recip_alpha_u8x8(
     color: uint8x8_t,
     recip_alpha: uint16x8_t,
@@ -397,8 +393,7 @@ pub unsafe fn mul_color_recip_alpha_u8x8(
     vqmovn_u16(res_color_u16)
 }
 
-#[inline]
-#[target_feature(enable = "neon")]
+#[inline(always)]
 pub unsafe fn mul_color_recip_alpha_u16x8(
     color: uint16x8_t,
     recip_alpha_lo: float32x4_t,
