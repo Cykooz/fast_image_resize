@@ -14,6 +14,21 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            horiz_convolution_p::<$imm8>(src_view, dst_view, offset, normalizer);
+        }};
+    }
+    constify_imm8!(precision, call);
+}
+
+fn horiz_convolution_p<const PRECISION: i32>(
+    src_view: &impl ImageView<Pixel = U8x4>,
+    dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
+    offset: u32,
+    normalizer: optimisations::Normalizer16,
+) {
     let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_view.height();
 
@@ -21,7 +36,7 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
@@ -30,7 +45,7 @@ pub(crate) fn horiz_convolution(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &coefficients_chunks);
         }
     }
 }
@@ -42,13 +57,12 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_four_rows(
+unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x4]; 4],
     dst_rows: [&mut [U8x4]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
-    let initial = vdupq_n_s32(1 << (precision - 1));
+    let initial = vdupq_n_s32(1 << (PRECISION - 1));
     let zero_u8x16 = vdupq_n_u8(0);
     let zero_u8x8 = vdup_n_u8(0);
 
@@ -168,15 +182,10 @@ unsafe fn horiz_convolution_four_rows(
             }
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss_a[0] = vshrq_n_s32::<$imm8>(sss_a[0]);
-                sss_a[1] = vshrq_n_s32::<$imm8>(sss_a[1]);
-                sss_a[2] = vshrq_n_s32::<$imm8>(sss_a[2]);
-                sss_a[3] = vshrq_n_s32::<$imm8>(sss_a[3]);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss_a[0] = vshrq_n_s32::<PRECISION>(sss_a[0]);
+        sss_a[1] = vshrq_n_s32::<PRECISION>(sss_a[1]);
+        sss_a[2] = vshrq_n_s32::<PRECISION>(sss_a[2]);
+        sss_a[3] = vshrq_n_s32::<PRECISION>(sss_a[3]);
 
         for i in 0..4 {
             let s = vqmovun_s16(vcombine_s16(vqmovn_s32(sss_a[i]), vdup_n_s16(0)));
@@ -192,13 +201,12 @@ unsafe fn horiz_convolution_four_rows(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_one_row(
+unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x4],
     dst_row: &mut [U8x4],
     coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
-    precision: u8,
 ) {
-    let initial = vdupq_n_s32(1 << (precision - 1));
+    let initial = vdupq_n_s32(1 << (PRECISION - 1));
     let zero_u8x16 = vdupq_n_u8(0);
     let zero_u8x8 = vdup_n_u8(0);
 
@@ -284,12 +292,7 @@ unsafe fn horiz_convolution_one_row(
             sss = vmlal_s16(sss, pix, vdup_n_s16(k));
         }
 
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss = vshrq_n_s32::<$imm8>(sss);
-            }};
-        }
-        constify_imm8!(precision, call);
+        sss = vshrq_n_s32::<PRECISION>(sss);
 
         let s = vqmovun_s16(vcombine_s16(vqmovn_s32(sss), vdup_n_s16(0)));
         let s = vreinterpret_u32_u8(s);

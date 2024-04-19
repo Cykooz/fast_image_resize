@@ -14,6 +14,21 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            horiz_convolution_p::<$imm8>(src_view, dst_view, offset, normalizer);
+        }};
+    }
+    constify_64_imm8!(precision, call);
+}
+
+fn horiz_convolution_p<const PRECISION: i32>(
+    src_view: &impl ImageView<Pixel = U16>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16>,
+    offset: u32,
+    normalizer: optimisations::Normalizer32,
+) {
     let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_view.height();
 
@@ -21,7 +36,7 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, precision);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
@@ -30,7 +45,7 @@ pub(crate) fn horiz_convolution(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &coefficients_chunks);
         }
     }
 }
@@ -42,13 +57,12 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_four_rows(
+unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U16]; 4],
     dst_rows: [&mut [U16]; 4],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
-    precision: u8,
 ) {
-    let initial = vdupq_n_s64(1i64 << (precision - 2));
+    let initial = vdupq_n_s64(1i64 << (PRECISION - 2));
     let zero_u16x4 = vdup_n_u16(0);
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
@@ -105,15 +119,10 @@ unsafe fn horiz_convolution_four_rows(
             vadd_s64(vget_low_s64(sss_a[2]), vget_high_s64(sss_a[2])),
             vadd_s64(vget_low_s64(sss_a[3]), vget_high_s64(sss_a[3])),
         ];
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss_a_i64[0] = vshr_n_s64::<$imm8>(sss_a_i64[0]);
-                sss_a_i64[1] = vshr_n_s64::<$imm8>(sss_a_i64[1]);
-                sss_a_i64[2] = vshr_n_s64::<$imm8>(sss_a_i64[2]);
-                sss_a_i64[3] = vshr_n_s64::<$imm8>(sss_a_i64[3]);
-            }};
-        }
-        constify_64_imm8!(precision, call);
+        sss_a_i64[0] = vshr_n_s64::<PRECISION>(sss_a_i64[0]);
+        sss_a_i64[1] = vshr_n_s64::<PRECISION>(sss_a_i64[1]);
+        sss_a_i64[2] = vshr_n_s64::<PRECISION>(sss_a_i64[2]);
+        sss_a_i64[3] = vshr_n_s64::<PRECISION>(sss_a_i64[3]);
 
         for i in 0..4 {
             let res = vdupd_lane_s64::<0>(sss_a_i64[i]);
@@ -128,13 +137,12 @@ unsafe fn horiz_convolution_four_rows(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_one_row(
+unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U16],
     dst_row: &mut [U16],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
-    precision: u8,
 ) {
-    let initial = vdupq_n_s64(1i64 << (precision - 2));
+    let initial = vdupq_n_s64(1i64 << (PRECISION - 2));
     let zero_u16x8 = vdupq_n_u16(0);
     let zero_u16x4 = vdup_n_u16(0);
 
@@ -192,12 +200,7 @@ unsafe fn horiz_convolution_one_row(
         }
 
         let mut sss_i64 = vadd_s64(vget_low_s64(sss), vget_high_s64(sss));
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss_i64 = vshr_n_s64::<$imm8>(sss_i64);
-            }};
-        }
-        constify_64_imm8!(precision, call);
+        sss_i64 = vshr_n_s64::<PRECISION>(sss_i64);
 
         let res = vdupd_lane_s64::<0>(sss_i64);
         dst_row.get_unchecked_mut(dst_x).0 = vqmovns_u32(vqmovund_s64(res));

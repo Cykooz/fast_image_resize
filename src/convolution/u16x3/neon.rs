@@ -14,13 +14,28 @@ pub(crate) fn horiz_convolution(
 ) {
     let normalizer = optimisations::Normalizer32::new(coeffs);
     let precision = normalizer.precision();
+
+    macro_rules! call {
+        ($imm8:expr) => {{
+            horiz_convolution_p::<$imm8>(src_view, dst_view, offset, normalizer);
+        }};
+    }
+    constify_64_imm8!(precision, call);
+}
+
+fn horiz_convolution_p<const PRECISION: i32>(
+    src_view: &impl ImageView<Pixel = U16x3>,
+    dst_view: &mut impl ImageViewMut<Pixel = U16x3>,
+    offset: u32,
+    normalizer: optimisations::Normalizer32,
+) {
     let coefficients_chunks = normalizer.normalized_chunks();
 
     let src_iter = src_view.iter_rows(offset);
     let dst_iter = dst_view.iter_rows_mut(0);
     for (src_row, dst_row) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, precision);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &coefficients_chunks);
         }
     }
 }
@@ -31,13 +46,12 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "neon")]
-unsafe fn horiz_convolution_one_row(
+unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U16x3],
     dst_row: &mut [U16x3],
     coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
-    precision: u8,
 ) {
-    let initial = vdupq_n_s64(1i64 << (precision - 2));
+    let initial = vdupq_n_s64(1i64 << (PRECISION - 2));
     let zero_u16x8 = vdupq_n_u16(0);
     let zero_u16x4 = vdup_n_u16(0);
 
@@ -98,14 +112,10 @@ unsafe fn horiz_convolution_one_row(
             vadd_s64(vget_low_s64(sss[1]), vget_high_s64(sss[1])),
             vadd_s64(vget_low_s64(sss[2]), vget_high_s64(sss[2])),
         ];
-        macro_rules! call {
-            ($imm8:expr) => {{
-                sss_i64[0] = vshr_n_s64::<$imm8>(sss_i64[0]);
-                sss_i64[1] = vshr_n_s64::<$imm8>(sss_i64[1]);
-                sss_i64[2] = vshr_n_s64::<$imm8>(sss_i64[2]);
-            }};
-        }
-        constify_64_imm8!(precision, call);
+
+        sss_i64[0] = vshr_n_s64::<PRECISION>(sss_i64[0]);
+        sss_i64[1] = vshr_n_s64::<PRECISION>(sss_i64[1]);
+        sss_i64[2] = vshr_n_s64::<PRECISION>(sss_i64[2]);
 
         dst_row.get_unchecked_mut(dst_x).0 = [
             vqmovns_u32(vqmovund_s64(vdupd_lane_s64::<0>(sss_i64[0]))),
