@@ -307,6 +307,7 @@ where
                 FilterType::Hamming => "hamming",
                 FilterType::Mitchell => "mitchell",
                 FilterType::CatmullRom => "catmullrom",
+                FilterType::Gaussian => "gaussian",
                 FilterType::Lanczos3 => "lanczos3",
                 _ => "unknown",
             },
@@ -915,6 +916,12 @@ mod u8x4 {
             cpu_extensions_vec.push(CpuExtensions::Simd128);
         }
         for cpu_extensions in cpu_extensions_vec {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Gaussian),
+                cpu_extensions,
+                [2939881, 2946811, 2884299, 6122867],
+            );
+
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,

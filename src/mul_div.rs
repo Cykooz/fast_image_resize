@@ -69,7 +69,7 @@ impl MulDiv {
         #[cfg(feature = "only_u8x4")]
         match src_pixel_type {
             PixelType::U8x4 => self.multiply::<U8x4>(src_image, dst_image),
-            _ => Err(MulDivImagesError::SrcImageError(
+            _ => Err(MulDivImagesError::ImageError(
                 ImageError::UnsupportedPixelType,
             )),
         }

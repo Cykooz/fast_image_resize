@@ -107,6 +107,10 @@ pub enum FilterType {
     ///
     /// Minimal kernel size 4x4 px.
     Mitchell,
+    /// Gaussian filter with a standard deviation of 0.5.
+    ///
+    /// Minimal kernel size 6x6 px.
+    Gaussian,
     /// Lanczos3 filter calculate the output pixel value using a high-quality
     /// Lanczos filter (a truncated sinc) on all pixels that may contribute
     /// to the output value.
@@ -159,6 +163,7 @@ pub(crate) fn get_filter_func(filter_type: FilterType) -> (FilterFn, f64) {
         FilterType::Hamming => (hamming_filter, 1.0),
         FilterType::CatmullRom => (catmul_filter, 2.0),
         FilterType::Mitchell => (mitchell_filter, 2.0),
+        FilterType::Gaussian => (gaussian_filter, 3.0),
         FilterType::Lanczos3 => (lanczos_filter, 3.0),
         FilterType::Custom(custom) => (custom.func, custom.support),
     }
@@ -220,6 +225,22 @@ fn mitchell_filter(mut x: f64) -> f64 {
         (7. * x / 6. - 2.) * x * x + 16. / 18.
     } else if x < 2.0 {
         ((2. - 7. * x / 18.) * x - 10. / 3.) * x + 16. / 9.
+    } else {
+        0.0
+    }
+}
+
+/// The Gaussian Function.
+/// `r` is the standard deviation.
+fn gaussian(x: f64, r: f64) -> f64 {
+    ((2.0 * PI).sqrt() * r).recip() * (-x.powi(2) / (2.0 * r.powi(2))).exp()
+}
+
+/// Calculate the gaussian function with a
+/// standard deviation of 0.5.
+fn gaussian_filter(x: f64) -> f64 {
+    if (-3.0..3.0).contains(&x) {
+        gaussian(x, 0.5)
     } else {
         0.0
     }

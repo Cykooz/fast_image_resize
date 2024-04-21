@@ -1,5 +1,15 @@
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Added Gaussian filter for convolution algorythm.
+
+### Fixed
+
+- Fixed dividing image by alpha channel.
+
+### Changed
+
 A lot of breaking changes have been done in this release:
 
 - Structures `ImageView` and `ImageViewMut` have been removed. They always
@@ -31,10 +41,6 @@ A lot of breaking changes have been done in this release:
   [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
   type from the `image` crate. It allows you to use `DynamicImage` instances
   as arguments for `Resize::resize()` method.
-
-### Fixed
-
-- Fixed dividing image by alpha channel.
 
 ## [3.0.4] - 2024-02-15
 
