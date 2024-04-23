@@ -103,8 +103,9 @@ pub struct Resizer {
 impl Resizer {
     /// Creates instance of `Resizer`
     ///
-    /// By default, instance of `Resizer` created with the best CPU-extensions provided by your CPU.
-    /// You can change this by use method [Resizer::set_cpu_extensions].
+    /// By default, instance of `Resizer` created with the best CPU
+    /// extensions provided by your CPU.
+    /// You can change this by using method [Resizer::set_cpu_extensions].
     pub fn new(algorithm: ResizeAlg) -> Self {
         Self {
             algorithm,
@@ -112,7 +113,7 @@ impl Resizer {
         }
     }
 
-    /// Resize source image to the size of destination image and save
+    /// Resize the source image to the size of destination image and save
     /// the result to the latter's pixel buffer.
     pub fn resize<'o>(
         &mut self,
@@ -174,7 +175,7 @@ impl Resizer {
         result
     }
 
-    /// Resize source image to the size of destination image
+    /// Resize the source image to the size of destination image
     /// and save the result to the latter's pixel buffer.
     pub fn resize_typed<'o, P: PixelTrait>(
         &mut self,
@@ -257,8 +258,8 @@ impl Resizer {
     }
 
     /// # Safety
-    /// This is unsafe because this method allows you to set a CPU-extensions
-    /// that is not actually supported by your CPU.
+    /// This is unsafe because this method allows you to set a CPU extensions
+    /// that is not supported by your CPU.
     pub unsafe fn set_cpu_extensions(&mut self, extensions: CpuExtensions) {
         self.cpu_extensions = extensions;
         self.mul_div.set_cpu_extensions(extensions);
@@ -472,7 +473,7 @@ impl Resizer {
     }
 }
 
-/// Creates inner image container from part of given buffer.
+/// Creates inner image container from part of the given buffer.
 /// Buffer may be expanded if its size is less than required for image.
 fn get_temp_image_from_buffer<P: PixelTrait>(
     buffer: &mut Vec<u8>,

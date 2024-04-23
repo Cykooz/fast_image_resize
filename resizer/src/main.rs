@@ -10,7 +10,6 @@ use once_cell::sync::Lazy;
 
 use fast_image_resize as fr;
 use fast_image_resize::images::Image;
-use fast_image_resize::ResizeOptions;
 
 mod structs;
 

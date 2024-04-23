@@ -20,27 +20,129 @@ A lot of breaking changes have been done in this release:
 - Also, traits `IntoImageView` and `IntoImageViewMut` have been added.
   They allow you to write runtime adapters to convert your particular
   image container into something that provides `ImageView`/`ImageViewMut` trait.
-- `Resizer` now has two methods for resize:
-    - `resize()` accepts `IntoImageView` and `IntoImageViewMut` arguments;
-    - `resize_typed()` accepts `ImageView` and `ImageViewMut` arguments.
+- `Resizer` now has two methods for resize (dynamic and typed):
+    - `resize()` accepts references to `impl IntoImageView` and `impl IntoImageViewMut`;
+    - `resize_typed()` accepts references to `impl ImageView` and `impl ImageViewMut`.
 - Resize methods also accept the `options` argument.
-  With help of this argument, you can specify:
+  With the help of this argument, you can specify:
     - how to crop the source image;
     - whether to multiply the source image by the alpha channel and
       divide the destination image by the alpha channel.
+      By default, Resizer multiplies and divides by alpha channel
+      images with `U8x2`, `U8x4`, `U16x2` and `U16x4` pixels.
 - The `MulDiv` implementation has been changed in the same way as `Resizer`.
   It now has two versions of each method: dynamic and typed.
 - Type of image dimensions has been changed from `NonZeroU32` into `u32`.
-  Now you can create and use images with zero pixels.
-- Embedded implementation of image container `Image` moved from root of
+  Now you can create and use zero-sized images.
+- `Image` (embedded implementation of image container) moved from root of
   the crate into module `images`.
-- Added new image containers: `TypedImage`, `TypedImageMut`, `CroppedImage`
-  and `CroppedImageMut`.
-- Added optional feature "image". It adds implementation of traits
-  `IntoImageView` and `IntoImageViewMut` for the
+- Added new image containers: `ImageRef`, `TypedImage`, `TypedImageMut`,
+  `CroppedImage` and `CroppedImageMut`.
+- Added optional feature "image".
+  It adds implementation of traits `IntoImageView` and `IntoImageViewMut` for the
   [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
-  type from the `image` crate. It allows you to use `DynamicImage` instances
-  as arguments for `Resize::resize()` method.
+  type from the `image` crate. This implementation allows you to use `DynamicImage`
+  instances as arguments for methods of this crate.
+
+Look at the difference between versions 3 and 4 on example
+of resizing RGBA8 image from given u8-buffer with pixels-data.
+
+3.x version:
+
+```rust
+use fast_image_resize::{Image, MulDiv, PixelType, Resizer};
+use std::num::NonZeroU32;
+
+fn my_resize(
+    src_width: u32,
+    src_height: u32,
+    src_pixels: &mut [u8],
+    dst_width: u32,
+    dst_height: u32,
+) -> Image {
+    let src_width = NonZeroU32::new(src_width).unwrap();
+    let src_height = NonZeroU32::new(src_height).unwrap();
+    let src_image = Image::from_slice_u8(
+        src_width,
+        src_height,
+        src_pixels,
+        PixelType::U8x4,
+    ).unwrap();
+
+    // Multiple RGB channels of source image by alpha channel.
+    let alpha_mul_div = MulDiv::default();
+    let mut tmp_image = Image::new(
+        src_width,
+        src_height,
+        PixelType::U8x4,
+    );
+    alpha_mul_div
+        .multiply_alpha(
+            &src_image.view(),
+            &mut tmp_image.view_mut(),
+        ).unwrap();
+
+    // Create container for data of destination image.
+    let dst_width = NonZeroU32::new(dst_width).unwrap();
+    let dst_height = NonZeroU32::new(dst_height).unwrap();
+    let mut dst_image = Image::new(
+        dst_width,
+        dst_height,
+        PixelType::U8x4,
+    );
+
+    // Get mutable view of destination image data.
+    let mut dst_view = dst_image.view_mut();
+
+    // Create Resizer instance and resize source image
+    // into buffer of destination image.
+    let mut resizer = Resizer::default();
+    resizer.resize(&tmp_image.view(), &mut dst_view).unwrap();
+
+    // Divide RGB channels of destination image by alpha.
+    alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
+
+    dst_image
+}
+```
+
+4.x version:
+
+```rust
+use fast_image_resize::images::{Image, ImageRef};
+use fast_image_resize::{PixelType, Resizer};
+
+fn my_resize(
+    src_width: u32,
+    src_height: u32,
+    src_pixels: &[u8],
+    dst_width: u32,
+    dst_height: u32,
+) -> ImageMut {
+    let src_image = ImageRef::new(
+        src_width,
+        src_height,
+        src_pixels,
+        PixelType::U8x4,
+    ).unwrap();
+
+    // Create container for data of destination image.
+    let mut dst_image = Image::new(
+        dst_width,
+        dst_height,
+        PixelType::U8x4,
+    );
+
+    // Create Resizer instance and resize source image
+    // into buffer of destination image.
+    let mut resizer = Resizer::default();
+    // By default, Resizer multiplies and divides by alpha channel
+    // images with U8x2, U8x4, U16x2 and U16x4 pixels.
+    resizer.resize(&src_image, &mut dst_image, None).unwrap();
+
+    dst_image
+}
+```
 
 ## [3.0.4] - 2024-02-15
 

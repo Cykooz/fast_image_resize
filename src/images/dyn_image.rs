@@ -4,6 +4,92 @@ use crate::{
     ImageBufferError, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelType,
 };
 
+/// Simple reference to image data that provides [IntoImageView].
+#[derive(Debug, Copy, Clone)]
+pub struct ImageRef<'a> {
+    width: u32,
+    height: u32,
+    buffer: &'a [u8],
+    pixel_type: PixelType,
+}
+
+impl<'a> ImageRef<'a> {
+    /// Create an image with from slice with pixels data.
+    pub fn new(
+        width: u32,
+        height: u32,
+        buffer: &'a [u8],
+        pixel_type: PixelType,
+    ) -> Result<Self, ImageBufferError> {
+        let size = width as usize * height as usize * pixel_type.size();
+        if buffer.len() < size {
+            return Err(ImageBufferError::InvalidBufferSize);
+        }
+        if !pixel_type.is_aligned(buffer) {
+            return Err(ImageBufferError::InvalidBufferAlignment);
+        }
+        Ok(Self {
+            width,
+            height,
+            buffer,
+            pixel_type,
+        })
+    }
+
+    #[inline]
+    pub fn pixel_type(&self) -> PixelType {
+        self.pixel_type
+    }
+
+    #[inline]
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    #[inline]
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    /// Buffer with image pixels data.
+    #[inline]
+    pub fn buffer(&self) -> &[u8] {
+        self.buffer
+    }
+
+    #[inline]
+    pub fn into_vec(self) -> Vec<u8> {
+        self.buffer.into()
+    }
+
+    /// Get typed version of the image.
+    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImage<P>> {
+        if P::pixel_type() != self.pixel_type {
+            return None;
+        }
+        let typed_image = TypedImage::from_buffer(self.width, self.height, self.buffer).unwrap();
+        Some(typed_image)
+    }
+}
+
+impl<'a> IntoImageView for ImageRef<'a> {
+    fn pixel_type(&self) -> Option<PixelType> {
+        Some(self.pixel_type)
+    }
+
+    fn width(&self) -> u32 {
+        self.width
+    }
+
+    fn height(&self) -> u32 {
+        self.height
+    }
+
+    fn image_view<P: InnerPixel>(&self) -> Option<impl ImageView<Pixel = P>> {
+        self.typed_image()
+    }
+}
+
 #[derive(Debug)]
 enum BufferContainer<'a> {
     MutU8(&'a mut [u8]),

@@ -1,7 +1,17 @@
 use fast_image_resize as fr;
-use fast_image_resize::images::{CroppedImageMut, Image, TypedImage, TypedImageMut};
+use fast_image_resize::images::{CroppedImageMut, Image, ImageRef, TypedImage, TypedImageMut};
 use fast_image_resize::pixels::{U8x4, U8};
 use fast_image_resize::ImageView;
+
+#[test]
+fn create_image_ref_from_small_buffer() {
+    let width = 64;
+    let height = 32;
+    let buffer = vec![0; 64 * 30];
+
+    let res = ImageRef::new(width, height, &buffer, fr::PixelType::U8);
+    assert_eq!(res.unwrap_err(), fr::ImageBufferError::InvalidBufferSize);
+}
 
 #[test]
 fn create_image_from_small_buffer() {
