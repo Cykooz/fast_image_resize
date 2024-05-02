@@ -101,8 +101,8 @@ impl<'a, T: ImageView> CroppedSrcImageView<'a, T> {
     }
 
     pub fn cropped(image_view: &'a T, crop_box: CropBox) -> Result<Self, CropBoxError> {
-        if crop_box.width <= 0. || crop_box.height <= 0. {
-            return Err(CropBoxError::WidthOrHeightLessOrEqualToZero);
+        if crop_box.width < 0. || crop_box.height < 0. {
+            return Err(CropBoxError::WidthOrHeightLessThanZero);
         }
 
         let img_width = image_view.width() as _;

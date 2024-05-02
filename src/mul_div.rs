@@ -12,7 +12,6 @@ use crate::{ImageError, ImageView, MulDivImagesError, PixelTrait, PixelType};
 /// # Examples
 ///
 /// ```
-/// use std::num::NonZeroU32;
 /// use fast_image_resize::pixels::PixelType;
 /// use fast_image_resize::images::Image;
 /// use fast_image_resize::MulDiv;
@@ -22,7 +21,7 @@ use crate::{ImageError, ImageView, MulDivImagesError, PixelTrait, PixelType};
 /// let src_image = Image::new(width, height, PixelType::U8x4);
 /// let mut dst_image = Image::new(width, height, PixelType::U8x4);
 ///
-/// let mul_div = MulDiv::default();
+/// let mul_div = MulDiv::new();
 /// mul_div.multiply_alpha(&src_image, &mut dst_image).unwrap();
 /// ```
 #[derive(Default, Debug, Clone)]
@@ -31,6 +30,10 @@ pub struct MulDiv {
 }
 
 impl MulDiv {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     pub fn cpu_extensions(&self) -> CpuExtensions {
         self.cpu_extensions
     }
@@ -97,8 +100,9 @@ impl MulDiv {
         if src_view.width() != dst_view.width() || src_view.height() != dst_view.height() {
             return Err(MulDivImagesError::SizeIsDifferent);
         }
-        
-        P::multiply_alpha(src_view, dst_view, self.cpu_extensions)?;
+        if src_view.width() > 0 && src_view.height() > 0 {
+            P::multiply_alpha(src_view, dst_view, self.cpu_extensions)?;
+        }
         Ok(())
     }
 
@@ -140,7 +144,11 @@ impl MulDiv {
         &self,
         img_view: &mut impl ImageViewMut<Pixel = P>,
     ) -> Result<(), ImageError> {
-        P::multiply_alpha_inplace(img_view, self.cpu_extensions)
+        if img_view.width() > 0 && img_view.height() > 0 {
+            P::multiply_alpha_inplace(img_view, self.cpu_extensions)
+        } else {
+            Ok(())
+        }
     }
 
     /// Divides color-channels (RGB or Luma) of source image by alpha-channel and store
@@ -198,7 +206,9 @@ impl MulDiv {
         if src_view.width() != dst_view.width() || src_view.height() != dst_view.height() {
             return Err(MulDivImagesError::SizeIsDifferent);
         }
-        P::divide_alpha(src_view, dst_view, self.cpu_extensions)?;
+        if src_view.width() > 0 && src_view.height() > 0 {
+            P::divide_alpha(src_view, dst_view, self.cpu_extensions)?;
+        }
         Ok(())
     }
 
@@ -240,7 +250,11 @@ impl MulDiv {
         &self,
         img_view: &mut impl ImageViewMut<Pixel = P>,
     ) -> Result<(), ImageError> {
-        P::divide_alpha_inplace(img_view, self.cpu_extensions)
+        if img_view.width() > 0 && img_view.height() > 0 {
+            P::divide_alpha_inplace(img_view, self.cpu_extensions)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn is_supported(&self, pixel_type: PixelType) -> bool {

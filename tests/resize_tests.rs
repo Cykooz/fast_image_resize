@@ -880,12 +880,12 @@ mod u8x4 {
                 ))
             );
         }
-        for (width, height) in [(0., 1.), (1., 0.), (-1., 1.), (1., -1.)] {
+        for (width, height) in [(-1., 1.), (1., -1.)] {
             options = options.crop(0., 0., width, height);
             assert_eq!(
                 resizer.resize(&src_image, &mut dst_image, &options),
                 Err(ResizeError::SrcCroppingError(
-                    CropBoxError::WidthOrHeightLessOrEqualToZero
+                    CropBoxError::WidthOrHeightLessThanZero
                 ))
             );
         }

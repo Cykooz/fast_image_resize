@@ -214,10 +214,20 @@ impl Resizer {
         };
         let cropped_src_view = CroppedSrcImageView::cropped(src_view, crop_box)?;
 
+        if crop_box.width == 0.
+            || crop_box.height == 0.
+            || dst_view.width() == 0
+            || dst_view.height() == 0
+        {
+            // Do nothing if any size of source or destination image is equal to zero.
+            return Ok(());
+        }
+
         if copy_image(&cropped_src_view, dst_view).is_ok() {
             // If `copy_image()` returns `Ok` it means that
             // the size of the destination image is equal to
-            // the size of the cropped source image.
+            // the size of the cropped source image and
+            // the copy operation has success.
             return Ok(());
         }
 

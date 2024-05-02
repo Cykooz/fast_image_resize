@@ -25,8 +25,8 @@ pub enum CropBoxError {
     PositionIsOutOfImageBoundaries,
     #[error("Size of the crop box is out of the image boundaries")]
     SizeIsOutOfImageBoundaries,
-    #[error("Width or height of the crop box is less or equal to zero")]
-    WidthOrHeightLessOrEqualToZero,
+    #[error("Width or height of the crop box is less than zero")]
+    WidthOrHeightLessThanZero,
 }
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
