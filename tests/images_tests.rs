@@ -1,7 +1,7 @@
 use fast_image_resize as fr;
 use fast_image_resize::images::{CroppedImageMut, Image, ImageRef, TypedImage, TypedImageMut};
 use fast_image_resize::pixels::{U8x4, U8};
-use fast_image_resize::ImageView;
+use fast_image_resize::{ImageView, ResizeOptions};
 
 #[test]
 fn create_image_ref_from_small_buffer() {
@@ -79,9 +79,13 @@ fn crop_view_mut() {
     assert_eq!(cropped_dst_image.width(), 44);
     assert_eq!(cropped_dst_image.height(), 12);
 
-    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Nearest);
+    let mut resizer = fr::Resizer::new();
     resizer
-        .resize_typed(&src_image, &mut cropped_dst_image, None)
+        .resize_typed(
+            &src_image,
+            &mut cropped_dst_image,
+            &ResizeOptions::new().resize_alg(fr::ResizeAlg::Nearest),
+        )
         .unwrap();
 
     let row_size: usize = 64 * 4;

@@ -2,7 +2,7 @@
 
 ### Added
 
-- Added Gaussian filter for convolution algorythm.
+- Added Gaussian filter for convolution algorithm.
 
 ### Fixed
 
@@ -25,11 +25,14 @@ A lot of breaking changes have been done in this release:
     - `resize_typed()` accepts references to `impl ImageView` and `impl ImageViewMut`.
 - Resize methods also accept the `options` argument.
   With the help of this argument, you can specify:
+    - resize algorithm;
     - how to crop the source image;
     - whether to multiply the source image by the alpha channel and
       divide the destination image by the alpha channel.
       By default, Resizer multiplies and divides by alpha channel
       images with `U8x2`, `U8x4`, `U16x2` and `U16x4` pixels.
+- Argument `resize_alg` was removed from `Resizer::new()` method, use
+  `options` argument of methods to resize instead.
 - The `MulDiv` implementation has been changed in the same way as `Resizer`.
   It now has two versions of each method: dynamic and typed.
 - Type of image dimensions has been changed from `NonZeroU32` into `u32`.
@@ -135,7 +138,7 @@ fn my_resize(
 
     // Create Resizer instance and resize source image
     // into buffer of destination image.
-    let mut resizer = Resizer::default();
+    let mut resizer = Resizer::new();
     // By default, Resizer multiplies and divides by alpha channel
     // images with U8x2, U8x4, U16x2 and U16x4 pixels.
     resizer.resize(&src_image, &mut dst_image, None).unwrap();

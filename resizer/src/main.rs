@@ -10,6 +10,7 @@ use once_cell::sync::Lazy;
 
 use fast_image_resize as fr;
 use fast_image_resize::images::Image;
+use fast_image_resize::ResizeOptions;
 
 mod structs;
 
@@ -77,7 +78,7 @@ fn resize(cli: &Cli) -> Result<()> {
     let mut dst_image = create_destination_image(cli, &src_image);
 
     let algorithm = get_resizing_algorithm(cli);
-    let mut resizer = fr::Resizer::new(algorithm);
+    let mut resizer = fr::Resizer::new();
 
     debug!(
         "Resize the source image into {}x{}",
@@ -85,7 +86,11 @@ fn resize(cli: &Cli) -> Result<()> {
         dst_image.height()
     );
     resizer
-        .resize(&src_image, &mut dst_image, None)
+        .resize(
+            &src_image,
+            &mut dst_image,
+            &ResizeOptions::new().resize_alg(algorithm),
+        )
         .with_context(|| "Failed to resize image")?;
 
     save_result(cli, dst_image, color_type, orig_pixel_type)

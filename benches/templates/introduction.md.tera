@@ -6,14 +6,14 @@ Environment:
 - CPU: Neoverse-N1 2GHz (Oracle Cloud Compute, VM.Standard.A1.Flex)
 {% else -%}
 - CPU: AMD Ryzen 9 5950X
-- RAM: DDR4 3800 MHz
+- RAM: DDR4 4000 MHz
 {% endif -%}
 - Ubuntu 22.04 (linux 6.5.0)
-- Rust 1.77.2
+- Rust 1.78
 - criterion = "0.5.1"
 - fast_image_resize = "4.0.0"
 {% if arch_id == "wasm32" -%}
-- wasmtime = "19.0.2"
+- wasmtime = "20.0.0"
 {% endif %}
 
 Other libraries used to compare of resizing speed:

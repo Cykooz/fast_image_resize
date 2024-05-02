@@ -11,12 +11,17 @@ const NEW_SIZE: u32 = 695;
 fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
     let src_image = U8x4::load_big_square_src_image();
     let mut dst_image = Image::new(NEW_SIZE, NEW_SIZE, PixelType::U8x4);
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
+    let mut resizer = Resizer::new();
+    let options = ResizeOptions::new().resize_alg(ResizeAlg::Nearest);
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     utils::bench(bench_group, 100, "U8x4 Nearest", "rust", |bencher| {
-        bencher.iter(|| resizer.resize(&src_image, &mut dst_image, None).unwrap())
+        bencher.iter(|| {
+            resizer
+                .resize(&src_image, &mut dst_image, &options)
+                .unwrap()
+        })
     });
 }
 
@@ -24,12 +29,17 @@ fn native_nearest_u8x4_bench(bench_group: &mut utils::BenchGroup) {
 fn native_nearest_u8_bench(bench_group: &mut utils::BenchGroup) {
     let src_image = U8::load_big_square_src_image();
     let mut dst_image = Image::new(NEW_SIZE, NEW_SIZE, PixelType::U8);
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
+    let mut resizer = Resizer::new();
+    let options = ResizeOptions::new().resize_alg(ResizeAlg::Nearest);
     unsafe {
         resizer.set_cpu_extensions(CpuExtensions::None);
     }
     utils::bench(bench_group, 100, "U8 Nearest", "rust", |bencher| {
-        bencher.iter(|| resizer.resize(&src_image, &mut dst_image, None).unwrap())
+        bencher.iter(|| {
+            resizer
+                .resize(&src_image, &mut dst_image, &options)
+                .unwrap()
+        })
     });
 }
 
@@ -43,8 +53,10 @@ fn downscale_bench(
     name_prefix: &str,
 ) {
     let mut res_image = Image::new(dst_width, dst_height, image.pixel_type());
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(filter_type));
-    let options = ResizeOptions::new().use_alpha(false);
+    let mut resizer = Resizer::new();
+    let options = ResizeOptions::new()
+        .resize_alg(ResizeAlg::Convolution(filter_type))
+        .use_alpha(false);
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }

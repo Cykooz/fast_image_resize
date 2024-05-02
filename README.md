@@ -126,7 +126,7 @@ Pipeline:
 
 ### Resize RGBA8 image
 
-Note:: You must enable `"image"` feature to support of
+Note: You must enable `"image"` feature to support of
 [image::DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html).
 Otherwise, you have to convert such images into supported by the crate image type.
 
@@ -137,7 +137,8 @@ use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
 use image::{ExtendedColorType, ImageEncoder};
 
-use fast_image_resize::{self as fr, IntoImageView};
+use fast_image_resize::{IntoImageView, Resizer};
+use fast_image_resize::images::Image;
 
 fn main() {
     // Read source image from file
@@ -149,7 +150,7 @@ fn main() {
     // Create container for data of destination image
     let dst_width = 1024;
     let dst_height = 768;
-    let mut dst_image = fr::images::Image::new(
+    let mut dst_image = Image::new(
         dst_width,
         dst_height,
         src_image.pixel_type().unwrap(),
@@ -157,9 +158,7 @@ fn main() {
 
     // Create Resizer instance and resize source image
     // into buffer of destination image
-    let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
-    );
+    let mut resizer = Resizer::new();
     resizer.resize(&src_image, &mut dst_image, None).unwrap();
 
     // Write destination image as PNG-file
@@ -182,7 +181,8 @@ use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
 use image::{ColorType, GenericImageView};
 
-use fast_image_resize::{self as fr, IntoImageView};
+use fast_image_resize::{IntoImageView, Resizer, ResizeOptions};
+use fast_image_resize::images::Image;
 
 fn main() {
     let img = ImageReader::open("./data/nasa-4928x3279.png")
@@ -191,21 +191,19 @@ fn main() {
         .unwrap();
 
     // Create container for data of destination image
-    let mut dst_image = fr::images::Image::new(
+    let mut dst_image = Image::new(
         1024,
         768,
         img.pixel_type().unwrap(),
     );
 
-    // Create Resizer instance and resize source image
+    // Create Resizer instance and resize cropped source image
     // into buffer of destination image
-    let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
-    );
+    let mut resizer = Resizer::new();
     resizer.resize(
         &img,
         &mut dst_image,
-        &fr::ResizeOptions::new().crop(
+        &ResizeOptions::new().crop(
             10.0,   // left 
             10.0,   // top
             2000.0, // width

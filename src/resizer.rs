@@ -30,11 +30,15 @@ pub enum SrcCropping {
     FitIntoDestination((f64, f64)),
 }
 
-/// Options for configuring resize process.
+/// Options for configuring a resize process.
 #[derive(Debug, Clone, Copy)]
 pub struct ResizeOptions {
-    /// Default: [SrcCropping::None].
+    /// Default: `ResizeAlg::Convolution(FilterType::Lanczos3)`
+    pub algorithm: ResizeAlg,
+    /// Default: `SrcCropping::None`.
     pub cropping: SrcCropping,
+    /// Enable or disable consideration of the alpha channel when resizing.
+    ///
     /// Default: `true`.
     pub mul_div_alpha: bool,
 }
@@ -42,7 +46,8 @@ pub struct ResizeOptions {
 impl Default for ResizeOptions {
     fn default() -> Self {
         Self {
-            cropping: Default::default(),
+            algorithm: ResizeAlg::Convolution(FilterType::Lanczos3),
+            cropping: SrcCropping::None,
             mul_div_alpha: true,
         }
     }
@@ -53,15 +58,23 @@ impl ResizeOptions {
         Default::default()
     }
 
+    /// Set resize algorythm.
+    pub fn resize_alg(&self, resize_alg: ResizeAlg) -> Self {
+        let mut options = *self;
+        options.algorithm = resize_alg;
+        options
+    }
+
     /// Set crop box for source image.
-    pub fn crop(mut self, left: f64, top: f64, width: f64, height: f64) -> Self {
-        self.cropping = SrcCropping::Crop(CropBox {
+    pub fn crop(&self, left: f64, top: f64, width: f64, height: f64) -> Self {
+        let mut options = *self;
+        options.cropping = SrcCropping::Crop(CropBox {
             left,
             top,
             width,
             height,
         });
-        self
+        options
     }
 
     /// Fit source image into the aspect ratio of destination image without distortions.
@@ -76,41 +89,38 @@ impl ResizeOptions {
     /// corner, etc. (i.e. if cropping the width, take all the
     /// crop off the left side, and if cropping the height take
     /// none from the top, and therefore all off the bottom).
-    pub fn fit_into_destination(mut self, centering: Option<(f64, f64)>) -> Self {
-        self.cropping = SrcCropping::FitIntoDestination(centering.unwrap_or((0.5, 0.5)));
-        self
+    pub fn fit_into_destination(&self, centering: Option<(f64, f64)>) -> Self {
+        let mut options = *self;
+        options.cropping = SrcCropping::FitIntoDestination(centering.unwrap_or((0.5, 0.5)));
+        options
     }
 
     /// Enable or disable consideration of the alpha channel when resizing.
-    pub fn use_alpha(mut self, v: bool) -> Self {
-        self.mul_div_alpha = v;
-        self
+    pub fn use_alpha(&self, v: bool) -> Self {
+        let mut options = *self;
+        options.mul_div_alpha = v;
+        options
     }
 }
 
 /// Methods of this structure used to resize images.
 #[derive(Default, Debug, Clone)]
 pub struct Resizer {
-    pub algorithm: ResizeAlg,
     cpu_extensions: CpuExtensions,
     mul_div: MulDiv,
-    default_options: ResizeOptions,
     alpha_buffer: Vec<u8>,
     convolution_buffer: Vec<u8>,
     super_sampling_buffer: Vec<u8>,
 }
 
 impl Resizer {
-    /// Creates instance of `Resizer`
+    /// Creates instance of `Resizer`.
     ///
-    /// By default, instance of `Resizer` created with the best CPU
+    /// By default, an instance of `Resizer` is created with the best CPU
     /// extensions provided by your CPU.
     /// You can change this by using method [Resizer::set_cpu_extensions].
-    pub fn new(algorithm: ResizeAlg) -> Self {
-        Self {
-            algorithm,
-            ..Default::default()
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     /// Resize the source image to the size of destination image and save
@@ -183,7 +193,8 @@ impl Resizer {
         dst_view: &mut impl ImageViewMut<Pixel = P>,
         options: impl Into<Option<&'o ResizeOptions>>,
     ) -> Result<(), ResizeError> {
-        let options = options.into().unwrap_or(&self.default_options);
+        let default_options = ResizeOptions::default();
+        let options = options.into().unwrap_or(&default_options);
 
         let crop_box = match options.cropping {
             SrcCropping::None => CropBox {
@@ -210,7 +221,7 @@ impl Resizer {
             return Ok(());
         }
 
-        match self.algorithm {
+        match options.algorithm {
             ResizeAlg::Nearest => resample_nearest(&cropped_src_view, dst_view),
             ResizeAlg::Convolution(filter_type) => self.resample_convolution(
                 &cropped_src_view,

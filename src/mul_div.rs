@@ -97,6 +97,7 @@ impl MulDiv {
         if src_view.width() != dst_view.width() || src_view.height() != dst_view.height() {
             return Err(MulDivImagesError::SizeIsDifferent);
         }
+        
         P::multiply_alpha(src_view, dst_view, self.cpu_extensions)?;
         Ok(())
     }

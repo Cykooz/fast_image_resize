@@ -180,7 +180,6 @@ mod vips {
 
 /// Resize image with help of "fast_imager_resize" crate
 pub fn fir_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup, use_alpha: bool) {
-    let resize_options = ResizeOptions::new().use_alpha(use_alpha);
     let src_image_data = P::load_big_src_image();
     let mut dst_image = Image::new(NEW_WIDTH, NEW_HEIGHT, src_image_data.pixel_type());
     let mut cpu_extensions = vec![CpuExtensions::None];
@@ -207,11 +206,14 @@ pub fn fir_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup, use_alpha: b
                 "Lanczos3" => ResizeAlg::Convolution(FilterType::Lanczos3),
                 _ => continue,
             };
-            let mut fast_resizer = Resizer::new(resize_alg);
+            let mut fast_resizer = Resizer::new();
             unsafe {
                 fast_resizer.set_cpu_extensions(cpu_ext);
             }
             let sample_size = 100;
+            let resize_options = ResizeOptions::new()
+                .resize_alg(resize_alg)
+                .use_alpha(use_alpha);
 
             bench(
                 bench_group,

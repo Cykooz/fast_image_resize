@@ -8,7 +8,6 @@ enum Oper {
     Div,
 }
 
-#[derive(Clone, Copy)]
 struct TestCaseU16 {
     pub color: u16,
     pub alpha: u16,

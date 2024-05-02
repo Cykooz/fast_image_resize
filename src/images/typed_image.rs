@@ -71,11 +71,15 @@ impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
 
     fn iter_rows(&self, start_row: u32) -> impl Iterator<Item = &[Self::Pixel]> {
         let width = self.width as usize;
-        let start = start_row as usize * width;
-        self.pixels
-            .get(start..)
-            .unwrap_or_default()
-            .chunks_exact(width)
+        if width == 0 {
+            [].chunks_exact(1)
+        } else {
+            let start = start_row as usize * width;
+            self.pixels
+                .get(start..)
+                .unwrap_or_default()
+                .chunks_exact(width)
+        }
     }
 
     fn iter_rows_with_step(
@@ -184,24 +188,32 @@ impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
 
     fn iter_rows(&self, start_row: u32) -> impl Iterator<Item = &[Self::Pixel]> {
         let width = self.width as usize;
-        let start = start_row as usize * width;
-        self.pixels
-            .borrow()
-            .get(start..)
-            .unwrap_or_default()
-            .chunks_exact(width)
+        if width == 0 {
+            [].chunks_exact(1)
+        } else {
+            let start = start_row as usize * width;
+            self.pixels
+                .borrow()
+                .get(start..)
+                .unwrap_or_default()
+                .chunks_exact(width)
+        }
     }
 }
 
 impl<'a, P: InnerPixel> ImageViewMut for TypedImageMut<'a, P> {
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
         let width = self.width as usize;
-        let start = start_row as usize * width;
-        self.pixels
-            .borrow_mut()
-            .get_mut(start..)
-            .unwrap_or_default()
-            .chunks_exact_mut(width)
+        if width == 0 {
+            [].chunks_exact_mut(1)
+        } else {
+            let start = start_row as usize * width;
+            self.pixels
+                .borrow_mut()
+                .get_mut(start..)
+                .unwrap_or_default()
+                .chunks_exact_mut(width)
+        }
     }
 }
 

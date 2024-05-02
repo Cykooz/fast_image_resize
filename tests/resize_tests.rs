@@ -6,8 +6,8 @@ use image::io::Reader as ImageReader;
 use fast_image_resize::images::{Image, TypedImage, TypedImageMut};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
-    testing as fr_testing, CpuExtensions, CropBox, CropBoxError, Filter, FilterType, IntoImageView,
-    PixelTrait, PixelType, ResizeAlg, ResizeError, ResizeOptions, Resizer, SrcCropping,
+    testing as fr_testing, CpuExtensions, CropBoxError, Filter, FilterType, IntoImageView,
+    PixelTrait, PixelType, ResizeAlg, ResizeError, ResizeOptions, Resizer,
 };
 use testing::{cpu_ext_into_str, image_checksum, save_result, PixelTestingExt};
 
@@ -21,11 +21,15 @@ const NEW_BIG_WIDTH: u32 = 5016;
 
 #[test]
 fn try_resize_to_other_pixel_type() {
-    let mut resizer = Resizer::new(ResizeAlg::Nearest);
+    let mut resizer = Resizer::new();
     let src_image = U8x4::load_big_src_image();
     let mut dst_image = Image::new(1024, 256, PixelType::U8);
     assert!(matches!(
-        resizer.resize(&src_image, &mut dst_image, None),
+        resizer.resize(
+            &src_image,
+            &mut dst_image,
+            &ResizeOptions::new().resize_alg(ResizeAlg::Nearest),
+        ),
         Err(ResizeError::PixelTypesAreDifferent)
     ));
 }
@@ -42,7 +46,7 @@ fn resize_to_same_size() {
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
     let src_view: TypedImage<U8x4> = src_image.typed_image().unwrap();
     let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    let mut resizer = Resizer::new();
     resizer
         .resize_typed(&src_view, &mut dst_view, None)
         .unwrap();
@@ -67,16 +71,8 @@ fn resize_to_same_size_after_cropping() {
 
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
     let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-    let options = ResizeOptions {
-        cropping: SrcCropping::Crop(CropBox {
-            top: 10.,
-            left: 10.,
-            width: width as _,
-            height: height as _,
-        }),
-        ..Default::default()
-    };
+    let mut resizer = Resizer::new();
+    let options = ResizeOptions::new().crop(10., 10., width as _, height as _);
     resizer
         .resize_typed(&src_view, &mut dst_view, &options)
         .unwrap();
@@ -116,7 +112,7 @@ fn resize_to_same_width<const C: usize>(
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
 
     let mut dst_image = Image::new(width, height, pixel_type);
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    let mut resizer = Resizer::new();
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
@@ -169,7 +165,7 @@ fn resize_to_same_height<const C: usize>(
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
 
     let mut dst_image = Image::new(width, height, pixel_type);
-    let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+    let mut resizer = Resizer::new();
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
@@ -289,14 +285,18 @@ where
         let image = Self::load_big_src_image();
         assert_eq!(image.pixel_type(), Self::pixel_type());
 
-        let mut resizer = Resizer::new(resize_alg);
+        let mut resizer = Resizer::new();
         unsafe {
             resizer.set_cpu_extensions(cpu_extensions);
         }
         let new_height = get_new_height(&image, NEW_WIDTH);
         let mut result = Image::new(NEW_WIDTH, new_height, image.pixel_type());
         resizer
-            .resize(&image, &mut result, &ResizeOptions::new().use_alpha(false))
+            .resize(
+                &image,
+                &mut result,
+                &ResizeOptions::new().resize_alg(resize_alg).use_alpha(false),
+            )
             .unwrap();
 
         let alg_name = match resize_alg {
@@ -341,14 +341,18 @@ where
         let image = Self::load_small_src_image();
         assert_eq!(image.pixel_type(), Self::pixel_type());
 
-        let mut resizer = Resizer::new(resize_alg);
+        let mut resizer = Resizer::new();
         unsafe {
             resizer.set_cpu_extensions(cpu_extensions);
         }
         let new_height = get_new_height(&image, NEW_BIG_WIDTH);
         let mut result = Image::new(NEW_BIG_WIDTH, new_height, image.pixel_type());
         resizer
-            .resize(&image, &mut result, &ResizeOptions::new().use_alpha(false))
+            .resize(
+                &image,
+                &mut result,
+                &ResizeOptions::new().resize_alg(resize_alg).use_alpha(false),
+            )
             .unwrap();
 
         let alg_name = match resize_alg {
@@ -819,29 +823,23 @@ mod not_u8x4 {
         let mut src_buf = [0, 0, 0, 0, 255, 0, 0, 0, 0];
         let src_image = Image::from_slice_u8(3, 3, &mut src_buf, PixelType::U8).unwrap();
         let mut dst_image = Image::new(1, 1, PixelType::U8);
-        let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Box));
-
+        let mut resizer = Resizer::new();
+        let options = ResizeOptions::new().resize_alg(ResizeAlg::Convolution(FilterType::Box));
         // Resize without cropping
-        resizer.resize(&src_image, &mut dst_image, None).unwrap();
+        resizer
+            .resize(&src_image, &mut dst_image, &options)
+            .unwrap();
         assert_eq!(dst_image.buffer()[0], (255.0f32 / 9.0).round() as u8);
 
         // Resize with fractional cropping
         resizer
-            .resize(
-                &src_image,
-                &mut dst_image,
-                &ResizeOptions::new().crop(0.5, 0.5, 2., 2.),
-            )
+            .resize(&src_image, &mut dst_image, &options.crop(0.5, 0.5, 2., 2.))
             .unwrap();
         assert_eq!(dst_image.buffer()[0], (255.0f32 / 4.0).round() as u8);
 
         // Resize with integer cropping
         resizer
-            .resize(
-                &src_image,
-                &mut dst_image,
-                &ResizeOptions::new().crop(1., 1., 1., 1.),
-            )
+            .resize(&src_image, &mut dst_image, &options.crop(1., 1., 1., 1.))
             .unwrap();
         assert_eq!(dst_image.buffer()[0], 255);
     }
@@ -858,11 +856,11 @@ mod u8x4 {
 
     #[test]
     fn invalid_crop_box() {
-        let mut resizer = Resizer::new(ResizeAlg::Nearest);
+        let mut resizer = Resizer::new();
         let src_image = Image::new(1, 1, P::pixel_type());
         let mut dst_image = Image::new(2, 2, P::pixel_type());
 
-        let mut options = ResizeOptions::new();
+        let mut options = ResizeOptions::new().resize_alg(ResizeAlg::Nearest);
 
         for (left, top) in [(1., 0.), (0., 1.)] {
             options = options.crop(left, top, 1., 1.);
@@ -1038,7 +1036,7 @@ mod u8x4 {
 
         let mut dst_image = Image::new(1279, 1280, PixelType::U8x4);
 
-        let mut resizer = Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+        let mut resizer = Resizer::new();
 
         let mut cpu_extensions_vec = vec![CpuExtensions::None];
         #[cfg(target_arch = "x86_64")]
