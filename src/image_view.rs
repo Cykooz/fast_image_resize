@@ -1,5 +1,5 @@
 use crate::pixels::InnerPixel;
-use crate::{ArrayChunks, ImageError, PixelType};
+use crate::{ArrayChunks, ImageError, PixelTrait, PixelType};
 
 /// A trait for getting access to image data.
 pub trait ImageView {
@@ -99,12 +99,12 @@ pub trait IntoImageView {
 
     fn height(&self) -> u32;
 
-    fn image_view<P: InnerPixel>(&self) -> Option<impl ImageView<Pixel = P>>;
+    fn image_view<P: PixelTrait>(&self) -> Option<impl ImageView<Pixel = P>>;
 }
 
 /// Conversion into an [ImageViewMut].
 pub trait IntoImageViewMut: IntoImageView {
-    fn image_view_mut<P: InnerPixel>(&mut self) -> Option<impl ImageViewMut<Pixel = P>>;
+    fn image_view_mut<P: PixelTrait>(&mut self) -> Option<impl ImageViewMut<Pixel = P>>;
 }
 
 /// Returns supported by the crate pixels type of the image or `ImageError` if the image

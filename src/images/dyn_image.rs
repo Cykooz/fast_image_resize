@@ -1,7 +1,8 @@
 use crate::images::{TypedImage, TypedImageMut};
 use crate::pixels::InnerPixel;
 use crate::{
-    ImageBufferError, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelType,
+    ImageBufferError, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait,
+    PixelType,
 };
 
 /// Simple reference to image data that provides [IntoImageView].
@@ -257,13 +258,13 @@ impl<'a> IntoImageView for Image<'a> {
         self.height
     }
 
-    fn image_view<P: InnerPixel>(&self) -> Option<impl ImageView<Pixel = P>> {
+    fn image_view<P: PixelTrait>(&self) -> Option<impl ImageView<Pixel = P>> {
         self.typed_image()
     }
 }
 
 impl<'a> IntoImageViewMut for Image<'a> {
-    fn image_view_mut<P: InnerPixel>(&mut self) -> Option<impl ImageViewMut<Pixel = P>> {
+    fn image_view_mut<P: PixelTrait>(&mut self) -> Option<impl ImageViewMut<Pixel = P>> {
         self.typed_image_mut()
     }
 }

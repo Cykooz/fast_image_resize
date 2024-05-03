@@ -20,7 +20,8 @@ pub enum PixelType {
 }
 
 impl PixelType {
-    pub(crate) fn size(&self) -> usize {
+    /// Returns pixel size in bytes.
+    pub fn size(&self) -> usize {
         match self {
             Self::U8 => 1,
             Self::U8x2 => 2,

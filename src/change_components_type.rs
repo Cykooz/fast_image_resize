@@ -3,7 +3,7 @@ use crate::pixels::{
 };
 use crate::{
     try_pixel_type, DifferentDimensionsError, ImageView, ImageViewMut, IntoImageView,
-    IntoImageViewMut, MappingError, PixelType,
+    IntoImageViewMut, MappingError, PixelTrait, PixelType,
 };
 
 pub fn change_type_of_pixel_components(
@@ -48,8 +48,8 @@ fn change_components_type<S, D>(
     dst_image: &mut impl IntoImageViewMut,
 ) -> Result<(), MappingError>
 where
-    S: InnerPixel,
-    D: InnerPixel<CountOfComponents = S::CountOfComponents>,
+    S: PixelTrait,
+    D: PixelTrait<CountOfComponents = S::CountOfComponents>,
     <S as InnerPixel>::Component: IntoPixelComponent<<D as InnerPixel>::Component>,
 {
     match (src_image.image_view::<S>(), dst_image.image_view_mut::<D>()) {

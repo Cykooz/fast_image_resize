@@ -8,6 +8,7 @@ use crate::pixels::{
 };
 use crate::{
     try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, MappingError,
+    PixelTrait,
 };
 
 pub(crate) mod mappers;
@@ -96,11 +97,11 @@ where
         dst_image: &mut impl IntoImageViewMut,
     ) -> Result<(), MappingError>
     where
-        S: InnerPixel,
+        S: PixelTrait,
         <S as InnerPixel>::Component: PixelComponent<CountOfComponentValues = Values<SIZE>>
             + IntoPixelComponent<Out>
             + Into<usize>,
-        D: InnerPixel<Component = Out, CountOfComponents = S::CountOfComponents>,
+        D: PixelTrait<Component = Out, CountOfComponents = S::CountOfComponents>,
     {
         let (src_view, dst_view) =
             match (src_image.image_view::<S>(), dst_image.image_view_mut::<D>()) {
@@ -140,7 +141,7 @@ where
     ) -> Result<(), MappingError>
     where
         Out: Into<usize>,
-        S: InnerPixel<Component = Out>,
+        S: PixelTrait<Component = Out>,
     {
         if let Some(image_view) = image.image_view_mut::<S>() {
             self.map_image_inplace_typed(image_view);

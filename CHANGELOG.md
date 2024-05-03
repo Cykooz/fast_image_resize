@@ -3,6 +3,7 @@
 ### Added
 
 - Added Gaussian filter for convolution algorithm.
+- Method `PixelType::size()` was made public.
 
 ### Fixed
 
