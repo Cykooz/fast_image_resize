@@ -5,7 +5,7 @@ use image::{ColorType, DynamicImage};
 
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
-use fast_image_resize::{CpuExtensions, PixelType};
+use fast_image_resize::{CpuExtensions, PixelTrait, PixelType};
 
 pub fn nonzero(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()
@@ -32,7 +32,7 @@ pub fn image_checksum<P: InnerPixel, const N: usize>(image: &Image) -> [u64; N] 
     res
 }
 
-pub trait PixelTestingExt: InnerPixel {
+pub trait PixelTestingExt: PixelTrait {
     fn pixel_type_str() -> &'static str {
         match Self::pixel_type() {
             PixelType::U8 => "u8",

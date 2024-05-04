@@ -35,7 +35,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
 ) {
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values;
-    let max_y = y_start + coeffs.len() as u32;
+    let max_rows = coeffs.len() as u32;
     let mut dst_u16 = T::components_mut(dst_row);
 
     /*
@@ -77,7 +77,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
 
             for r in 0..2 {
@@ -113,7 +113,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
         let mut dst_ptr = dst_chunk.as_mut_ptr();
         for x in 0..2 {
             for sum in sums {
-                v128_store((&mut c_buf).as_mut_ptr() as *mut v128, sum[x]);
+                v128_store(c_buf.as_mut_ptr() as *mut v128, sum[x]);
                 *dst_ptr = normalizer.clip(c_buf[0]);
                 dst_ptr = dst_ptr.add(1);
                 *dst_ptr = normalizer.clip(c_buf[1]);
@@ -133,7 +133,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 i64x2_splat(two_coeffs[0] as i64),
@@ -169,7 +169,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
             // sums[i] = _mm_and_si128(sums[i] , mask);
             // sums[i] = _mm_srl_epi64(sums[i] , precision_i64);
             // _mm_packus_epi32(sums[i] , sums[i] );
-            v128_store((&mut c_buf).as_mut_ptr() as *mut v128, sum);
+            v128_store(c_buf.as_mut_ptr() as *mut v128, sum);
             *dst_ptr = normalizer.clip(c_buf[0]);
             dst_ptr = dst_ptr.add(1);
             *dst_ptr = normalizer.clip(c_buf[1]);
@@ -188,7 +188,7 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
         let coeffs_2 = coeffs.chunks_exact(2);
         let coeffs_reminder = coeffs_2.remainder();
 
-        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_y).zip(coeffs_2) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_2) {
             let src_rows = src_rows.map(|row| T::components(row));
             let coeffs_i64 = [
                 i64x2_splat(two_coeffs[0] as i64),
@@ -218,12 +218,12 @@ unsafe fn vert_convolution_into_one_row_u16<T: InnerPixel<Component = u16>>(
         }
 
         let mut dst_ptr = dst_chunk.as_mut_ptr();
-        v128_store((&mut c_buf).as_mut_ptr() as *mut v128, c01);
+        v128_store(c_buf.as_mut_ptr() as *mut v128, c01);
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);
         dst_ptr = dst_ptr.add(1);
-        v128_store((&mut c_buf).as_mut_ptr() as *mut v128, c23);
+        v128_store(c_buf.as_mut_ptr() as *mut v128, c23);
         *dst_ptr = normalizer.clip(c_buf[0]);
         dst_ptr = dst_ptr.add(1);
         *dst_ptr = normalizer.clip(c_buf[1]);

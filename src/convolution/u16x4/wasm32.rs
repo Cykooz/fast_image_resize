@@ -127,8 +127,8 @@ unsafe fn horiz_convolution_four_rows(
         }
 
         for i in 0..4 {
-            v128_store((&mut rg_buf).as_mut_ptr() as *mut v128, rg_sum[i]);
-            v128_store((&mut ba_buf).as_mut_ptr() as *mut v128, ba_sum[i]);
+            v128_store(rg_buf.as_mut_ptr() as *mut v128, rg_sum[i]);
+            v128_store(ba_buf.as_mut_ptr() as *mut v128, ba_sum[i]);
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0 = [
                 normalizer.clip(rg_buf[0]),
@@ -219,8 +219,8 @@ unsafe fn horiz_convolution_one_row(
             ba_sum = i64x2_add(ba_sum, wasm32_utils::i64x2_mul_lo(ba_i64x2, coeff0_i64x2));
         }
 
-        v128_store((&mut rg_buf).as_mut_ptr() as *mut v128, rg_sum);
-        v128_store((&mut ba_buf).as_mut_ptr() as *mut v128, ba_sum);
+        v128_store(rg_buf.as_mut_ptr() as *mut v128, rg_sum);
+        v128_store(ba_buf.as_mut_ptr() as *mut v128, ba_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = [
             normalizer.clip(rg_buf[0]),

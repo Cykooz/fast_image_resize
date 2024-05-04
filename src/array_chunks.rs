@@ -68,12 +68,9 @@ where
 }
 
 #[inline]
-fn next_chunk<I: Iterator, const N: usize>(
+fn next_chunk<I: Iterator + Sized, const N: usize>(
     iter: &mut I,
-) -> Result<[I::Item; N], Take<IntoIter<I::Item, N>>>
-where
-    I: Sized,
-{
+) -> Result<[I::Item; N], Take<IntoIter<I::Item, N>>> {
     iter_next_chunk(iter)
 }
 

@@ -21,7 +21,7 @@ exclude = ["/data"]
 
 [dependencies]
 cfg-if = "1.0"
-num-traits = "0.2.18"
+num-traits = "0.2.19"
 thiserror = "1.0"
 bytemuck = "1.15"
 document-features = "0.2.8"

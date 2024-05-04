@@ -151,14 +151,14 @@ unsafe fn horiz_convolution_four_rows(
         if let Some(&k) = coeffs.first() {
             let coeff01_i64x2 = i64x2(k as i64, 0);
             for i in 0..4 {
-                let pixel = (*src_rows[i].get_unchecked(x)).0 as i64;
+                let pixel = src_rows[i].get_unchecked(x).0 as i64;
                 let source = i64x2(pixel, 0);
                 ll_sum[i] = i64x2_add(ll_sum[i], wasm32_utils::i64x2_mul_lo(source, coeff01_i64x2));
             }
         }
 
         for i in 0..4 {
-            v128_store((&mut ll_buf).as_mut_ptr() as *mut v128, ll_sum[i]);
+            v128_store(ll_buf.as_mut_ptr() as *mut v128, ll_sum[i]);
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0 = normalizer.clip(ll_buf.iter().sum::<i64>() + half_error);
         }
@@ -268,12 +268,12 @@ unsafe fn horiz_convolution_one_row(
 
         if let Some(&k) = coeffs.first() {
             let coeff01_i64x2 = i64x2(k as i64, 0);
-            let pixel = (*src_row.get_unchecked(x)).0 as i64;
+            let pixel = src_row.get_unchecked(x).0 as i64;
             let source = i64x2(pixel, 0);
             ll_sum = i64x2_add(ll_sum, wasm32_utils::i64x2_mul_lo(source, coeff01_i64x2));
         }
 
-        v128_store((&mut ll_buf).as_mut_ptr() as *mut v128, ll_sum);
+        v128_store(ll_buf.as_mut_ptr() as *mut v128, ll_sum);
         let dst_pixel = dst_row.get_unchecked_mut(dst_x);
         dst_pixel.0 = normalizer.clip(ll_buf[0] + ll_buf[1] + half_error);
     }

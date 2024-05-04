@@ -1,7 +1,7 @@
 use std::arch::wasm32::*;
 
 use crate::pixels::U8x2;
-use crate::wasm32_utils::{u16x8_mul_add_shr16, u16x8_mul_shr16};
+use crate::wasm32_utils::u16x8_mul_add_shr16;
 use crate::{ImageView, ImageViewMut};
 
 use super::native;
