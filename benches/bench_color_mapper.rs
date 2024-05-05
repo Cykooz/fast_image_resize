@@ -13,11 +13,13 @@ pub fn bench_color_mapper(bench_group: &mut utils::BenchGroup) {
         src_image.pixel_type(),
     );
     let mapper = create_srgb_mapper();
-    bench_group.bench_function("SRGB U8x3 => RGB U8x3", |bencher| {
-        bencher.iter(|| {
-            mapper.forward_map(&src_image, &mut dst_image).unwrap();
-        })
-    });
+    bench_group
+        .criterion_group
+        .bench_function("SRGB U8x3 => RGB U8x3", |bencher| {
+            bencher.iter(|| {
+                mapper.forward_map(&src_image, &mut dst_image).unwrap();
+            })
+        });
 }
 
 fn main() {

@@ -33,6 +33,13 @@ report files, such as `./benchmarks-x86_64.md`:
 WRITE_COMPARE_RESULT=1 cargo bench -- Compare
 ```
 
+If you want to use old benchmark results for other crates, you must add
+env variable with number of days as a result lifetime:
+
+```shell
+WRITE_COMPARE_RESULT=1 RESULTS_LIFETIME=5 cargo bench -- Compare
+```
+
 # Wasm32
 
 Specify build target in `.cargo/config.toml` file.

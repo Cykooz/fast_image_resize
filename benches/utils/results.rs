@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 
 use super::get_arch_id_and_name;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BenchResult {
     pub function_name: String,
     pub parameter: String,

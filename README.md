@@ -55,7 +55,6 @@ Other libraries used to compare of resizing speed:
 - libvips (single-threaded mode, cache disabled)
 
 <!-- bench_compare_rgb start -->
-
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -63,21 +62,19 @@ Pipeline:
 `src_image => resize => dst_image`
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
-- Numbers in table are mean duration of image resizing in milliseconds.
+- Numbers in the table mean a duration of image resizing in milliseconds.
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  30.14  |   -   |  90.74   | 149.25  |  208.22  |
-| resize     |  7.78   | 26.82 |  53.54   |  97.38  |  144.44  |
-| libvips    |  7.78   | 59.56 |  18.69   |  30.36  |  39.69   |
-| fir rust   |  0.28   | 9.17  |  14.72   |  26.24  |  38.98   |
-| fir sse4.1 |  0.28   | 4.08  |   5.79   |  10.32  |  15.94   |
-| fir avx2   |  0.28   | 3.01  |   3.86   |  6.89   |  12.69   |
-
+| image      |  28.28  |   -   |  82.31   | 134.61  |  186.22  |
+| resize     |  7.83   | 26.85 |  53.70   |  97.59  |  144.79  |
+| libvips    |  7.76   | 59.65 |  19.83   |  30.73  |  39.80   |
+| fir rust   |  0.29   | 12.77 |  17.94   |  27.94  |  40.05   |
+| fir sse4.1 |  0.28   | 3.99  |   5.66   |  9.86   |  15.42   |
+| fir avx2   |  0.28   | 3.06  |   3.89   |  6.85   |  13.25   |
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
-
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -86,21 +83,19 @@ Pipeline:
 
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
-- Numbers in table are mean duration of image resizing in milliseconds.
+- Numbers in the table mean a duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  11.30  | 42.85  |  85.27   | 147.28  |  211.34  |
-| libvips    |  9.15   | 120.11 |  188.46  | 337.77  |  499.37  |
-| fir rust   |  0.20   | 20.69  |  27.88   |  41.83  |  56.67   |
-| fir sse4.1 |  0.19   | 10.19  |  12.43   |  17.99  |  24.64   |
-| fir avx2   |  0.20   |  7.55  |   8.77   |  13.45  |  20.62   |
-
+| resize     |  11.34  | 42.76  |  85.43   | 147.41  |  211.31  |
+| libvips    |  8.97   | 120.82 |  190.82  | 341.07  |  500.87  |
+| fir rust   |  0.19   | 21.79  |  28.34   |  42.24  |  56.72   |
+| fir sse4.1 |  0.20   | 10.14  |  12.26   |  18.43  |  24.22   |
+| fir avx2   |  0.19   |  7.44  |   8.48   |  14.10  |  21.31   |
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
-
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -109,17 +104,16 @@ Pipeline:
 
 - Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
   has converted into grayscale image with one byte per pixel.
-- Numbers in table are mean duration of image resizing in milliseconds.
+- Numbers in the table mean a duration of image resizing in milliseconds.
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  27.05  |   -   |  58.63   |  86.87  |  115.57  |
-| resize     |  6.44   | 11.49 |  21.83   |  43.93  |  71.01   |
-| libvips    |  4.69   | 25.00 |   9.69   |  12.95  |  16.46   |
-| fir rust   |  0.15   | 3.97  |   4.98   |  7.15   |  11.04   |
-| fir sse4.1 |  0.15   | 1.69  |   2.13   |  3.32   |   5.71   |
-| fir avx2   |  0.15   | 1.73  |   1.94   |  2.30   |   4.33   |
-
+| image      |  25.53  |   -   |  56.37   |  84.03  |  111.89  |
+| resize     |  5.60   | 10.85 |  18.72   |  37.97  |  65.65   |
+| libvips    |  4.67   | 25.02 |   9.80   |  13.73  |  18.17   |
+| fir rust   |  0.15   | 4.94  |   6.37   |  8.97   |  13.36   |
+| fir sse4.1 |  0.15   | 1.66  |   2.10   |  3.28   |   5.57   |
+| fir avx2   |  0.15   | 1.76  |   1.96   |  2.37   |   4.41   |
 <!-- bench_compare_l end -->
 
 ## Examples
