@@ -51,7 +51,7 @@ macro_rules! cropped_image_impl {
             }
         }
 
-        impl<V: $view_trait> ImageView for $wrapper_name<V> {
+        unsafe impl<V: $view_trait> ImageView for $wrapper_name<V> {
             type Pixel = V::Pixel;
 
             fn width(&self) -> u32 {
@@ -85,7 +85,7 @@ cropped_image_impl!(
     "It is wrapper that provides [ImageViewMut] for part of wrapped image."
 );
 
-impl<V: ImageViewMut> ImageViewMut for CroppedImageMut<V> {
+unsafe impl<V: ImageViewMut> ImageViewMut for CroppedImageMut<V> {
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
         let left = self.left as usize;
         let right = left + self.width as usize;

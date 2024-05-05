@@ -58,7 +58,7 @@ impl<'a, P> TypedImage<'a, P> {
     }
 }
 
-impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
     type Pixel = P;
 
     fn width(&self) -> u32 {
@@ -144,23 +144,6 @@ impl<'a, P: InnerPixel> TypedImageMut<'a, P> {
         })
     }
 
-    // pub fn from_components(
-    //     width: u32,
-    //     height: u32,
-    //     components: &'a mut [P::Component],
-    // ) -> Result<Self, ImageBufferError> {
-    //     let components_count = width as usize * height as usize * P::count_of_components();
-    //     if components.len() < components_count {
-    //         return Err(ImageBufferError::InvalidBufferSize);
-    //     }
-    //     let pixels = align_buffer_to_mut(components)?;
-    //     Ok(Self {
-    //         width,
-    //         height,
-    //         pixels: PixelsContainer::Borrowed(pixels),
-    //     })
-    // }
-
     pub fn from_buffer(
         width: u32,
         height: u32,
@@ -175,7 +158,7 @@ impl<'a, P: InnerPixel> TypedImageMut<'a, P> {
     }
 }
 
-impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
     type Pixel = P;
 
     fn width(&self) -> u32 {
@@ -201,7 +184,7 @@ impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
     }
 }
 
-impl<'a, P: InnerPixel> ImageViewMut for TypedImageMut<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImageMut<'a, P> {
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
         let width = self.width as usize;
         if width == 0 {
