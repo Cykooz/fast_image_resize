@@ -8,8 +8,8 @@ pub enum ImageError {
 }
 
 #[derive(Error, Debug, Clone, Copy)]
-#[error("Size of slice with pixels is smaller than required")]
-pub struct InvalidPixelsSliceSize;
+#[error("Size of container with pixels is smaller than required")]
+pub struct InvalidPixelsSize;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageBufferError {

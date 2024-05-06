@@ -1,5 +1,7 @@
 use fast_image_resize as fr;
-use fast_image_resize::images::{CroppedImageMut, Image, ImageRef, TypedImage, TypedImageRef};
+use fast_image_resize::images::{
+    Image, ImageRef, TypedCroppedImage, TypedCroppedImageMut, TypedImage, TypedImageRef,
+};
 use fast_image_resize::pixels::{U8x4, U8};
 use fast_image_resize::{ImageView, ResizeOptions};
 
@@ -46,7 +48,7 @@ fn create_type_image_ref_from_small_buffer() {
     let buffer = vec![U8::new(0); 64 * 30];
 
     let res = TypedImageRef::<U8>::new(width, height, &buffer);
-    assert!(matches!(res, Err(fr::InvalidPixelsSliceSize)));
+    assert!(matches!(res, Err(fr::InvalidPixelsSize)));
 }
 
 #[test]
@@ -76,16 +78,55 @@ fn create_typed_image_from_big_buffer() {
 }
 
 #[test]
-fn crop_view_mut() {
-    // White source image
-    let src_image =
-        Image::from_vec_u8(64, 32, vec![255; 64 * 32 * 4], fr::PixelType::U8x4).unwrap();
-    let src_image = src_image.typed_image::<U8x4>().unwrap();
-    // Black destination image
-    let mut dst_image = Image::new(64, 32, fr::PixelType::U8x4);
+fn typed_cropped_image() {
+    const BLACK: U8x4 = U8x4::new([0; 4]);
+    const WHITE: U8x4 = U8x4::new([255; 4]);
 
-    let mut cropped_dst_image =
-        CroppedImageMut::new(dst_image.typed_image_mut::<U8x4>().unwrap(), 10, 10, 44, 12).unwrap();
+    let mut source_pixels = Vec::with_capacity(64 * 64);
+    source_pixels.extend((0..64 * 64).map(|i| {
+        let y = i / 64;
+        if (10..54).contains(&y) {
+            let x = i % 64;
+            if (10..54).contains(&x) {
+                return WHITE;
+            }
+        }
+        BLACK
+    }));
+
+    // Black source image with white square inside
+    let src_image = TypedImage::<U8x4>::from_pixels(64, 64, source_pixels).unwrap();
+    // Black destination image
+    let mut dst_image = TypedImage::<U8x4>::new(40, 40);
+
+    let cropped_src_image = TypedCroppedImage::new(&src_image, 10, 10, 44, 44).unwrap();
+    assert_eq!(cropped_src_image.width(), 44);
+    assert_eq!(cropped_src_image.height(), 44);
+
+    let mut resizer = fr::Resizer::new();
+    resizer
+        .resize_typed(
+            &cropped_src_image,
+            &mut dst_image,
+            &ResizeOptions::new().resize_alg(fr::ResizeAlg::Nearest),
+        )
+        .unwrap();
+
+    let white_block = vec![WHITE; 40 * 40];
+    assert_eq!(dst_image.pixels(), white_block);
+}
+
+#[test]
+fn typed_cropped_image_mut() {
+    const BLACK: U8x4 = U8x4::new([0; 4]);
+    const WHITE: U8x4 = U8x4::new([255; 4]);
+
+    // White source image
+    let src_image = TypedImage::from_pixels(64, 32, vec![WHITE; 64 * 32]).unwrap();
+    // Black destination image
+    let mut dst_image = TypedImage::<U8x4>::new(64, 32);
+
+    let mut cropped_dst_image = TypedCroppedImageMut::new(&mut dst_image, 10, 10, 44, 12).unwrap();
     assert_eq!(cropped_dst_image.width(), 44);
     assert_eq!(cropped_dst_image.height(), 12);
 
@@ -98,21 +139,21 @@ fn crop_view_mut() {
         )
         .unwrap();
 
-    let row_size: usize = 64 * 4;
-    let dst_buffer = dst_image.buffer();
+    let dst_pixels = dst_image.pixels();
 
-    let black_block = vec![0u8; 10 * row_size];
+    let row_size: usize = 64;
+    let black_block = vec![BLACK; 10 * row_size];
     // Top border
-    assert_eq!(dst_buffer[0..10 * row_size], black_block);
+    assert_eq!(dst_pixels[0..10 * row_size], black_block);
 
     // Middle rows
-    let mut middle_row = vec![0u8; 10 * 4];
-    middle_row.extend(vec![255u8; 44 * 4]);
-    middle_row.extend(vec![0u8; 10 * 4]);
-    for row in dst_buffer.chunks_exact(row_size).skip(10 * 4).take(12 * 4) {
+    let mut middle_row = vec![BLACK; 10];
+    middle_row.extend(vec![WHITE; 44]);
+    middle_row.extend(vec![BLACK; 10]);
+    for row in dst_pixels.chunks_exact(row_size).skip(10).take(12) {
         assert_eq!(row, middle_row);
     }
 
     // Bottom border
-    assert_eq!(dst_buffer[22 * row_size..], black_block);
+    assert_eq!(dst_pixels[22 * row_size..], black_block);
 }

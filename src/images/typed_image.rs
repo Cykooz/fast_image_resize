@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::images::BufferContainer;
 use crate::pixels::InnerPixel;
-use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidPixelsSliceSize};
+use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidPixelsSize};
 
 /// Generic reference to image data that provides [ImageView].
 #[derive(Debug)]
@@ -13,10 +13,10 @@ pub struct TypedImageRef<'a, P> {
 }
 
 impl<'a, P> TypedImageRef<'a, P> {
-    pub fn new(width: u32, height: u32, pixels: &'a [P]) -> Result<Self, InvalidPixelsSliceSize> {
+    pub fn new(width: u32, height: u32, pixels: &'a [P]) -> Result<Self, InvalidPixelsSize> {
         let pixels_count = width as usize * height as usize;
         if pixels.len() < pixels_count {
-            return Err(InvalidPixelsSliceSize);
+            return Err(InvalidPixelsSize);
         }
         Ok(Self {
             width,
@@ -105,14 +105,26 @@ impl<P: Default + Copy + Debug> TypedImage<'static, P> {
 }
 
 impl<'a, P: InnerPixel> TypedImage<'a, P> {
-    pub fn from_pixels(
+    pub fn from_pixels(width: u32, height: u32, pixels: Vec<P>) -> Result<Self, InvalidPixelsSize> {
+        let pixels_count = width as usize * height as usize;
+        if pixels.len() < pixels_count {
+            return Err(InvalidPixelsSize);
+        }
+        Ok(Self {
+            width,
+            height,
+            pixels: BufferContainer::Owned(pixels),
+        })
+    }
+
+    pub fn from_pixels_slice(
         width: u32,
         height: u32,
         pixels: &'a mut [P],
-    ) -> Result<Self, InvalidPixelsSliceSize> {
+    ) -> Result<Self, InvalidPixelsSize> {
         let pixels_count = width as usize * height as usize;
         if pixels.len() < pixels_count {
-            return Err(InvalidPixelsSliceSize);
+            return Err(InvalidPixelsSize);
         }
         Ok(Self {
             width,
@@ -131,7 +143,16 @@ impl<'a, P: InnerPixel> TypedImage<'a, P> {
             return Err(ImageBufferError::InvalidBufferSize);
         }
         let pixels = align_buffer_to_mut(buffer)?;
-        Self::from_pixels(width, height, pixels).map_err(|_| ImageBufferError::InvalidBufferSize)
+        Self::from_pixels_slice(width, height, pixels)
+            .map_err(|_| ImageBufferError::InvalidBufferSize)
+    }
+
+    pub fn pixels(&self) -> &[P] {
+        self.pixels.borrow()
+    }
+
+    pub fn pixels_mut(&mut self) -> &mut [P] {
+        self.pixels.borrow_mut()
     }
 }
 

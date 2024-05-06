@@ -84,7 +84,7 @@ fn mul_div_alpha_test<P: PixelTrait>(
     let mut dst_pixels = src_pixels.clone();
 
     let src_image = TypedImageRef::new(width, height, &src_pixels).unwrap();
-    let mut dst_image = TypedImage::from_pixels(width, height, &mut dst_pixels).unwrap();
+    let mut dst_image = TypedImage::from_pixels_slice(width, height, &mut dst_pixels).unwrap();
 
     let mut alpha_mul_div: MulDiv = Default::default();
     unsafe {
@@ -125,7 +125,7 @@ fn mul_div_alpha_test<P: PixelTrait>(
 
     // Inplace
     let mut src_pixels_clone = src_pixels.clone();
-    let mut image = TypedImage::from_pixels(width, height, &mut src_pixels_clone).unwrap();
+    let mut image = TypedImage::from_pixels_slice(width, height, &mut src_pixels_clone).unwrap();
 
     match oper {
         Oper::Mul => alpha_mul_div

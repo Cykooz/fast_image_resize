@@ -41,7 +41,7 @@ A lot of breaking changes have been done in this release:
 - `Image` (embedded implementation of image container) moved from root of
   the crate into module `images`.
 - Added new image containers: `ImageRef`, `TypedImageRef`, `TypedImage`,
-  `CroppedImage` and `CroppedImageMut`.
+  `TypedCroppedImage` and `TypedCroppedImageMut`.
 - Added optional feature "image".
   It adds implementation of traits `IntoImageView` and `IntoImageViewMut` for the
   [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)

@@ -508,7 +508,7 @@ fn get_temp_image_from_buffer<P: PixelTrait>(
         buffer.resize(buf_size, 0);
     }
     let pixels = unsafe { buffer.align_to_mut::<P>().1 };
-    TypedImage::from_pixels(width, height, &mut pixels[0..pixels_count]).unwrap()
+    TypedImage::from_pixels_slice(width, height, &mut pixels[0..pixels_count]).unwrap()
 }
 
 fn resample_nearest<P: InnerPixel>(

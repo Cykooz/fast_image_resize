@@ -21,37 +21,9 @@ fn check_crop_box(
     Ok(())
 }
 
-macro_rules! cropped_image_impl {
-    ($wrapper_name:ident<$view_trait:ident>, $doc:expr) => {
-        #[doc = $doc]
-        pub struct $wrapper_name<V: $view_trait + Sized> {
-            image_view: V,
-            left: u32,
-            top: u32,
-            width: u32,
-            height: u32,
-        }
-
-        impl<V: $view_trait + Sized> $wrapper_name<V> {
-            pub fn new(
-                image_view: V,
-                left: u32,
-                top: u32,
-                width: u32,
-                height: u32,
-            ) -> Result<Self, CropBoxError> {
-                check_crop_box(&image_view, left, top, width, height)?;
-                Ok(Self {
-                    image_view,
-                    left,
-                    top,
-                    width,
-                    height,
-                })
-            }
-        }
-
-        unsafe impl<V: $view_trait> ImageView for $wrapper_name<V> {
+macro_rules! image_view_impl {
+    ($wrapper_name:ident<$view_trait:ident>) => {
+        unsafe impl<'a, V: $view_trait> ImageView for $wrapper_name<'a, V> {
             type Pixel = V::Pixel;
 
             fn width(&self) -> u32 {
@@ -76,16 +48,66 @@ macro_rules! cropped_image_impl {
     };
 }
 
-cropped_image_impl!(
-    CroppedImage<ImageView>,
-    "It is wrapper that provides [ImageView] for part of wrapped image."
-);
-cropped_image_impl!(
-    CroppedImageMut<ImageViewMut>,
-    "It is wrapper that provides [ImageViewMut] for part of wrapped image."
-);
+/// It is a typed wrapper that provides [ImageView] for part of wrapped image.
+pub struct TypedCroppedImage<'a, V: ImageView> {
+    image_view: &'a V,
+    left: u32,
+    top: u32,
+    width: u32,
+    height: u32,
+}
 
-unsafe impl<V: ImageViewMut> ImageViewMut for CroppedImageMut<V> {
+impl<'a, V: ImageView> TypedCroppedImage<'a, V> {
+    pub fn new(
+        image_view: &'a V,
+        left: u32,
+        top: u32,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, CropBoxError> {
+        check_crop_box(image_view, left, top, width, height)?;
+        Ok(Self {
+            image_view,
+            left,
+            top,
+            width,
+            height,
+        })
+    }
+}
+
+image_view_impl!(TypedCroppedImage<ImageView>);
+
+/// It is a typed wrapper that provides [ImageView] and [ImageViewMut] for part of wrapped image.
+pub struct TypedCroppedImageMut<'a, V: ImageViewMut> {
+    image_view: &'a mut V,
+    left: u32,
+    top: u32,
+    width: u32,
+    height: u32,
+}
+impl<'a, V: ImageViewMut> TypedCroppedImageMut<'a, V> {
+    pub fn new(
+        image_view: &'a mut V,
+        left: u32,
+        top: u32,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, CropBoxError> {
+        check_crop_box(image_view, left, top, width, height)?;
+        Ok(Self {
+            image_view,
+            left,
+            top,
+            width,
+            height,
+        })
+    }
+}
+
+image_view_impl!(TypedCroppedImageMut<ImageViewMut>);
+
+unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
         let left = self.left as usize;
         let right = left + self.width as usize;
