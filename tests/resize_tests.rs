@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use image::io::Reader as ImageReader;
 
-use fast_image_resize::images::{Image, TypedImage, TypedImageMut};
+use fast_image_resize::images::{Image, TypedImage, TypedImageRef};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
     testing as fr_testing, CpuExtensions, CropBoxError, Filter, FilterType, IntoImageView,
@@ -44,8 +44,8 @@ fn resize_to_same_size() {
         .collect();
     let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8x4).unwrap();
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
-    let src_view: TypedImage<U8x4> = src_image.typed_image().unwrap();
-    let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
+    let src_view: TypedImageRef<U8x4> = src_image.typed_image().unwrap();
+    let mut dst_view: TypedImage<U8x4> = dst_image.typed_image_mut().unwrap();
     let mut resizer = Resizer::new();
     resizer
         .resize_typed(&src_view, &mut dst_view, None)
@@ -70,7 +70,7 @@ fn resize_to_same_size_after_cropping() {
     let src_view = src_image.typed_image::<U8x4>().unwrap();
 
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
-    let mut dst_view: TypedImageMut<U8x4> = dst_image.typed_image_mut().unwrap();
+    let mut dst_view: TypedImage<U8x4> = dst_image.typed_image_mut().unwrap();
     let mut resizer = Resizer::new();
     let options = ResizeOptions::new().crop(10., 10., width as _, height as _);
     resizer

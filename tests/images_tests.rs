@@ -1,5 +1,5 @@
 use fast_image_resize as fr;
-use fast_image_resize::images::{CroppedImageMut, Image, ImageRef, TypedImage, TypedImageMut};
+use fast_image_resize::images::{CroppedImageMut, Image, ImageRef, TypedImage, TypedImageRef};
 use fast_image_resize::pixels::{U8x4, U8};
 use fast_image_resize::{ImageView, ResizeOptions};
 
@@ -27,19 +27,6 @@ fn create_image_from_small_buffer() {
 }
 
 #[test]
-fn create_typed_image_from_small_buffer() {
-    let width = 64;
-    let height = 32;
-    let mut buffer = vec![0; 64 * 30];
-
-    let res = TypedImageMut::<U8>::from_buffer(width, height, &mut buffer);
-    assert_eq!(res.unwrap_err(), fr::ImageBufferError::InvalidBufferSize);
-
-    let res = TypedImage::<U8>::from_buffer(width, height, &buffer);
-    assert_eq!(res.unwrap_err(), fr::ImageBufferError::InvalidBufferSize);
-}
-
-#[test]
 fn create_image_from_big_buffer() {
     let width = 64;
     let height = 32;
@@ -53,15 +40,38 @@ fn create_image_from_big_buffer() {
 }
 
 #[test]
+fn create_type_image_ref_from_small_buffer() {
+    let width = 64;
+    let height = 32;
+    let buffer = vec![U8::new(0); 64 * 30];
+
+    let res = TypedImageRef::<U8>::new(width, height, &buffer);
+    assert!(matches!(res, Err(fr::InvalidPixelsSliceSize)));
+}
+
+#[test]
+fn create_typed_image_from_small_buffer() {
+    let width = 64;
+    let height = 32;
+    let mut buffer = vec![0; 64 * 30];
+
+    let res = TypedImage::<U8>::from_buffer(width, height, &mut buffer);
+    assert_eq!(res.unwrap_err(), fr::ImageBufferError::InvalidBufferSize);
+
+    let res = TypedImageRef::<U8>::from_buffer(width, height, &buffer);
+    assert_eq!(res.unwrap_err(), fr::ImageBufferError::InvalidBufferSize);
+}
+
+#[test]
 fn create_typed_image_from_big_buffer() {
     let width = 64;
     let height = 32;
     let mut buffer = vec![0; 65 * 32];
 
-    let res = TypedImageMut::<U8>::from_buffer(width, height, &mut buffer);
+    let res = TypedImage::<U8>::from_buffer(width, height, &mut buffer);
     assert!(res.is_ok());
 
-    let res = TypedImage::<U8>::from_buffer(width, height, &buffer);
+    let res = TypedImageRef::<U8>::from_buffer(width, height, &buffer);
     assert!(res.is_ok());
 }
 

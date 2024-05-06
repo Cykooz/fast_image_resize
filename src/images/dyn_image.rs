@@ -1,4 +1,4 @@
-use crate::images::{TypedImage, TypedImageMut};
+use crate::images::{BufferContainer, TypedImage, TypedImageRef};
 use crate::pixels::InnerPixel;
 use crate::{
     ImageBufferError, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait,
@@ -15,7 +15,7 @@ pub struct ImageRef<'a> {
 }
 
 impl<'a> ImageRef<'a> {
-    /// Create an image with from slice with pixels data.
+    /// Create an image from slice with pixels-data.
     pub fn new(
         width: u32,
         height: u32,
@@ -63,12 +63,12 @@ impl<'a> ImageRef<'a> {
         self.buffer.into()
     }
 
-    /// Get typed version of the image.
-    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImage<P>> {
+    /// Get the typed version of the image.
+    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
         }
-        let typed_image = TypedImage::from_buffer(self.width, self.height, self.buffer).unwrap();
+        let typed_image = TypedImageRef::from_buffer(self.width, self.height, self.buffer).unwrap();
         Some(typed_image)
     }
 }
@@ -91,27 +91,12 @@ impl<'a> IntoImageView for ImageRef<'a> {
     }
 }
 
-#[derive(Debug)]
-enum BufferContainer<'a> {
-    MutU8(&'a mut [u8]),
-    VecU8(Vec<u8>),
-}
-
-impl<'a> BufferContainer<'a> {
-    fn as_vec(&self) -> Vec<u8> {
-        match self {
-            Self::MutU8(slice) => slice.to_vec(),
-            Self::VecU8(vec) => vec.clone(),
-        }
-    }
-}
-
 /// Simple dynamic container of image data that provides [IntoImageView] and [IntoImageViewMut].
 #[derive(Debug)]
 pub struct Image<'a> {
     width: u32,
     height: u32,
-    buffer: BufferContainer<'a>,
+    buffer: BufferContainer<'a, u8>,
     pixel_type: PixelType,
 }
 
@@ -119,7 +104,7 @@ impl Image<'static> {
     /// Create an empty image with given dimensions and pixel type.
     pub fn new(width: u32, height: u32, pixel_type: PixelType) -> Self {
         let pixels_count = width as usize * height as usize;
-        let buffer = BufferContainer::VecU8(vec![0; pixels_count * pixel_type.size()]);
+        let buffer = BufferContainer::Owned(vec![0; pixels_count * pixel_type.size()]);
         Self {
             width,
             height,
@@ -145,7 +130,7 @@ impl Image<'static> {
         Ok(Self {
             width,
             height,
-            buffer: BufferContainer::VecU8(buffer),
+            buffer: BufferContainer::Owned(buffer),
             pixel_type,
         })
     }
@@ -169,7 +154,7 @@ impl<'a> Image<'a> {
         Ok(Self {
             width,
             height,
-            buffer: BufferContainer::MutU8(buffer),
+            buffer: BufferContainer::Borrowed(buffer),
             pixel_type,
         })
     }
@@ -193,8 +178,8 @@ impl<'a> Image<'a> {
     #[inline]
     pub fn buffer(&self) -> &[u8] {
         match &self.buffer {
-            BufferContainer::MutU8(p) => p,
-            BufferContainer::VecU8(v) => v,
+            BufferContainer::Borrowed(p) => p,
+            BufferContainer::Owned(v) => v,
         }
     }
 
@@ -202,16 +187,16 @@ impl<'a> Image<'a> {
     #[inline]
     pub fn buffer_mut(&mut self) -> &mut [u8] {
         match &mut self.buffer {
-            BufferContainer::MutU8(p) => p,
-            BufferContainer::VecU8(ref mut v) => v.as_mut_slice(),
+            BufferContainer::Borrowed(p) => p,
+            BufferContainer::Owned(ref mut v) => v.as_mut_slice(),
         }
     }
 
     #[inline]
     pub fn into_vec(self) -> Vec<u8> {
         match self.buffer {
-            BufferContainer::MutU8(p) => p.into(),
-            BufferContainer::VecU8(v) => v,
+            BufferContainer::Borrowed(p) => p.into(),
+            BufferContainer::Owned(v) => v,
         }
     }
 
@@ -220,27 +205,28 @@ impl<'a> Image<'a> {
         Image {
             width: self.width,
             height: self.height,
-            buffer: BufferContainer::VecU8(self.buffer.as_vec()),
+            buffer: BufferContainer::Owned(self.buffer.as_vec()),
             pixel_type: self.pixel_type,
         }
     }
 
     /// Get typed version of the image.
-    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImage<P>> {
-        if P::pixel_type() != self.pixel_type {
-            return None;
-        }
-        let typed_image = TypedImage::from_buffer(self.width, self.height, self.buffer()).unwrap();
-        Some(typed_image)
-    }
-
-    /// Get typed mutable version of the image.
-    pub fn typed_image_mut<P: InnerPixel>(&mut self) -> Option<TypedImageMut<P>> {
+    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
         }
         let typed_image =
-            TypedImageMut::from_buffer(self.width, self.height, self.buffer_mut()).unwrap();
+            TypedImageRef::from_buffer(self.width, self.height, self.buffer()).unwrap();
+        Some(typed_image)
+    }
+
+    /// Get typed mutable version of the image.
+    pub fn typed_image_mut<P: InnerPixel>(&mut self) -> Option<TypedImage<P>> {
+        if P::pixel_type() != self.pixel_type {
+            return None;
+        }
+        let typed_image =
+            TypedImage::from_buffer(self.width, self.height, self.buffer_mut()).unwrap();
         Some(typed_image)
     }
 }

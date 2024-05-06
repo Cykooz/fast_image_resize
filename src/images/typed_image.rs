@@ -1,42 +1,19 @@
+use std::fmt::Debug;
+
+use crate::images::BufferContainer;
 use crate::pixels::InnerPixel;
 use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidPixelsSliceSize};
 
+/// Generic reference to image data that provides [ImageView].
 #[derive(Debug)]
-enum PixelsContainer<'a, P> {
-    Borrowed(&'a mut [P]),
-    Owned(Vec<P>),
-}
-
-impl<'a, P: InnerPixel> PixelsContainer<'a, P> {
-    pub fn borrow(&self) -> &[P] {
-        match self {
-            PixelsContainer::Borrowed(p_ref) => p_ref,
-            PixelsContainer::Owned(vec) => vec,
-        }
-    }
-
-    pub fn borrow_mut(&mut self) -> &mut [P] {
-        match self {
-            PixelsContainer::Borrowed(p_ref) => p_ref,
-            PixelsContainer::Owned(vec) => vec,
-        }
-    }
-}
-
-/// Generic image container that provides [ImageView].
-#[derive(Debug)]
-pub struct TypedImage<'a, P> {
+pub struct TypedImageRef<'a, P> {
     width: u32,
     height: u32,
     pixels: &'a [P],
 }
 
-impl<'a, P> TypedImage<'a, P> {
-    pub fn from_pixels(
-        width: u32,
-        height: u32,
-        pixels: &'a [P],
-    ) -> Result<Self, InvalidPixelsSliceSize> {
+impl<'a, P> TypedImageRef<'a, P> {
+    pub fn new(width: u32, height: u32, pixels: &'a [P]) -> Result<Self, InvalidPixelsSliceSize> {
         let pixels_count = width as usize * height as usize;
         if pixels.len() < pixels_count {
             return Err(InvalidPixelsSliceSize);
@@ -54,11 +31,11 @@ impl<'a, P> TypedImage<'a, P> {
         buffer: &'a [u8],
     ) -> Result<Self, ImageBufferError> {
         let pixels = align_buffer_to(buffer)?;
-        Self::from_pixels(width, height, pixels).map_err(|_| ImageBufferError::InvalidBufferSize)
+        Self::new(width, height, pixels).map_err(|_| ImageBufferError::InvalidBufferSize)
     }
 }
 
-unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
     type Pixel = P;
 
     fn width(&self) -> u32 {
@@ -108,26 +85,26 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
     }
 }
 
-/// Generic mutable image container that provides [ImageView] and [ImageViewMut].
+/// Generic image container that provides [ImageView] and [ImageViewMut].
 #[derive(Debug)]
-pub struct TypedImageMut<'a, P: Default + Copy> {
+pub struct TypedImage<'a, P: Default + Copy + Debug> {
     width: u32,
     height: u32,
-    pixels: PixelsContainer<'a, P>,
+    pixels: BufferContainer<'a, P>,
 }
 
-impl<P: Default + Copy> TypedImageMut<'static, P> {
+impl<P: Default + Copy + Debug> TypedImage<'static, P> {
     pub fn new(width: u32, height: u32) -> Self {
         let pixels_count = width as usize * height as usize;
         Self {
             width,
             height,
-            pixels: PixelsContainer::Owned(vec![P::default(); pixels_count]),
+            pixels: BufferContainer::Owned(vec![P::default(); pixels_count]),
         }
     }
 }
 
-impl<'a, P: InnerPixel> TypedImageMut<'a, P> {
+impl<'a, P: InnerPixel> TypedImage<'a, P> {
     pub fn from_pixels(
         width: u32,
         height: u32,
@@ -140,7 +117,7 @@ impl<'a, P: InnerPixel> TypedImageMut<'a, P> {
         Ok(Self {
             width,
             height,
-            pixels: PixelsContainer::Borrowed(pixels),
+            pixels: BufferContainer::Borrowed(pixels),
         })
     }
 
@@ -158,7 +135,7 @@ impl<'a, P: InnerPixel> TypedImageMut<'a, P> {
     }
 }
 
-unsafe impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
     type Pixel = P;
 
     fn width(&self) -> u32 {
@@ -184,7 +161,7 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageMut<'a, P> {
     }
 }
 
-unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImageMut<'a, P> {
+unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImage<'a, P> {
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
         let width = self.width as usize;
         if width == 0 {

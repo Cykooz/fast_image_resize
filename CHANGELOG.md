@@ -26,7 +26,7 @@ A lot of breaking changes have been done in this release:
     - `resize_typed()` accepts references to `impl ImageView` and `impl ImageViewMut`.
 - Resize methods also accept the `options` argument.
   With the help of this argument, you can specify:
-    - resize algorithm;
+    - resize algorithm (default: Lanczos3);
     - how to crop the source image;
     - whether to multiply the source image by the alpha channel and
       divide the destination image by the alpha channel.
@@ -40,7 +40,7 @@ A lot of breaking changes have been done in this release:
   Now you can create and use zero-sized images.
 - `Image` (embedded implementation of image container) moved from root of
   the crate into module `images`.
-- Added new image containers: `ImageRef`, `TypedImage`, `TypedImageMut`,
+- Added new image containers: `ImageRef`, `TypedImageRef`, `TypedImage`,
   `CroppedImage` and `CroppedImageMut`.
 - Added optional feature "image".
   It adds implementation of traits `IntoImageView` and `IntoImageViewMut` for the

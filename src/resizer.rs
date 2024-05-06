@@ -1,7 +1,7 @@
 use crate::convolution::{self, FilterType};
 use crate::crop_box::CroppedSrcImageView;
 use crate::image_view::{try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut};
-use crate::images::TypedImageMut;
+use crate::images::TypedImage;
 use crate::pixels::{self, InnerPixel};
 use crate::{
     CpuExtensions, CropBox, DifferentDimensionsError, MulDiv, PixelTrait, PixelType, ResizeError,
@@ -500,7 +500,7 @@ fn get_temp_image_from_buffer<P: PixelTrait>(
     buffer: &mut Vec<u8>,
     width: u32,
     height: u32,
-) -> TypedImageMut<P> {
+) -> TypedImage<P> {
     let pixels_count = width as usize * height as usize;
     // Add pixel size as gap for alignment of resulted buffer.
     let buf_size = pixels_count * P::size() + P::size();
@@ -508,7 +508,7 @@ fn get_temp_image_from_buffer<P: PixelTrait>(
         buffer.resize(buf_size, 0);
     }
     let pixels = unsafe { buffer.align_to_mut::<P>().1 };
-    TypedImageMut::from_pixels(width, height, &mut pixels[0..pixels_count]).unwrap()
+    TypedImage::from_pixels(width, height, &mut pixels[0..pixels_count]).unwrap()
 }
 
 fn resample_nearest<P: InnerPixel>(
