@@ -33,6 +33,10 @@ impl<'a, P> TypedImageRef<'a, P> {
         let pixels = align_buffer_to(buffer)?;
         Self::new(width, height, pixels).map_err(|_| ImageBufferError::InvalidBufferSize)
     }
+
+    pub fn pixels(&self) -> &[P] {
+        self.pixels
+    }
 }
 
 unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {

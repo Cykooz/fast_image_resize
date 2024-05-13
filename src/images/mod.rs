@@ -2,11 +2,13 @@
 use std::fmt::Debug;
 
 pub use cropped_image::*;
-pub use dyn_image::*;
+pub use image::*;
+pub use typed_cropped_image::*;
 pub use typed_image::*;
 
 mod cropped_image;
-mod dyn_image;
+mod image;
+mod typed_cropped_image;
 mod typed_image;
 
 #[cfg(feature = "image")]

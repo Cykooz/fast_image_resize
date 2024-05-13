@@ -5,8 +5,7 @@ use image::DynamicImage;
 
 use crate::image_view::try_pixel_type;
 use crate::images::{TypedImage, TypedImageRef};
-use crate::pixels::InnerPixel;
-use crate::{ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelType};
+use crate::{ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait, PixelType};
 
 impl IntoImageView for DynamicImage {
     fn pixel_type(&self) -> Option<PixelType> {
@@ -31,7 +30,7 @@ impl IntoImageView for DynamicImage {
         self.height()
     }
 
-    fn image_view<P: InnerPixel>(&self) -> Option<impl ImageView<Pixel = P>> {
+    fn image_view<P: PixelTrait>(&self) -> Option<impl ImageView<Pixel = P>> {
         if let Ok(pixel_type) = try_pixel_type(self) {
             if P::pixel_type() == pixel_type {
                 return TypedImageRef::<P>::from_buffer(
@@ -47,7 +46,7 @@ impl IntoImageView for DynamicImage {
 }
 
 impl IntoImageViewMut for DynamicImage {
-    fn image_view_mut<P: InnerPixel>(&mut self) -> Option<impl ImageViewMut<Pixel = P>> {
+    fn image_view_mut<P: PixelTrait>(&mut self) -> Option<impl ImageViewMut<Pixel = P>> {
         if let Ok(pixel_type) = try_pixel_type(self) {
             if P::pixel_type() == pixel_type {
                 return TypedImage::<P>::from_buffer(

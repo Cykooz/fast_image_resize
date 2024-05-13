@@ -141,6 +141,7 @@ codegen-units = 1
 
 [profile.test]
 opt-level = 3
+incremental = true
 
 
 [package.metadata.release]

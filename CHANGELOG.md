@@ -4,6 +4,14 @@
 
 - Added Gaussian filter for convolution algorithm.
 - Method `PixelType::size()` was made public.
+- Added new image containers:
+    - `ImageRef`
+    - `TypedImageRef`
+    - `TypedImage`
+    - `TypedCroppedImage`
+    - `TypedCroppedImageMut`
+    - `CroppedImage`
+    - `CroppedImageMut`
 
 ### Fixed
 
@@ -11,7 +19,7 @@
 
 ### Changed
 
-A lot of breaking changes have been done in this release:
+A lot of **breaking changes** have been done in this release:
 
 - Structures `ImageView` and `ImageViewMut` have been removed. They always
   did unnecessary memory allocation to store references to image rows.
@@ -40,8 +48,6 @@ A lot of breaking changes have been done in this release:
   Now you can create and use zero-sized images.
 - `Image` (embedded implementation of image container) moved from root of
   the crate into module `images`.
-- Added new image containers: `ImageRef`, `TypedImageRef`, `TypedImage`,
-  `TypedCroppedImage` and `TypedCroppedImageMut`.
 - Added optional feature "image".
   It adds implementation of traits `IntoImageView` and `IntoImageViewMut` for the
   [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)

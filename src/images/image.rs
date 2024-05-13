@@ -37,6 +37,18 @@ impl<'a> ImageRef<'a> {
         })
     }
 
+    pub fn from_pixels<P: PixelTrait>(
+        width: u32,
+        height: u32,
+        pixels: &'a [P],
+    ) -> Result<Self, ImageBufferError> {
+        let (head, buffer, _) = unsafe { pixels.align_to::<u8>() };
+        if !head.is_empty() {
+            return Err(ImageBufferError::InvalidBufferAlignment);
+        }
+        Self::new(width, height, buffer, P::pixel_type())
+    }
+
     #[inline]
     pub fn pixel_type(&self) -> PixelType {
         self.pixel_type
@@ -86,7 +98,7 @@ impl<'a> IntoImageView for ImageRef<'a> {
         self.height
     }
 
-    fn image_view<P: InnerPixel>(&self) -> Option<impl ImageView<Pixel = P>> {
+    fn image_view<P: PixelTrait>(&self) -> Option<impl ImageView<Pixel = P>> {
         self.typed_image()
     }
 }
@@ -210,7 +222,7 @@ impl<'a> Image<'a> {
         }
     }
 
-    /// Get typed version of the image.
+    /// Get the typed version of the image.
     pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
@@ -220,7 +232,7 @@ impl<'a> Image<'a> {
         Some(typed_image)
     }
 
-    /// Get typed mutable version of the image.
+    /// Get the typed mutable version of the image.
     pub fn typed_image_mut<P: InnerPixel>(&mut self) -> Option<TypedImage<P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
