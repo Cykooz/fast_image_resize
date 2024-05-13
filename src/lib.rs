@@ -44,6 +44,8 @@ pub mod testing;
 #[cfg(target_arch = "wasm32")]
 mod wasm32_utils;
 
+/// A trait implemented by all pixel types from the crate.
+///
 /// This trait must be used in your code instead of [InnerPixel](pixels::InnerPixel).
 #[allow(private_bounds)]
 pub trait PixelTrait: Convolution + AlphaMulDiv {}

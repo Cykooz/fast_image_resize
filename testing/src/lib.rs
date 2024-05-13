@@ -11,7 +11,7 @@ pub fn nonzero(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()
 }
 
-pub fn image_checksum<P: InnerPixel, const N: usize>(image: &Image) -> [u64; N] {
+pub fn image_checksum<P: PixelTrait, const N: usize>(image: &Image) -> [u64; N] {
     let buffer = image.buffer();
     let mut res = [0u64; N];
     let component_size = P::size() / P::count_of_components();

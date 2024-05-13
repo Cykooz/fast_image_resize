@@ -23,16 +23,17 @@ exclude = ["/data"]
 cfg-if = "1.0"
 num-traits = "0.2.19"
 thiserror = "1.0"
-bytemuck = "1.15"
 document-features = "0.2.8"
 
+image = { version = "0.25.1", optional = true }
+bytemuck = { version = "1.16", optional = true }
+
+[features]
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
 ## type from the `image` crate.
-image = { version = "0.25.1", optional = true }
-
-[features]
+image = ["dep:image", "dep:bytemuck"]
 for_test = ["image"]
 only_u8x4 = []  # This can be used to experiment with the crate's code.
 
