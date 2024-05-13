@@ -128,7 +128,7 @@ fn my_resize(
     src_pixels: &[u8],
     dst_width: u32,
     dst_height: u32,
-) -> ImageMut {
+) -> Image {
     let src_image = ImageRef::new(
         src_width,
         src_height,

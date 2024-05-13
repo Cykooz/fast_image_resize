@@ -55,6 +55,7 @@ Other libraries used to compare of resizing speed:
 - libvips (single-threaded mode, cache disabled)
 
 <!-- bench_compare_rgb start -->
+
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -69,12 +70,14 @@ Pipeline:
 | image      |  28.28  |   -   |  82.31   | 134.61  |  186.22  |
 | resize     |  7.83   | 26.85 |  53.70   |  97.59  |  144.79  |
 | libvips    |  7.76   | 59.65 |  19.83   |  30.73  |  39.80   |
-| fir rust   |  0.29   | 12.77 |  17.94   |  27.94  |  40.05   |
+| fir rust   |  0.28   | 12.77 |  17.94   |  27.94  |  40.05   |
 | fir sse4.1 |  0.28   | 3.99  |   5.66   |  9.86   |  15.42   |
 | fir avx2   |  0.28   | 3.06  |   3.89   |  6.85   |  13.25   |
+
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
+
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -91,11 +94,13 @@ Pipeline:
 | resize     |  11.34  | 42.76  |  85.43   | 147.41  |  211.31  |
 | libvips    |  8.97   | 120.82 |  190.82  | 341.07  |  500.87  |
 | fir rust   |  0.19   | 21.79  |  28.34   |  42.24  |  56.72   |
-| fir sse4.1 |  0.20   | 10.14  |  12.26   |  18.43  |  24.22   |
+| fir sse4.1 |  0.19   | 10.14  |  12.26   |  18.43  |  24.22   |
 | fir avx2   |  0.19   |  7.44  |   8.48   |  14.10  |  21.31   |
+
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
+
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -114,6 +119,7 @@ Pipeline:
 | fir rust   |  0.15   | 4.94  |   6.37   |  8.97   |  13.36   |
 | fir sse4.1 |  0.15   | 1.66  |   2.10   |  3.28   |   5.57   |
 | fir avx2   |  0.15   | 1.76  |   1.96   |  2.37   |   4.41   |
+
 <!-- bench_compare_l end -->
 
 ## Examples
