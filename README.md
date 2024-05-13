@@ -126,7 +126,7 @@ use std::num::NonZeroU32;
 
 use image::codecs::png::PngEncoder;
 use image::io::Reader as ImageReader;
-use image::{ColorType, ImageEncoder};
+use image::{ExtendedColorType, ImageEncoder};
 
 use fast_image_resize as fr;
 
@@ -181,7 +181,7 @@ fn main() {
             dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),
-            ColorType::Rgba8,
+            ExtendedColorType::Rgba8,
         )
         .unwrap();
 }
