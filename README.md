@@ -26,7 +26,7 @@ Supported pixel formats and available optimisations:
 ## Colorspace
 
 Resizer from this crate does not convert image into linear colorspace
-during resize process. If it is important for you to resize images with a
+during a resize process. If it is important for you to resize images with a
 non-linear color space (e.g. sRGB) correctly, then you have to convert
 it to a linear color space before resizing and convert back to the color space of
 result image. [Read more](http://www.ericbrasseur.org/gamma.html)
