@@ -215,13 +215,12 @@ fn main() {
 
 ### Change CPU extensions used by resizer
 
-```rust, ignore
+```rust, no_run
 use fast_image_resize as fr;
 
 fn main() {
-    let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
-    );
+    let mut resizer = fr::Resizer::new();
+    #[cfg(target_arch = "x86_64")]
     unsafe {
         resizer.set_cpu_extensions(fr::CpuExtensions::Sse4_1);
     }
