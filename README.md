@@ -168,7 +168,7 @@ fn main() {
             dst_image.buffer(),
             dst_width,
             dst_height,
-            ExtendedColorType::Rgba8,
+            src_image.color().into(),
         )
         .unwrap();
 }
@@ -219,9 +219,7 @@ fn main() {
 use fast_image_resize as fr;
 
 fn main() {
-    let mut resizer = fr::Resizer::new(
-        fr::ResizeAlg::Convolution(fr::FilterType::Lanczos3),
-    );
+    let mut resizer = fr::Resizer::new();
     unsafe {
         resizer.set_cpu_extensions(fr::CpuExtensions::Sse4_1);
     }

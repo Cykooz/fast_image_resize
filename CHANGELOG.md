@@ -50,8 +50,8 @@ A lot of **breaking changes** have been done in this release:
   the crate into module `images`.
 - Added optional feature "image".
   It adds implementation of traits `IntoImageView` and `IntoImageViewMut` for the
-  [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
-  type from the `image` crate. This implementation allows you to use `DynamicImage`
+  [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html) type
+  from the `image` crate. This implementation allows you to use `DynamicImage`
   instances as arguments for methods of this crate.
 
 Look at the difference between versions 3 and 4 on example
