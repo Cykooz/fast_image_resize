@@ -1,10 +1,10 @@
 use crate::convolution::Coefficients;
-use crate::pixels::F32;
+use crate::pixels::F32x2;
 use crate::{ImageView, ImageViewMut};
 
 pub(crate) fn horiz_convolution(
-    src_view: &impl ImageView<Pixel = F32>,
-    dst_view: &mut impl ImageViewMut<Pixel = F32>,
+    src_view: &impl ImageView<Pixel = F32x2>,
+    dst_view: &mut impl ImageViewMut<Pixel = F32x2>,
     offset: u32,
     coeffs: Coefficients,
 ) {
@@ -14,12 +14,14 @@ pub(crate) fn horiz_convolution(
     for (dst_row, src_row) in dst_rows.zip(src_rows) {
         for (dst_pixel, coeffs_chunk) in dst_row.iter_mut().zip(&coefficients_chunks) {
             let first_x_src = coeffs_chunk.start as usize;
-            let mut ss = 0.;
+            let mut ss = [0.; 2];
             let src_pixels = unsafe { src_row.get_unchecked(first_x_src..) };
-            for (&k, &pixel) in coeffs_chunk.values.iter().zip(src_pixels) {
-                ss += pixel.0 as f64 * k;
+            for (&k, &src_pixel) in coeffs_chunk.values.iter().zip(src_pixels) {
+                for (s, c) in ss.iter_mut().zip(src_pixel.0) {
+                    *s += c as f64 * k;
+                }
             }
-            dst_pixel.0 = ss as f32;
+            dst_pixel.0 = ss.map(|v| v as f32);
         }
     }
 }

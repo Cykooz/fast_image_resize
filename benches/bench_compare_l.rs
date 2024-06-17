@@ -8,7 +8,7 @@ mod utils;
 
 pub fn bench_compare_l(bench_group: &mut utils::BenchGroup) {
     type P = U8;
-    let src_image = P::load_big_image().to_luma8();
+    let src_image = P::load_big_image();
     utils::image_resize(bench_group, &src_image);
     utils::resize_resize(
         bench_group,

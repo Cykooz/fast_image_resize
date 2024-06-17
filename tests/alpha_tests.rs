@@ -8,54 +8,6 @@ enum Oper {
     Div,
 }
 
-struct TestCaseU16 {
-    pub color: u16,
-    pub alpha: u16,
-    pub expected_color: u16,
-}
-
-const fn new_case_16(c: u16, a: u16, e: u16) -> TestCaseU16 {
-    TestCaseU16 {
-        color: c,
-        alpha: a,
-        expected_color: e,
-    }
-}
-
-fn full_mul_div_alpha_test_u8<P: PixelTrait<Component = u8>>(
-    create_pixel: fn(u8, u8) -> P,
-    cpu_extensions: CpuExtensions,
-) {
-    const PRECISION: u32 = 8;
-    const ALPHA_SCALE: u32 = 255u32 * (1 << (PRECISION + 1));
-    const ROUND_CORRECTION: u32 = 1 << (PRECISION - 1);
-
-    for oper in [Oper::Mul, Oper::Div] {
-        for color in 0u8..=255u8 {
-            for alpha in 0u8..=255u8 {
-                let result_color = if alpha == 0 {
-                    0
-                } else {
-                    match oper {
-                        Oper::Mul => {
-                            let tmp = color as u32 * alpha as u32 + 128;
-                            (((tmp >> 8) + tmp) >> 8) as u8
-                        }
-                        Oper::Div => {
-                            let recip_alpha = ((ALPHA_SCALE / alpha as u32) + 1) >> 1;
-                            let tmp = (color as u32 * recip_alpha + ROUND_CORRECTION) >> PRECISION;
-                            tmp.min(255) as u8
-                        }
-                    }
-                };
-                let src = [create_pixel(color, alpha)];
-                let res = [create_pixel(result_color, alpha)];
-                mul_div_alpha_test(oper, &src, &res, cpu_extensions);
-            }
-        }
-    }
-}
-
 fn mul_div_alpha_test<P: PixelTrait>(
     oper: Oper,
     src_pixels_tpl: &[P],
@@ -168,21 +120,7 @@ where
 
     let mut alpha_mul_div: MulDiv = Default::default();
 
-    let mut cpu_extensions_vec = vec![CpuExtensions::None];
-    #[cfg(target_arch = "x86_64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Sse4_1);
-        cpu_extensions_vec.push(CpuExtensions::Avx2);
-    }
-    #[cfg(target_arch = "aarch64")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Neon);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        cpu_extensions_vec.push(CpuExtensions::Simd128);
-    }
-    for cpu_extensions in cpu_extensions_vec {
+    for cpu_extensions in P::cpu_extensions() {
         if !cpu_extensions.is_supported() {
             println!(
                 "Cpu Extensions '{}' not supported by your CPU",
@@ -227,67 +165,149 @@ where
     }
 }
 
-mod u8x4 {
-    use fast_image_resize::pixels::U8x4;
-
+mod u8_tests {
     use super::*;
 
-    const fn new_u8x4(c: u8, a: u8) -> U8x4 {
-        U8x4::new([c, c, c, a])
+    fn full_mul_div_alpha_test_u8<P: PixelTrait<Component = u8>>(
+        create_pixel: fn(u8, u8) -> P,
+        cpu_extensions: CpuExtensions,
+    ) {
+        const PRECISION: u32 = 8;
+        const ALPHA_SCALE: u32 = 255u32 * (1 << (PRECISION + 1));
+        const ROUND_CORRECTION: u32 = 1 << (PRECISION - 1);
+
+        for oper in [Oper::Mul, Oper::Div] {
+            for color in 0u8..=255u8 {
+                for alpha in 0u8..=255u8 {
+                    let result_color = if alpha == 0 {
+                        0
+                    } else {
+                        match oper {
+                            Oper::Mul => {
+                                let tmp = color as u32 * alpha as u32 + 128;
+                                (((tmp >> 8) + tmp) >> 8) as u8
+                            }
+                            Oper::Div => {
+                                let recip_alpha = ((ALPHA_SCALE / alpha as u32) + 1) >> 1;
+                                let tmp =
+                                    (color as u32 * recip_alpha + ROUND_CORRECTION) >> PRECISION;
+                                tmp.min(255) as u8
+                            }
+                        }
+                    };
+                    let src = [create_pixel(color, alpha)];
+                    let res = [create_pixel(result_color, alpha)];
+                    mul_div_alpha_test(oper, &src, &res, cpu_extensions);
+                }
+            }
+        }
     }
 
-    #[test]
-    fn native_test() {
-        full_mul_div_alpha_test_u8(new_u8x4, CpuExtensions::None);
+    #[cfg(not(feature = "only_u8x4"))]
+    #[cfg(test)]
+    mod u8x2 {
+        use fast_image_resize::pixels::U8x2;
+
+        use super::*;
+
+        type P = U8x2;
+
+        const fn new_pixel(l: u8, a: u8) -> P {
+            P::new([l, a])
+        }
+
+        #[test]
+        fn mul_div_alpha_test() {
+            for cpu_extensions in P::cpu_extensions() {
+                full_mul_div_alpha_test_u8(new_pixel, cpu_extensions);
+            }
+        }
+
+        #[test]
+        fn multiply_real_image() {
+            run_tests_with_real_image_u8::<P, 2>(Oper::Mul, [4177920, 8355840]);
+        }
+
+        #[test]
+        fn divide_real_image() {
+            run_tests_with_real_image_u8::<P, 2>(Oper::Div, [12452343, 8355840]);
+        }
     }
 
-    #[cfg(target_arch = "x86_64")]
-    #[test]
-    fn sse4_test() {
-        full_mul_div_alpha_test_u8(new_u8x4, CpuExtensions::Sse4_1);
-    }
+    #[cfg(test)]
+    mod u8x4 {
+        use fast_image_resize::pixels::U8x4;
 
-    #[cfg(target_arch = "x86_64")]
-    #[test]
-    fn avx2_test() {
-        full_mul_div_alpha_test_u8(new_u8x4, CpuExtensions::Avx2);
-    }
+        use super::*;
 
-    #[cfg(target_arch = "aarch64")]
-    #[test]
-    fn neon_test() {
-        full_mul_div_alpha_test_u8(new_u8x4, CpuExtensions::Neon);
-    }
+        type P = U8x4;
 
-    #[cfg(target_arch = "wasm32")]
-    #[test]
-    fn wasm32_test() {
-        full_mul_div_alpha_test_u8(new_u8x4, CpuExtensions::Simd128);
-    }
+        const fn new_pixel(c: u8, a: u8) -> P {
+            P::new([c, c, c, a])
+        }
 
-    #[test]
-    fn multiply_real_image() {
-        run_tests_with_real_image_u8::<U8x4, 4>(Oper::Mul, [4177920, 4177920, 4177920, 8355840]);
-    }
+        #[test]
+        fn mul_div_alpha_test() {
+            for cpu_extensions in P::cpu_extensions() {
+                full_mul_div_alpha_test_u8(new_pixel, cpu_extensions);
+            }
+        }
 
-    #[test]
-    fn divide_real_image() {
-        run_tests_with_real_image_u8::<U8x4, 4>(Oper::Div, [12452343, 12452343, 12452343, 8355840]);
+        #[test]
+        fn multiply_real_image() {
+            run_tests_with_real_image_u8::<P, 4>(Oper::Mul, [4177920, 4177920, 4177920, 8355840]);
+        }
+
+        #[test]
+        fn divide_real_image() {
+            run_tests_with_real_image_u8::<P, 4>(
+                Oper::Div,
+                [12452343, 12452343, 12452343, 8355840],
+            );
+        }
     }
 }
 
 #[cfg(not(feature = "only_u8x4"))]
-mod not_u8x4 {
-    use fast_image_resize::pixels::{U16x2, U16x4, U8x2};
-
+mod u16_tests {
     use super::*;
 
-    const fn new_u16x2(l: u16, a: u16) -> U16x2 {
-        U16x2::new([l, a])
+    struct TestCaseU16 {
+        pub color: u16,
+        pub alpha: u16,
+        pub expected_color: u16,
     }
 
-    const fn new_u16x4(c: u16, a: u16) -> U16x4 {
-        U16x4::new([c, c, c, a])
+    const fn new_case_16(c: u16, a: u16, e: u16) -> TestCaseU16 {
+        TestCaseU16 {
+            color: c,
+            alpha: a,
+            expected_color: e,
+        }
+    }
+
+    fn get_mul_test_cases_u16<P>(create_pixel: fn(u16, u16) -> P) -> (Vec<P>, Vec<P>)
+    where
+        P: PixelTrait<Component = u16>,
+    {
+        let test_cases = [
+            new_case_16(0xffff, 0x8000, 0x8000),
+            new_case_16(0x8000, 0x8000, 0x4000),
+            new_case_16(0, 0x8000, 0),
+            new_case_16(0xffff, 0xffff, 0xffff),
+            new_case_16(0x8000, 0xffff, 0x8000),
+            new_case_16(0, 0xffff, 0),
+            new_case_16(0xffff, 0, 0),
+            new_case_16(0x8000, 0, 0),
+            new_case_16(0, 0, 0),
+        ];
+        let mut scr_pixels = vec![];
+        let mut expected_pixels = vec![];
+        for case in test_cases {
+            scr_pixels.push(create_pixel(case.color, case.alpha));
+            expected_pixels.push(create_pixel(case.expected_color, case.alpha));
+        }
+        (scr_pixels, expected_pixels)
     }
 
     fn get_div_test_cases_u16<P>(create_pixel: fn(u16, u16) -> P) -> (Vec<P>, Vec<P>)
@@ -316,238 +336,157 @@ mod not_u8x4 {
     }
 
     #[cfg(test)]
-    mod u8x2 {
-        use super::*;
-
-        const fn new_u8x2(l: u8, a: u8) -> U8x2 {
-            U8x2::new([l, a])
-        }
-
-        #[test]
-        fn native_test() {
-            full_mul_div_alpha_test_u8(new_u8x2, CpuExtensions::None);
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn sse4_test() {
-            full_mul_div_alpha_test_u8(new_u8x2, CpuExtensions::Sse4_1);
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn avx2_test() {
-            full_mul_div_alpha_test_u8(new_u8x2, CpuExtensions::Avx2);
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        #[test]
-        fn neon_test() {
-            full_mul_div_alpha_test_u8(new_u8x2, CpuExtensions::Neon);
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        #[test]
-        fn wasm32_test() {
-            full_mul_div_alpha_test_u8(new_u8x2, CpuExtensions::Simd128);
-        }
-
-        #[test]
-        fn multiply_real_image() {
-            run_tests_with_real_image_u8::<U8x2, 2>(Oper::Mul, [4177920, 8355840]);
-        }
-
-        #[test]
-        fn divide_real_image() {
-            run_tests_with_real_image_u8::<U8x2, 2>(Oper::Div, [12452343, 8355840]);
-        }
-    }
-
-    #[cfg(test)]
-    mod multiply_alpha_u16x2 {
+    mod u16x2 {
         use fast_image_resize::pixels::U16x2;
 
         use super::*;
 
-        const SRC_PIXELS: [U16x2; 9] = [
-            U16x2::new([0xffff, 0x8000]),
-            U16x2::new([0x8000, 0x8000]),
-            U16x2::new([0, 0x8000]),
-            U16x2::new([0xffff, 0xffff]),
-            U16x2::new([0x8000, 0xffff]),
-            U16x2::new([0, 0xffff]),
-            U16x2::new([0xffff, 0]),
-            U16x2::new([0x8000, 0]),
-            U16x2::new([0, 0]),
-        ];
-        const RES_PIXELS: [U16x2; 9] = [
-            U16x2::new([0x8000, 0x8000]),
-            U16x2::new([0x4000, 0x8000]),
-            U16x2::new([0, 0x8000]),
-            U16x2::new([0xffff, 0xffff]),
-            U16x2::new([0x8000, 0xffff]),
-            U16x2::new([0, 0xffff]),
-            U16x2::new([0, 0]),
-            U16x2::new([0, 0]),
-            U16x2::new([0, 0]),
-        ];
+        type P = U16x2;
 
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn avx2_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Avx2);
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn sse4_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Sse4_1);
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        #[test]
-        fn neon_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Neon);
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        #[test]
-        fn wasm32_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Simd128);
+        const fn new_pixel(l: u16, a: u16) -> P {
+            P::new([l, a])
         }
 
         #[test]
-        fn native_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::None);
+        fn multiple_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_mul_test_cases_u16(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Mul, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
+        }
+
+        #[test]
+        fn divide_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Div, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
         }
     }
 
     #[cfg(test)]
-    mod multiply_alpha_u16x4 {
+    mod u16x4 {
         use fast_image_resize::pixels::U16x4;
 
         use super::*;
 
-        const SRC_PIXELS: [U16x4; 3] = [
-            U16x4::new([0xffff, 0x8000, 0, 0x8000]),
-            U16x4::new([0xffff, 0x8000, 0, 0xffff]),
-            U16x4::new([0xffff, 0x8000, 0, 0]),
-        ];
-        const RES_PIXELS: [U16x4; 3] = [
-            U16x4::new([0x8000, 0x4000, 0, 0x8000]),
-            U16x4::new([0xffff, 0x8000, 0, 0xffff]),
-            U16x4::new([0, 0, 0, 0]),
-        ];
+        type P = U16x4;
 
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn avx2_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Avx2);
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn sse4_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Sse4_1);
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        #[test]
-        fn neon_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Neon);
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        #[test]
-        fn wasm32_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::Simd128);
+        const fn new_pixel(c: u16, a: u16) -> P {
+            P::new([c, c, c, a])
         }
 
         #[test]
-        fn native_test() {
-            mul_div_alpha_test(Oper::Mul, &SRC_PIXELS, &RES_PIXELS, CpuExtensions::None);
+        fn multiple_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_mul_test_cases_u16(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Mul, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
+        }
+
+        #[test]
+        fn divide_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Div, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
+        }
+    }
+}
+
+#[cfg(not(feature = "only_u8x4"))]
+mod f32_tests {
+    use super::*;
+
+    struct TestCaseF32 {
+        pub color: f32,
+        pub alpha: f32,
+        pub expected_color: f32,
+    }
+
+    const fn new_case_f32(c: f32, a: f32, e: f32) -> TestCaseF32 {
+        TestCaseF32 {
+            color: c,
+            alpha: a,
+            expected_color: e,
         }
     }
 
-    #[cfg(test)]
-    mod divide_alpha_u16x2 {
-        use super::*;
-
-        const OPER: Oper = Oper::Div;
-
-        #[test]
-        fn native_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x2);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::None);
+    fn get_mul_test_cases_f32<P>(create_pixel: fn(f32, f32) -> P) -> (Vec<P>, Vec<P>)
+    where
+        P: PixelTrait<Component = f32>,
+    {
+        let test_cases = [
+            new_case_f32(1., 0.5, 0.5),
+            new_case_f32(0.5, 0.5, 0.25),
+            new_case_f32(0., 0.5, 0.),
+            new_case_f32(1., 1., 1.),
+            new_case_f32(0.5, 1., 0.5),
+            new_case_f32(0., 1., 0.),
+            new_case_f32(1., 0., 0.),
+            new_case_f32(0.5, 0., 0.),
+            new_case_f32(0., 0., 0.),
+        ];
+        let mut scr_pixels = vec![];
+        let mut expected_pixels = vec![];
+        for case in test_cases {
+            scr_pixels.push(create_pixel(case.color, case.alpha));
+            expected_pixels.push(create_pixel(case.expected_color, case.alpha));
         }
+        (scr_pixels, expected_pixels)
+    }
 
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn sse4_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x2);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Sse4_1);
+    fn get_div_test_cases_f32<P>(create_pixel: fn(f32, f32) -> P) -> (Vec<P>, Vec<P>)
+    where
+        P: PixelTrait<Component = f32>,
+    {
+        let test_cases = [
+            new_case_f32(0.5, 0.5, 1.),
+            new_case_f32(0.25, 0.5, 0.5),
+            new_case_f32(0., 0.5, 0.),
+            new_case_f32(1., 1., 1.),
+            new_case_f32(0.5, 1., 0.5),
+            new_case_f32(0.00001, 0.00002, 0.00001 / 0.00002),
+            new_case_f32(0., 1., 0.),
+            new_case_f32(1., 0., 0.),
+            new_case_f32(0.5, 0., 0.),
+            new_case_f32(0., 0., 0.),
+        ];
+        let mut scr_pixels = vec![];
+        let mut expected_pixels = vec![];
+        for case in test_cases {
+            scr_pixels.push(create_pixel(case.color, case.alpha));
+            expected_pixels.push(create_pixel(case.expected_color, case.alpha));
         }
-
-        #[cfg(target_arch = "x86_64")]
-        #[test]
-        fn avx2_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x2);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Avx2);
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        #[test]
-        fn neon_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x2);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Neon);
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        #[test]
-        fn wasm32_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x2);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Simd128);
-        }
+        (scr_pixels, expected_pixels)
     }
 
     #[cfg(test)]
-    mod divide_alpha_u16x4 {
+    mod f32x2 {
+        use fast_image_resize::pixels::F32x2;
+
         use super::*;
 
-        const OPER: Oper = Oper::Div;
+        type P = F32x2;
 
-        #[test]
-        fn native_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x4);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::None);
+        const fn new_pixel(c: f32, a: f32) -> P {
+            P::new([c, a])
         }
 
-        #[cfg(target_arch = "x86_64")]
         #[test]
-        fn sse4_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x4);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Sse4_1);
+        fn multiple_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_mul_test_cases_f32(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Mul, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
         }
 
-        #[cfg(target_arch = "x86_64")]
         #[test]
-        fn avx2_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x4);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Avx2);
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        #[test]
-        fn neon_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x4);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Neon);
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        #[test]
-        fn wasm32_test() {
-            let (scr_pixels, expected_pixels) = get_div_test_cases_u16(new_u16x4);
-            mul_div_alpha_test(OPER, &scr_pixels, &expected_pixels, CpuExtensions::Simd128);
+        fn divide_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_div_test_cases_f32(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Div, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
         }
     }
 }

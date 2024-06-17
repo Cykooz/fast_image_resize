@@ -1,5 +1,5 @@
 use crate::pixels::{
-    InnerPixel, IntoPixelComponent, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, U16, U8,
+    F32x2, InnerPixel, IntoPixelComponent, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32, U16, U8,
 };
 use crate::{
     try_pixel_type, DifferentDimensionsError, ImageView, ImageViewMut, IntoImageView,
@@ -10,18 +10,15 @@ pub fn change_type_of_pixel_components(
     src_image: &impl IntoImageView,
     dst_image: &mut impl IntoImageViewMut,
 ) -> Result<(), MappingError> {
-    macro_rules! map {
-        ($value:expr, $(($low_enum:path, $low_pt:ty, $high_enum:path, $high_pt:ty)),*) => {
-            match $value {
+    macro_rules! map_dst {
+        (
+            $src_pt:ty, $dst_type:expr,
+            $(($dst_enum:path, $dst_pt:ty)),*
+        ) => {
+            match $dst_type {
                 $(
-                    ($low_enum, $low_enum) =>
-                        change_components_type::<$low_pt, $low_pt>(src_image, dst_image),
-                    ($low_enum, $high_enum) =>
-                        change_components_type::<$low_pt, $high_pt>(src_image, dst_image),
-                    ($high_enum, $low_enum) =>
-                        change_components_type::<$high_pt, $low_pt>(src_image, dst_image),
-                    ($high_enum, $high_enum) =>
-                        change_components_type::<$high_pt, $high_pt>(src_image, dst_image),
+                    $dst_enum =>
+                        change_components_type::<$src_pt, $dst_pt>(src_image, dst_image),
                 )*
                 _ => Err(MappingError::UnsupportedCombinationOfImageTypes),
             }
@@ -33,13 +30,65 @@ pub fn change_type_of_pixel_components(
 
     use PixelType as PT;
 
-    map!(
-        (src_pixel_type, dst_pixel_type),
-        (PT::U8, U8, PT::U16, U16),
-        (PT::U8x2, U8x2, PT::U16x2, U16x2),
-        (PT::U8x3, U8x3, PT::U16x3, U16x3),
-        (PT::U8x4, U8x4, PT::U16x4, U16x4)
-    )
+    match src_pixel_type {
+        PixelType::U8 => map_dst!(
+            U8,
+            dst_pixel_type,
+            (PT::U8, U8),
+            (PT::U16, U16),
+            (PT::I32, I32),
+            (PT::F32, F32)
+        ),
+        PixelType::U8x2 => map_dst!(
+            U8x2,
+            dst_pixel_type,
+            (PT::U8x2, U8x2),
+            (PT::U16x2, U16x2),
+            (PT::F32x2, F32x2)
+        ),
+        PixelType::U8x3 => map_dst!(U8x3, dst_pixel_type, (PT::U8x3, U8x3), (PT::U16x3, U16x3)),
+        PixelType::U8x4 => map_dst!(U8x4, dst_pixel_type, (PT::U8x4, U8x4), (PT::U16x4, U16x4)),
+        PixelType::U16 => map_dst!(
+            U16,
+            dst_pixel_type,
+            (PT::U8, U8),
+            (PT::U16, U16),
+            (PT::I32, I32),
+            (PT::F32, F32)
+        ),
+        PixelType::U16x2 => map_dst!(
+            U16x2,
+            dst_pixel_type,
+            (PT::U8x2, U8x2),
+            (PT::U16x2, U16x2),
+            (PT::F32x2, F32x2)
+        ),
+        PixelType::U16x3 => map_dst!(U16x3, dst_pixel_type, (PT::U8x3, U8x3), (PT::U16x3, U16x3)),
+        PixelType::U16x4 => map_dst!(U16x4, dst_pixel_type, (PT::U8x4, U8x4), (PT::U16x4, U16x4)),
+        PixelType::I32 => map_dst!(
+            I32,
+            dst_pixel_type,
+            (PT::U8, U8),
+            (PT::U16, U16),
+            (PT::I32, I32),
+            (PT::F32, F32)
+        ),
+        PixelType::F32 => map_dst!(
+            F32,
+            dst_pixel_type,
+            (PT::U8, U8),
+            (PT::U16, U16),
+            (PT::I32, I32),
+            (PT::F32, F32)
+        ),
+        PixelType::F32x2 => map_dst!(
+            F32x2,
+            dst_pixel_type,
+            (PT::U8x2, U8x2),
+            (PT::U16x2, U16x2),
+            (PT::F32x2, F32x2)
+        ),
+    }
 }
 
 #[inline(always)]

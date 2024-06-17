@@ -41,7 +41,7 @@ pub(crate) unsafe fn multiply_alpha_row(src_row: &[U16x2], dst_row: &mut [U16x2]
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
-            pixels = multiplies_alpha_4_pixels(pixels);
+            pixels = multiply_alpha_4_pixels(pixels);
             _mm_storeu_si128(dst_ptr, pixels);
         },
     );
@@ -64,7 +64,7 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x2]) {
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
-            pixels = multiplies_alpha_4_pixels(pixels);
+            pixels = multiply_alpha_4_pixels(pixels);
             _mm_storeu_si128(dst_ptr, pixels);
         },
     );
@@ -77,7 +77,7 @@ pub(crate) unsafe fn multiply_alpha_row_inplace(row: &mut [U16x2]) {
 
 #[inline]
 #[target_feature(enable = "sse4.1")]
-unsafe fn multiplies_alpha_4_pixels(pixels: __m128i) -> __m128i {
+unsafe fn multiply_alpha_4_pixels(pixels: __m128i) -> __m128i {
     let zero = _mm_setzero_si128();
     let half = _mm_set1_epi32(0x8000);
 

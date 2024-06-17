@@ -8,7 +8,7 @@ mod utils;
 
 pub fn bench_downscale_rgba(bench_group: &mut utils::BenchGroup) {
     type P = U8x4;
-    let src_image = P::load_big_image().to_rgba8();
+    let src_image = P::load_big_image();
     utils::resize_resize(
         bench_group,
         RGBA8P,

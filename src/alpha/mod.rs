@@ -8,6 +8,7 @@ cfg_if::cfg_if! {
         mod u16x2;
         mod u16x4;
         mod u8x2;
+        mod f32x2;
     }
 }
 

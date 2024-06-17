@@ -1,3 +1,4 @@
+use crate::convolution::vertical_f32::vert_convolution_f32;
 use crate::cpu_extensions::CpuExtensions;
 use crate::pixels::F32;
 use crate::{ImageView, ImageViewMut};
@@ -22,8 +23,8 @@ impl Convolution for F32 {
         dst_view: &mut impl ImageViewMut<Pixel = Self>,
         offset: u32,
         coeffs: Coefficients,
-        _cpu_extensions: CpuExtensions,
+        cpu_extensions: CpuExtensions,
     ) {
-        native::vert_convolution(src_view, dst_view, offset, coeffs);
+        vert_convolution_f32(src_view, dst_view, offset, coeffs, cpu_extensions);
     }
 }

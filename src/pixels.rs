@@ -17,6 +17,7 @@ pub enum PixelType {
     U16x4,
     I32,
     F32,
+    F32x2,
 }
 
 impl PixelType {
@@ -30,6 +31,7 @@ impl PixelType {
             Self::U16x2 => 4,
             Self::U16x3 => 6,
             Self::U16x4 => 8,
+            Self::F32x2 => 8,
             _ => 4,
         }
     }
@@ -47,6 +49,7 @@ impl PixelType {
             Self::U16x4 => unsafe { buffer.align_to::<U16x4>().0.is_empty() },
             Self::I32 => unsafe { buffer.align_to::<I32>().0.is_empty() },
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
+            Self::F32x2 => unsafe { buffer.align_to::<F32x2>().0.is_empty() },
         }
     }
 }
@@ -94,15 +97,15 @@ where
 }
 
 impl PixelComponent for u8 {
-    type CountOfComponentValues = Values<256>;
+    type CountOfComponentValues = Values<0x100>;
 }
 
 impl PixelComponent for u16 {
-    type CountOfComponentValues = Values<65536>;
+    type CountOfComponentValues = Values<0x10000>;
 }
 
 impl PixelComponent for i32 {
-    type CountOfComponentValues = Values<0>;
+    type CountOfComponentValues = Values<0x100000000>;
 }
 
 impl PixelComponent for f32 {
@@ -299,6 +302,14 @@ pixel_struct!(
     PixelType::F32,
     "One `f32` component per pixel"
 );
+pixel_struct!(
+    F32x2,
+    [f32; 2],
+    f32,
+    2,
+    PixelType::F32x2,
+    "Two `f32` component per pixel (e.g. LA-F32)"
+);
 
 pub trait IntoPixelComponent<Out: PixelComponent>
 where
@@ -313,14 +324,91 @@ impl<C: PixelComponent> IntoPixelComponent<C> for C {
     }
 }
 
+// u8
+
+impl IntoPixelComponent<u16> for u8 {
+    fn into_component(self) -> u16 {
+        u16::from_le_bytes([self, self])
+    }
+}
+
+impl IntoPixelComponent<i32> for u8 {
+    fn into_component(self) -> i32 {
+        (self as i32) << 23
+    }
+}
+
+impl IntoPixelComponent<f32> for u8 {
+    fn into_component(self) -> f32 {
+        (self as f32) / u8::MAX as f32
+    }
+}
+
+// u16
+
 impl IntoPixelComponent<u8> for u16 {
     fn into_component(self) -> u8 {
         self.to_le_bytes()[1]
     }
 }
 
-impl IntoPixelComponent<u16> for u8 {
+impl IntoPixelComponent<i32> for u16 {
+    fn into_component(self) -> i32 {
+        (self as i32) << 15
+    }
+}
+
+impl IntoPixelComponent<f32> for u16 {
+    fn into_component(self) -> f32 {
+        (self as f32) / u16::MAX as f32
+    }
+}
+
+// i32
+
+impl IntoPixelComponent<u8> for i32 {
+    fn into_component(self) -> u8 {
+        (self.max(0).saturating_add(1 << 22) >> 23) as u8
+    }
+}
+
+impl IntoPixelComponent<u16> for i32 {
     fn into_component(self) -> u16 {
-        u16::from_le_bytes([self, self])
+        (self.max(0).saturating_add(1 << 14) >> 15) as u16
+    }
+}
+
+impl IntoPixelComponent<f32> for i32 {
+    fn into_component(self) -> f32 {
+        if self < 0 {
+            (self as f32) / i32::MIN as f32
+        } else {
+            (self as f32) / i32::MAX as f32
+        }
+    }
+}
+
+// f32
+
+impl IntoPixelComponent<u8> for f32 {
+    fn into_component(self) -> u8 {
+        (self.clamp(0., 1.) * u8::MAX as f32).round() as u8
+    }
+}
+
+impl IntoPixelComponent<u16> for f32 {
+    fn into_component(self) -> u16 {
+        (self.clamp(0., 1.) * u16::MAX as f32).round() as u16
+    }
+}
+
+impl IntoPixelComponent<i32> for f32 {
+    fn into_component(self) -> i32 {
+        let max = if self < 0. {
+            i32::MIN as f32
+        } else {
+            i32::MAX as f32
+        };
+        (self.clamp(-1., 1.) * max).round() as i32
     }
 }

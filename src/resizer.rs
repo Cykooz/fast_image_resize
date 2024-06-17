@@ -177,6 +177,7 @@ impl Resizer {
             (PT::U16x4, pixels::U16x4),
             (PT::I32, pixels::I32),
             (PT::F32, pixels::F32),
+            (PT::F32x2, pixels::F32x2),
         );
 
         #[cfg(feature = "only_u8x4")]
@@ -538,7 +539,7 @@ fn resample_nearest<P: InnerPixel>(
     let dst_rows = dst_view.iter_rows_mut(0);
     for (out_row, in_row) in dst_rows.zip(src_rows) {
         for (&x_in, out_pixel) in x_in_tab.iter().zip(out_row.iter_mut()) {
-            // Safety of value of x_in guaranteed by algorithm of creating of x_in_tab
+            // Safety of x_in value guaranteed by algorithm of creating of x_in_tab
             *out_pixel = unsafe { *in_row.get_unchecked(x_in) };
         }
     }

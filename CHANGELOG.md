@@ -1,4 +1,18 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added support for the new pixel type `PixelType::F32x2` with
+  optimizations for SSE4.1 and AVX2 (#30).
+
 ## [4.0.0] - 2024-05-13
+
+|                                | rust | sse4.1 | avx2 |
+|--------------------------------|:----:|:------:|:----:|
+| Multiplies alpha U16x2         | 6.10 |  3.02  | 2.25 |
+| Multiplies alpha inplace U16x2 | 5.47 |  2.74  | 1.59 |
+| Multiplies alpha F32x2         | 4.75 |  4.08  | 4.06 |
+| Multiplies alpha inplace F32x2 | 7.30 |  6.63  | 5.79 |
 
 ### Added
 

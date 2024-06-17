@@ -115,6 +115,7 @@ pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
                 PixelType::U16x3 => U16x3::load_big_square_src_image(),
                 PixelType::U16x4 => U16x4::load_big_square_src_image(),
                 PixelType::I32 => I32::load_big_square_src_image(),
+                PixelType::F32x2 => F32x2::load_big_square_src_image(),
                 _ => unreachable!(),
             };
             downscale_bench(
@@ -150,6 +151,7 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
         PixelType::U16x3,
         PixelType::U16x4,
         PixelType::I32,
+        PixelType::F32x2,
     ];
     let mut cpu_extensions = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
@@ -181,6 +183,7 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
                 PixelType::U16x3 => U16x3::load_big_square_src_image(),
                 PixelType::U16x4 => U16x4::load_big_square_src_image(),
                 PixelType::I32 => I32::load_big_square_src_image(),
+                PixelType::F32x2 => F32x2::load_big_square_src_image(),
                 _ => unreachable!(),
             };
             downscale_bench(

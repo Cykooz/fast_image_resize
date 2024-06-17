@@ -104,10 +104,11 @@ mod vips {
         let src_image_data = P::load_big_src_image();
         let src_width = src_image_data.width() as i32;
         let src_height = src_image_data.height() as i32;
-        let band_format = if P::count_of_component_values() > 256 {
-            BandFormat::Ushort
-        } else {
-            BandFormat::Uchar
+        let band_format = match P::count_of_component_values() {
+            0x100 => BandFormat::Uchar,
+            0x10000 => BandFormat::Ushort,
+            0 => BandFormat::Float,
+            _ => panic!("Unknown type of pixel"),
         };
         let src_vips_image = VipsImage::new_from_memory(
             src_image_data.buffer(),

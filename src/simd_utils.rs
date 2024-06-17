@@ -31,6 +31,16 @@ pub unsafe fn loadl_epi64<T>(buf: &[T], index: usize) -> __m128i {
 }
 
 #[inline(always)]
+pub unsafe fn loadu_ps<T>(buf: &[T], index: usize) -> __m128 {
+    _mm_loadu_ps(buf.get_unchecked(index..).as_ptr() as *const f32)
+}
+
+#[inline(always)]
+pub unsafe fn loadu_ps256<T>(buf: &[T], index: usize) -> __m256 {
+    _mm256_loadu_ps(buf.get_unchecked(index..).as_ptr() as *const f32)
+}
+
+#[inline(always)]
 pub unsafe fn mm_cvtepu8_epi32(buf: &[U8x4], index: usize) -> __m128i {
     let v: i32 = transmute(buf.get_unchecked(index).0);
     _mm_cvtepu8_epi32(_mm_cvtsi32_si128(v))
