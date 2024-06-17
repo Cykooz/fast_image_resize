@@ -60,6 +60,7 @@ pub trait PixelTestingExt: PixelTrait {
             PixelType::I32 => "i32",
             PixelType::F32 => "f32",
             PixelType::F32x2 => "f32x2",
+            PixelType::F32x3 => "f32x3",
             _ => unreachable!(),
         }
     }
@@ -89,7 +90,8 @@ pub trait PixelTestingExt: PixelTrait {
             | PixelType::U16
             | PixelType::U16x3
             | PixelType::I32
-            | PixelType::F32 => (
+            | PixelType::F32
+            | PixelType::F32x3 => (
                 "./data/nasa-4928x3279.png",
                 "./data/nasa-4019x4019.png",
                 "./data/nasa-852x567.png",
@@ -350,6 +352,21 @@ impl PixelTestingExt for F32x2 {
     }
 }
 
+impl PixelTestingExt for F32x3 {
+    type ImagePixel = image::Rgb<f32>;
+    type Container = Vec<f32>;
+
+    fn load_image_buffer(
+        img_reader: Reader<BufReader<File>>,
+    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+        img_reader.decode().unwrap().to_rgb32f()
+    }
+
+    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+    }
+}
+
 pub fn save_result(image: &Image, name: &str) {
     if std::env::var("SAVE_RESULT").unwrap_or_else(|_| "".to_owned()) == "" {
         return;
@@ -374,6 +391,12 @@ pub fn save_result(image: &Image, name: &str) {
         }
         PixelType::F32x2 => {
             let mut image_u16 = Image::new(image.width(), image.height(), PixelType::U16x2);
+            change_type_of_pixel_components(image, &mut image_u16).unwrap();
+            save_result(&image_u16, name);
+            return;
+        }
+        PixelType::F32x3 => {
+            let mut image_u16 = Image::new(image.width(), image.height(), PixelType::U16x3);
             change_type_of_pixel_components(image, &mut image_u16).unwrap();
             save_result(&image_u16, name);
             return;

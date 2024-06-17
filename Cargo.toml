@@ -81,6 +81,11 @@ harness = false
 
 
 [[bench]]
+name = "bench_compare_rgb32f"
+harness = false
+
+
+[[bench]]
 name = "bench_compare_rgba"
 harness = false
 
@@ -111,7 +116,7 @@ harness = false
 
 
 [[bench]]
-name = "bench_compare_la_f32"
+name = "bench_compare_la32f"
 harness = false
 
 [[bench]]

@@ -60,3 +60,4 @@ impl AlphaMulDiv for pixels::U16 {}
 impl AlphaMulDiv for pixels::U16x3 {}
 impl AlphaMulDiv for pixels::I32 {}
 impl AlphaMulDiv for pixels::F32 {}
+impl AlphaMulDiv for pixels::F32x3 {}

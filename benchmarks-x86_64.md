@@ -1,4 +1,5 @@
 <!-- introduction start -->
+
 ## Benchmarks of fast_image_resize crate for x86_64 architecture
 
 Environment:
@@ -10,13 +11,11 @@ Environment:
 - criterion = "0.5.1"
 - fast_image_resize = "4.0.0"
 
-
 Other libraries used to compare of resizing speed:
 
 - image = "0.25.1" (<https://crates.io/crates/image>)
 - resize = "0.8.4" (<https://crates.io/crates/resize>)
 - libvips = "8.12.1" (single-threaded mode, cache disabled)
-
 
 Resize algorithms:
 
@@ -25,6 +24,7 @@ Resize algorithms:
 - Bilinear - convolution with minimal kernel size 2x2 px
 - Bicubic (CatmullRom) - convolution with minimal kernel size 4x4 px
 - Lanczos3 - convolution with minimal kernel size 6x6 px
+
 <!-- introduction end -->
 
 <!-- bench_compare_rgb start -->
@@ -212,8 +212,9 @@ Pipeline:
 
 <!-- bench_compare_la16 end -->
 
-<!-- bench_compare_la_f32 start -->
-### Resize LA-F32 (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
+<!-- bench_compare_la32f start -->
+
+### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -232,4 +233,26 @@ Pipeline:
 | fir rust   |  0.38   | 21.26 |  28.82   |  47.50  |  70.34   |
 | fir sse4.1 |  0.38   | 16.23 |  20.91   |  30.35  |  40.12   |
 | fir avx2   |  0.39   | 15.05 |  17.18   |  22.47  |  27.89   |
-<!-- bench_compare_la_f32 end -->
+
+<!-- bench_compare_la32f end -->
+
+<!-- bench_compare_rgb32f start -->
+
+### Resize RGB16F image (F32x3) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into RGB32F image.
+- Numbers in the table mean a duration of image resizing in milliseconds.
+
+|          | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image    |  26.52  |   -   |  62.98   | 105.56  |  147.74  |
+| resize   |  8.76   | 14.03 |  23.62   |  47.69  |  70.36   |
+| libvips  |  11.91  | 60.28 |  53.55   | 112.62  |  200.59  |
+| fir rust |  0.87   | 17.12 |  27.34   |  51.51  |  75.67   |
+
+<!-- bench_compare_rgb32f end -->
