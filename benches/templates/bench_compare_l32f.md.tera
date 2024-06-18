@@ -1,0 +1,11 @@
+### Resize L32F image (F32) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into grayscale image with two bytes per pixel.
+- Numbers in the table mean a duration of image resizing in milliseconds.
+
+{{ compare_results -}}

@@ -8,7 +8,7 @@ Rust library for fast image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
-Supported pixel formats and available optimisations:
+Supported pixel formats and available optimizations:
 
 | Format | Description                                                   | SSE4.1 | AVX2 | Neon | Wasm32 SIMD128 |
 |:------:|:--------------------------------------------------------------|:------:|:----:|:----:|:--------------:|
@@ -21,9 +21,10 @@ Supported pixel formats and available optimisations:
 | U16x3  | Three `u16` components per pixel (e.g. RGB16)                 |   +    |  +   |  +   |       +        |
 | U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |   +    |  +   |  +   |       +        |
 |  I32   | One `i32` component per pixel (e.g. L)                        |   -    |  -   |  -   |       -        |
-|  F32   | One `f32` component per pixel (e.g. L)                        |   -    |  -   |  -   |       -        |
+|  F32   | One `f32` component per pixel (e.g. L)                        |   +    |  +   |  -   |       -        |
 | F32x2  | Two `f32` components per pixel (e.g. LA32F)                   |   +    |  +   |  -   |       -        |
 | F32x3  | Three `f32` components per pixel (e.g. RGB32F)                |   -    |  -   |  -   |       -        |
+| F32x4  | Four `f32` components per pixel (e.g. RGBA32F)                |   -    |  -   |  -   |       -        |
 
 ## Colorspace
 

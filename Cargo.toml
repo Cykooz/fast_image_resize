@@ -121,6 +121,11 @@ harness = false
 
 
 [[bench]]
+name = "bench_compare_l32f"
+harness = false
+
+
+[[bench]]
 name = "bench_compare_la32f"
 harness = false
 

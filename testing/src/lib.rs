@@ -318,10 +318,6 @@ impl PixelTestingExt for F32 {
     type ImagePixel = image::Luma<f32>;
     type Container = Vec<f32>;
 
-    fn cpu_extensions() -> Vec<CpuExtensions> {
-        vec![CpuExtensions::None]
-    }
-
     fn load_image_buffer(
         img_reader: Reader<BufReader<File>>,
     ) -> ImageBuffer<Self::ImagePixel, Self::Container> {

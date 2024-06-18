@@ -212,6 +212,29 @@ Pipeline:
 
 <!-- bench_compare_la16 end -->
 
+<!-- bench_compare_l32f start -->
+
+### Resize L32F image (F32) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into grayscale image with two bytes per pixel.
+- Numbers in the table mean a duration of image resizing in milliseconds.
+
+|            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image      |  24.16  |   -   |  52.33   |  82.88  |  111.10  |
+| resize     |  4.99   | 8.85  |  13.38   |  30.00  |  45.71   |
+| libvips    |  7.37   | 25.94 |  20.30   |  40.97  |  70.76   |
+| fir rust   |  0.18   | 9.56  |  15.05   |  29.59  |  52.03   |
+| fir sse4.1 |  0.18   | 5.03  |   7.30   |  11.55  |  16.90   |
+| fir avx2   |  0.18   | 4.65  |   5.41   |  7.14   |  10.78   |
+
+<!-- bench_compare_l32f end -->
+
 <!-- bench_compare_la32f start -->
 
 ### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
@@ -232,7 +255,7 @@ Pipeline:
 | libvips    |  11.85  | 70.31 |  101.80  | 177.59  |  254.22  |
 | fir rust   |  0.38   | 21.26 |  28.82   |  47.50  |  70.34   |
 | fir sse4.1 |  0.38   | 16.23 |  20.91   |  30.35  |  40.12   |
-| fir avx2   |  0.39   | 15.05 |  17.18   |  22.47  |  27.89   |
+| fir avx2   |  0.38   | 15.05 |  17.18   |  22.47  |  27.89   |
 
 <!-- bench_compare_la32f end -->
 

@@ -2,6 +2,8 @@
 
 ### Added
 
+- Added support for optimization with help of `SSE4.1` and `AVX2` for
+  the `F32` pixel type.
 - Added support for the new pixel type `PixelType::F32x2` with
   optimizations for SSE4.1 and AVX2 (#30).
 - Added basic support for the new pixel type `PixelType::F32x3` (#30).
