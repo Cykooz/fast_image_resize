@@ -1,6 +1,6 @@
 use crate::cpu_extensions::CpuExtensions;
 use crate::image_view::{try_pixel_type, ImageViewMut, IntoImageView, IntoImageViewMut};
-use crate::pixels::{F32x2, U16x2, U16x4, U8x2, U8x4};
+use crate::pixels::{F32x2, F32x4, U16x2, U16x4, U8x2, U8x4};
 use crate::{ImageError, ImageView, MulDivImagesError, PixelTrait, PixelType};
 
 /// Methods of this structure used to multiply or divide color-channels (RGB or Luma)
@@ -65,6 +65,7 @@ impl MulDiv {
             PixelType::U16x2 => self.multiply::<U16x2>(src_image, dst_image),
             PixelType::U16x4 => self.multiply::<U16x4>(src_image, dst_image),
             PixelType::F32x2 => self.multiply::<F32x2>(src_image, dst_image),
+            PixelType::F32x4 => self.multiply::<F32x4>(src_image, dst_image),
             _ => Err(MulDivImagesError::ImageError(
                 ImageError::UnsupportedPixelType,
             )),
@@ -121,6 +122,7 @@ impl MulDiv {
             PixelType::U16x2 => self.multiply_inplace::<U16x2>(image),
             PixelType::U16x4 => self.multiply_inplace::<U16x4>(image),
             PixelType::F32x2 => self.multiply_inplace::<F32x2>(image),
+            PixelType::F32x4 => self.multiply_inplace::<F32x4>(image),
             _ => Err(ImageError::UnsupportedPixelType),
         }
 
@@ -173,6 +175,7 @@ impl MulDiv {
             PixelType::U16x2 => self.divide::<U16x2>(src_image, dst_image),
             PixelType::U16x4 => self.divide::<U16x4>(src_image, dst_image),
             PixelType::F32x2 => self.divide::<F32x2>(src_image, dst_image),
+            PixelType::F32x4 => self.divide::<F32x4>(src_image, dst_image),
             _ => Err(MulDivImagesError::ImageError(
                 ImageError::UnsupportedPixelType,
             )),
@@ -229,6 +232,7 @@ impl MulDiv {
             PixelType::U16x2 => self.divide_inplace::<U16x2>(image),
             PixelType::U16x4 => self.divide_inplace::<U16x4>(image),
             PixelType::F32x2 => self.divide_inplace::<F32x2>(image),
+            PixelType::F32x4 => self.divide_inplace::<F32x4>(image),
             _ => Err(ImageError::UnsupportedPixelType),
         }
 
@@ -271,6 +275,7 @@ impl MulDiv {
                     | PixelType::U16x2
                     | PixelType::U16x4
                     | PixelType::F32x2
+                    | PixelType::F32x4
             )
         }
         #[cfg(feature = "only_u8x4")]

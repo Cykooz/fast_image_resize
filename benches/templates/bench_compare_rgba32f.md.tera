@@ -1,0 +1,14 @@
+### Resize RGBA32F image (F32x4) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+- Numbers in the table mean a duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
+- The `resize` crate does not support  multiplying and dividing by alpha channel
+  for this pixel format.
+
+{{ compare_results -}}

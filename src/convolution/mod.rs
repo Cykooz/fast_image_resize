@@ -23,6 +23,7 @@ cfg_if::cfg_if! {
         mod f32x1;
         mod f32x2;
         mod f32x3;
+        mod f32x4;
         mod vertical_u16;
         mod vertical_f32;
     }

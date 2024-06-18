@@ -489,4 +489,33 @@ mod f32_tests {
             }
         }
     }
+
+    #[cfg(test)]
+    mod f32x4 {
+        use fast_image_resize::pixels::F32x4;
+
+        use super::*;
+
+        type P = F32x4;
+
+        const fn new_pixel(c: f32, a: f32) -> P {
+            P::new([c, c, c, a])
+        }
+
+        #[test]
+        fn multiple_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_mul_test_cases_f32(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Mul, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
+        }
+
+        #[test]
+        fn divide_alpha_test() {
+            let (scr_pixels, expected_pixels) = get_div_test_cases_f32(new_pixel);
+            for cpu_extensions in P::cpu_extensions() {
+                mul_div_alpha_test(Oper::Div, &scr_pixels, &expected_pixels, cpu_extensions);
+            }
+        }
+    }
 }

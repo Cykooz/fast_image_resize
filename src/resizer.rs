@@ -179,6 +179,7 @@ impl Resizer {
             (PT::F32, pixels::F32),
             (PT::F32x2, pixels::F32x2),
             (PT::F32x3, pixels::F32x3),
+            (PT::F32x4, pixels::F32x4),
         );
 
         #[cfg(feature = "only_u8x4")]

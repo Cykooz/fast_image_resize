@@ -256,3 +256,26 @@ Pipeline:
 | fir rust |  0.87   | 17.12 |  27.34   |  51.51  |  75.67   |
 
 <!-- bench_compare_rgb32f end -->
+
+
+<!-- bench_compare_rgba32f start -->
+
+### Resize RGBA32F image (F32x4) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+- Numbers in the table mean a duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
+- The `resize` crate does not support multiplying and dividing by alpha channel
+  for this pixel format.
+
+|          | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:------:|:--------:|:-------:|:--------:|
+| libvips  |  23.29  | 111.87 |  140.37  | 251.12  |  381.52  |
+| fir rust |  0.98   | 35.65  |  45.42   |  70.24  |  92.90   |
+
+<!-- bench_compare_rgba32f end -->

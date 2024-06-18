@@ -19,6 +19,7 @@ pub enum PixelType {
     F32,
     F32x2,
     F32x3,
+    F32x4,
 }
 
 impl PixelType {
@@ -34,6 +35,7 @@ impl PixelType {
             Self::U16x4 => 8,
             Self::F32x2 => 8,
             Self::F32x3 => 12,
+            Self::F32x4 => 16,
             _ => 4,
         }
     }
@@ -53,6 +55,7 @@ impl PixelType {
             Self::F32 => unsafe { buffer.align_to::<F32>().0.is_empty() },
             Self::F32x2 => unsafe { buffer.align_to::<F32x2>().0.is_empty() },
             Self::F32x3 => unsafe { buffer.align_to::<F32x3>().0.is_empty() },
+            Self::F32x4 => unsafe { buffer.align_to::<F32x4>().0.is_empty() },
         }
     }
 }
@@ -311,7 +314,7 @@ pixel_struct!(
     f32,
     2,
     PixelType::F32x2,
-    "Two `f32` component per pixel (e.g. LA-F32)"
+    "Two `f32` component per pixel (e.g. LA32F)"
 );
 pixel_struct!(
     F32x3,
@@ -319,7 +322,15 @@ pixel_struct!(
     f32,
     3,
     PixelType::F32x3,
-    "Three `f32` components per pixel (e.g. RGB-F32)"
+    "Three `f32` components per pixel (e.g. RGB32F)"
+);
+pixel_struct!(
+    F32x4,
+    [f32; 4],
+    f32,
+    4,
+    PixelType::F32x4,
+    "Four `f32` components per pixel (e.g. RGBA32F)"
 );
 
 pub trait IntoPixelComponent<Out: PixelComponent>

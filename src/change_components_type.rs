@@ -1,6 +1,6 @@
 use crate::pixels::{
-    F32x2, F32x3, InnerPixel, IntoPixelComponent, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4, F32, I32,
-    U16, U8,
+    F32x2, F32x3, F32x4, InnerPixel, IntoPixelComponent, U16x2, U16x3, U16x4, U8x2, U8x3, U8x4,
+    F32, I32, U16, U8,
 };
 use crate::{
     try_pixel_type, DifferentDimensionsError, ImageView, ImageViewMut, IntoImageView,
@@ -54,7 +54,13 @@ pub fn change_type_of_pixel_components(
             (PT::U16x3, U16x3),
             (PT::F32x3, F32x3)
         ),
-        PixelType::U8x4 => map_dst!(U8x4, dst_pixel_type, (PT::U8x4, U8x4), (PT::U16x4, U16x4)),
+        PixelType::U8x4 => map_dst!(
+            U8x4,
+            dst_pixel_type,
+            (PT::U8x4, U8x4),
+            (PT::U16x4, U16x4),
+            (PT::F32x4, F32x4)
+        ),
         PixelType::U16 => map_dst!(
             U16,
             dst_pixel_type,
@@ -77,7 +83,13 @@ pub fn change_type_of_pixel_components(
             (PT::U16x3, U16x3),
             (PT::F32x3, F32x3)
         ),
-        PixelType::U16x4 => map_dst!(U16x4, dst_pixel_type, (PT::U8x4, U8x4), (PT::U16x4, U16x4)),
+        PixelType::U16x4 => map_dst!(
+            U16x4,
+            dst_pixel_type,
+            (PT::U8x4, U8x4),
+            (PT::U16x4, U16x4),
+            (PT::F32x4, F32x4)
+        ),
         PixelType::I32 => map_dst!(
             I32,
             dst_pixel_type,
@@ -107,6 +119,13 @@ pub fn change_type_of_pixel_components(
             (PT::U8x3, U8x3),
             (PT::U16x3, U16x3),
             (PT::F32x3, F32x3)
+        ),
+        PixelType::F32x4 => map_dst!(
+            F32x4,
+            dst_pixel_type,
+            (PT::U8x4, U8x4),
+            (PT::U16x4, U16x4),
+            (PT::F32x4, F32x4)
         ),
     }
 }

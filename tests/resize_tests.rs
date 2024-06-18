@@ -754,6 +754,63 @@ mod not_u8x4 {
         }
     }
 
+    // F32x4
+    #[test]
+    fn downscale_f32x4() {
+        type P = F32x4;
+        P::downscale_test(
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [
+                28271357515050,
+                34102344731602,
+                34154875278897,
+                26023210300788,
+            ],
+        );
+
+        for cpu_extensions in P::cpu_extensions() {
+            P::downscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [
+                    41676905227663,
+                    40314876714373,
+                    40146438250679,
+                    29873206892121,
+                ],
+            );
+        }
+    }
+
+    #[test]
+    fn upscale_f32x4() {
+        type P = F32x4;
+        P::upscale_test(
+            ResizeAlg::Nearest,
+            CpuExtensions::None,
+            [
+                9939217321658853,
+                9944847383085392,
+                9940281434784023,
+                10060767588318486,
+            ],
+        );
+
+        for cpu_extensions in P::cpu_extensions() {
+            P::upscale_test(
+                ResizeAlg::Convolution(FilterType::Lanczos3),
+                cpu_extensions,
+                [
+                    10431959951229359,
+                    10423928285570087,
+                    10420567450069105,
+                    10465695788378423,
+                ],
+            );
+        }
+    }
+
     #[test]
     fn fractional_cropping() {
         let mut src_buf = [0, 0, 0, 0, 255, 0, 0, 0, 0];
