@@ -18,7 +18,7 @@ pub(crate) fn horiz_convolution(
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks);
+            horiz_convolution_rows(src_rows, dst_rows, &coefficients_chunks);
         }
     }
 
@@ -27,7 +27,7 @@ pub(crate) fn horiz_convolution(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks);
+            horiz_convolution_rows([src_row], [dst_row], &coefficients_chunks);
         }
     }
 }
@@ -39,12 +39,11 @@ pub(crate) fn horiz_convolution(
 /// - max(chunk.start + chunk.values.len() for chunk in coefficients_chunks) <= src_row.0.len()
 /// - precision <= MAX_COEFS_PRECISION
 #[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_four_rows(
-    src_rows: [&[F32x2]; 4],
-    dst_rows: [&mut [F32x2]; 4],
+unsafe fn horiz_convolution_rows<const ROWS_COUNT: usize>(
+    src_rows: [&[F32x2]; ROWS_COUNT],
+    dst_rows: [&mut [F32x2]; ROWS_COUNT],
     coefficients_chunks: &[CoefficientsChunk],
 ) {
-    const ROWS_COUNT: usize = 4;
     let mut ll_buf = [0f64; 2];
 
     for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
@@ -95,58 +94,5 @@ unsafe fn horiz_convolution_four_rows(
             let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
             dst_pixel.0 = ll_buf.map(|v| v as f32);
         }
-    }
-}
-
-/// For safety, it is necessary to ensure the following conditions:
-/// - bounds.len() == dst_row.len()
-/// - coeffs.len() == dst_rows.0.len() * window_size
-/// - max(bound.start + bound.size for bound in bounds) <= src_row.len()
-/// - precision <= MAX_COEFS_PRECISION
-#[inline]
-#[target_feature(enable = "sse4.1")]
-unsafe fn horiz_convolution_one_row(
-    src_row: &[F32x2],
-    dst_row: &mut [F32x2],
-    coefficients_chunks: &[CoefficientsChunk],
-) {
-    let mut ll_buf = [0f64; 2];
-
-    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let mut x: usize = coeffs_chunk.start as usize;
-        let mut ll_sum = _mm_set1_pd(0.);
-        let mut coeffs = coeffs_chunk.values;
-
-        let coeffs_by_2 = coeffs.chunks_exact(2);
-        coeffs = coeffs_by_2.remainder();
-
-        for k in coeffs_by_2 {
-            let coeff0_f64x2 = _mm_set1_pd(k[0]);
-            let coeff1_f64x2 = _mm_set1_pd(k[1]);
-
-            let source = simd_utils::loadu_ps(src_row, x);
-
-            let pixel0_f64 = _mm_cvtps_pd(source);
-            ll_sum = _mm_add_pd(ll_sum, _mm_mul_pd(pixel0_f64, coeff0_f64x2));
-
-            let pixel1_f64 = _mm_cvtps_pd(_mm_movehl_ps(source, source));
-            ll_sum = _mm_add_pd(ll_sum, _mm_mul_pd(pixel1_f64, coeff1_f64x2));
-
-            x += 2;
-        }
-
-        if let Some(&k) = coeffs.first() {
-            let coeff0_f64x2 = _mm_set1_pd(k);
-
-            let pixel = src_row.get_unchecked(x);
-            let source = _mm_set_ps(0., 0., pixel.0[1], pixel.0[0]);
-
-            let pixel0_f64 = _mm_cvtps_pd(source);
-            ll_sum = _mm_add_pd(ll_sum, _mm_mul_pd(pixel0_f64, coeff0_f64x2));
-        }
-
-        _mm_storeu_pd(ll_buf.as_mut_ptr(), ll_sum);
-        let dst_pixel = dst_row.get_unchecked_mut(dst_x);
-        dst_pixel.0 = ll_buf.map(|v| v as f32);
     }
 }

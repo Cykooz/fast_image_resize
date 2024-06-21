@@ -28,10 +28,10 @@ impl Convolution for F32x2 {
             CpuExtensions::Avx2 => avx2::horiz_convolution(src_view, dst_view, offset, coeffs),
             #[cfg(target_arch = "x86_64")]
             CpuExtensions::Sse4_1 => sse4::horiz_convolution(src_view, dst_view, offset, coeffs),
-            #[cfg(target_arch = "aarch64")]
-            CpuExtensions::Neon => neon::horiz_convolution(src_view, dst_view, offset, coeffs),
-            #[cfg(target_arch = "wasm32")]
-            CpuExtensions::Simd128 => wasm32::horiz_convolution(src_view, dst_view, offset, coeffs),
+            // #[cfg(target_arch = "aarch64")]
+            // CpuExtensions::Neon => neon::horiz_convolution(src_view, dst_view, offset, coeffs),
+            // #[cfg(target_arch = "wasm32")]
+            // CpuExtensions::Simd128 => wasm32::horiz_convolution(src_view, dst_view, offset, coeffs),
             _ => native::horiz_convolution(src_view, dst_view, offset, coeffs),
         }
     }

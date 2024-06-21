@@ -73,6 +73,11 @@ pub unsafe trait ImageViewMut: ImageView {
     /// Returns iterator by mutable slices with image rows.
     fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]>;
 
+    /// Returns iterator by arrays with two mutable image rows.
+    fn iter_2_rows_mut(&mut self) -> ArrayChunks<impl Iterator<Item = &mut [Self::Pixel]>, 2> {
+        ArrayChunks::new(self.iter_rows_mut(0))
+    }
+
     /// Returns iterator by arrays with four mutable image rows.
     fn iter_4_rows_mut(&mut self) -> ArrayChunks<impl Iterator<Item = &mut [Self::Pixel]>, 4> {
         ArrayChunks::new(self.iter_rows_mut(0))
