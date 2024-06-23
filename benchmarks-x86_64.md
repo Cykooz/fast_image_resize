@@ -9,7 +9,7 @@ Environment:
 - Ubuntu 22.04 (linux 6.5.0)
 - Rust 1.79
 - criterion = "0.5.1"
-- fast_image_resize = "4.0.0"
+- fast_image_resize = "4.1.0"
 
 Other libraries used to compare of resizing speed:
 
@@ -40,12 +40,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  28.28  |   -   |  82.31   | 134.61  |  186.22  |
-| resize     |  7.83   | 26.85 |  53.70   |  97.59  |  144.79  |
-| libvips    |  7.76   | 59.65 |  19.83   |  30.73  |  39.80   |
-| fir rust   |  0.28   | 12.77 |  17.94   |  27.94  |  40.05   |
-| fir sse4.1 |  0.28   | 3.99  |   5.66   |  9.86   |  15.42   |
-| fir avx2   |  0.28   | 3.06  |   3.89   |  6.85   |  13.25   |
+| image      |  32.06  |   -   |  94.81   | 153.34  |  212.23  |
+| resize     |  9.12   | 26.76 |  52.27   |  97.57  |  144.36  |
+| libvips    |  7.75   | 59.45 |  19.98   |  30.79  |  39.94   |
+| fir rust   |  0.29   | 11.91 |  16.56   |  26.11  |  37.89   |
+| fir sse4.1 |  0.29   | 4.09  |   5.68   |  9.79   |  15.45   |
+| fir avx2   |  0.29   | 3.10  |   3.98   |  6.82   |  13.30   |
 
 <!-- bench_compare_rgb end -->
 
@@ -64,11 +64,11 @@ Pipeline:
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  11.34  | 42.76  |  85.43   | 147.41  |  211.31  |
-| libvips    |  8.97   | 120.82 |  190.82  | 341.07  |  500.87  |
-| fir rust   |  0.19   | 21.79  |  28.34   |  42.24  |  56.72   |
-| fir sse4.1 |  0.19   | 10.14  |  12.26   |  18.43  |  24.22   |
-| fir avx2   |  0.19   |  7.44  |   8.48   |  14.10  |  21.31   |
+| resize     |  11.45  | 42.73  |  85.20   | 147.41  |  211.63  |
+| libvips    |  9.77   | 120.67 |  189.16  | 336.71  |  500.29  |
+| fir rust   |  0.19   | 21.84  |  26.36   |  36.95  |  50.38   |
+| fir sse4.1 |  0.19   | 10.22  |  12.42   |  17.84  |  24.86   |
+| fir avx2   |  0.19   |  7.85  |   8.87   |  13.82  |  22.10   |
 
 <!-- bench_compare_rgba end -->
 
@@ -86,12 +86,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  25.53  |   -   |  56.37   |  84.03  |  111.89  |
-| resize     |  5.60   | 10.85 |  18.72   |  37.97  |  65.65   |
-| libvips    |  4.67   | 25.02 |   9.80   |  13.73  |  18.17   |
-| fir rust   |  0.15   | 4.94  |   6.37   |  8.97   |  13.36   |
-| fir sse4.1 |  0.15   | 1.66  |   2.10   |  3.28   |   5.57   |
-| fir avx2   |  0.15   | 1.76  |   1.96   |  2.37   |   4.41   |
+| image      |  28.75  |   -   |  60.74   |  89.30  |  117.34  |
+| resize     |  6.83   | 11.03 |  20.67   |  43.74  |  67.86   |
+| libvips    |  4.66   | 25.00 |   9.74   |  13.19  |  17.94   |
+| fir rust   |  0.15   | 4.54  |   5.69   |  8.05   |  12.22   |
+| fir sse4.1 |  0.15   | 1.70  |   2.16   |  3.34   |   5.64   |
+| fir avx2   |  0.15   | 1.74  |   1.90   |  2.31   |   4.28   |
 
 <!-- bench_compare_l end -->
 
@@ -105,17 +105,17 @@ Pipeline:
 
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
-  has converted into grayscale image with alpha channel (two bytes per pixel).
+  has converted into grayscale image with an alpha channel (two bytes per pixel).
 - Numbers in the table mean a duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| libvips    |  6.45   | 73.39 |  117.87  | 205.86  |  293.32  |
-| fir rust   |  0.17   | 16.83 |  18.97   |  24.14  |  31.45   |
-| fir sse4.1 |  0.17   | 6.15  |   7.17   |  9.64   |  13.40   |
-| fir avx2   |  0.17   | 4.30  |   4.89   |  6.50   |   9.73   |
+| libvips    |  6.45   | 72.42 |  117.32  | 205.22  |  293.11  |
+| fir rust   |  0.17   | 18.09 |  20.67   |  25.58  |  32.87   |
+| fir sse4.1 |  0.17   | 6.18  |   7.20   |  9.61   |  13.48   |
+| fir avx2   |  0.17   | 4.34  |   4.91   |  6.53   |   9.59   |
 
 <!-- bench_compare_la end -->
 
@@ -133,12 +133,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  28.09  |   -   |  82.63   | 134.66  |  185.48  |
-| resize     |  8.06   | 26.77 |  51.13   |  97.40  |  144.26  |
-| libvips    |  16.00  | 63.19 |  54.32   | 103.03  |  125.58  |
-| fir rust   |  0.33   | 27.24 |  42.15   |  72.69  |  104.45  |
-| fir sse4.1 |  0.33   | 15.98 |  23.43   |  38.31  |  54.65   |
-| fir avx2   |  0.33   | 13.90 |  19.49   |  29.92  |  36.67   |
+| image      |  31.04  |   -   |  87.07   | 139.57  |  190.73  |
+| resize     |  8.09   | 26.30 |  49.97   |  96.79  |  143.58  |
+| libvips    |  16.00  | 62.91 |  54.53   | 102.92  |  125.23  |
+| fir rust   |  0.35   | 30.77 |  47.74   |  81.36  |  115.72  |
+| fir sse4.1 |  0.35   | 16.16 |  23.62   |  38.31  |  54.64   |
+| fir avx2   |  0.35   | 13.85 |  19.15   |  29.74  |  36.50   |
 
 <!-- bench_compare_rgb16 end -->
 
@@ -157,11 +157,11 @@ Pipeline:
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  12.17  | 42.81  |  83.83   | 144.13  |  206.21  |
-| libvips    |  22.58  | 130.14 |  209.14  | 367.87  |  536.49  |
-| fir rust   |  0.37   | 59.65  |  78.35   | 116.41  |  155.49  |
-| fir sse4.1 |  0.37   | 31.77  |  42.27   |  63.73  |  85.90   |
-| fir avx2   |  0.37   | 20.39  |  26.03   |  36.49  |  47.81   |
+| resize     |  12.27  | 43.48  |  83.80   | 144.81  |  207.30  |
+| libvips    |  22.68  | 128.29 |  205.54  | 364.11  |  533.24  |
+| fir rust   |  0.39   | 62.43  |  82.36   | 122.70  |  164.59  |
+| fir sse4.1 |  0.39   | 31.92  |  42.43   |  63.89  |  85.88   |
+| fir avx2   |  0.39   | 20.45  |  26.17   |  36.72  |  48.24   |
 
 <!-- bench_compare_rgba16 end -->
 
@@ -179,12 +179,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  25.68  |   -   |  56.85   |  85.61  |  114.66  |
-| resize     |  6.30   | 9.95  |  16.04   |  33.38  |  58.32   |
-| libvips    |  7.42   | 26.00 |  21.69   |  36.26  |  46.04   |
-| fir rust   |  0.17   | 13.56 |  19.27   |  28.71  |  40.87   |
-| fir sse4.1 |  0.17   | 5.26  |   7.44   |  12.86  |  18.78   |
-| fir avx2   |  0.17   | 5.44  |   6.42   |  8.56   |  13.65   |
+| image      |  28.43  |   -   |  61.77   |  90.52  |  119.06  |
+| resize     |  6.37   | 11.09 |  20.38   |  42.28  |  67.60   |
+| libvips    |  7.63   | 26.04 |  21.73   |  36.34  |  45.95   |
+| fir rust   |  0.17   | 14.63 |  20.81   |  30.42  |  43.41   |
+| fir sse4.1 |  0.17   | 5.31  |   7.48   |  12.85  |  18.79   |
+| fir avx2   |  0.17   | 5.55  |   6.45   |  8.50   |  13.61   |
 
 <!-- bench_compare_l16 end -->
 
@@ -198,17 +198,17 @@ Pipeline:
 
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
-  has converted into grayscale image with alpha channel (four bytes per pixel).
+  has converted into grayscale image with an alpha channel (four bytes per pixel).
 - Numbers in the table mean a duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| libvips    |  12.53  | 80.02 |  134.11  | 231.61  |  328.41  |
-| fir rust   |  0.19   | 25.16 |  32.76   |  51.72  |  70.89   |
-| fir sse4.1 |  0.19   | 14.92 |  21.27   |  33.49  |  45.88   |
-| fir avx2   |  0.19   | 11.72 |  15.02   |  21.87  |  29.07   |
+| libvips    |  12.15  | 79.49 |  133.83  | 232.22  |  327.14  |
+| fir rust   |  0.19   | 31.57 |  40.69   |  62.09  |  84.65   |
+| fir sse4.1 |  0.19   | 14.86 |  21.03   |  33.10  |  45.59   |
+| fir avx2   |  0.19   | 11.57 |  14.84   |  21.66  |  28.89   |
 
 <!-- bench_compare_la16 end -->
 
@@ -226,18 +226,18 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  24.16  |   -   |  52.33   |  82.88  |  111.10  |
-| resize     |  4.99   | 8.85  |  13.38   |  30.00  |  45.71   |
-| libvips    |  7.37   | 25.94 |  20.30   |  40.97  |  70.76   |
-| fir rust   |  0.18   | 9.56  |  15.05   |  29.59  |  52.03   |
-| fir sse4.1 |  0.18   | 5.03  |   7.30   |  11.55  |  16.90   |
-| fir avx2   |  0.18   | 4.65  |   5.41   |  7.14   |  10.78   |
+| image      |  24.45  |   -   |  49.71   |  78.69  |  105.12  |
+| resize     |  5.02   | 8.82  |  13.42   |  29.90  |  45.04   |
+| libvips    |  6.48   | 25.81 |  21.50   |  42.64  |  70.48   |
+| fir rust   |  0.19   | 9.60  |  15.08   |  29.70  |  51.94   |
+| fir sse4.1 |  0.19   | 5.05  |   7.28   |  11.54  |  16.87   |
+| fir avx2   |  0.19   | 4.64  |   5.52   |  7.12   |  10.63   |
 
 <!-- bench_compare_l32f end -->
 
 <!-- bench_compare_la32f start -->
 
-### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
+### Resize LA-F32 (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -245,17 +245,17 @@ Pipeline:
 
 - Source image
   [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
-  has converted into grayscale image with alpha channel (two `f32` values per pixel).
+  has converted into grayscale image with an alpha channel (two `f32` values per pixel).
 - Numbers in the table mean a duration of image resizing in milliseconds.
 - The `image` crate does not support multiplying and dividing by alpha channel.
 - The `resize` crate does not support this pixel format.
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| libvips    |  11.85  | 70.31 |  101.80  | 177.59  |  254.22  |
-| fir rust   |  0.38   | 21.26 |  28.82   |  47.50  |  70.34   |
-| fir sse4.1 |  0.38   | 16.23 |  20.91   |  30.35  |  40.12   |
-| fir avx2   |  0.38   | 15.05 |  17.18   |  22.47  |  27.89   |
+| libvips    |  11.97  | 69.97 |  101.99  | 177.48  |  252.49  |
+| fir rust   |  0.39   | 21.50 |  29.51   |  47.46  |  70.36   |
+| fir sse4.1 |  0.39   | 16.46 |  21.12   |  30.52  |  40.27   |
+| fir avx2   |  0.39   | 15.32 |  17.33   |  22.63  |  28.11   |
 
 <!-- bench_compare_la32f end -->
 
@@ -271,12 +271,14 @@ Pipeline:
   has converted into RGB32F image.
 - Numbers in the table mean a duration of image resizing in milliseconds.
 
-|          | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
-|----------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image    |  26.52  |   -   |  62.98   | 105.56  |  147.74  |
-| resize   |  8.76   | 14.03 |  23.62   |  47.69  |  70.36   |
-| libvips  |  11.91  | 60.28 |  53.55   | 112.62  |  200.59  |
-| fir rust |  0.87   | 17.12 |  27.34   |  51.51  |  75.67   |
+|            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image      |  26.87  |   -   |  64.40   | 106.65  |  147.88  |
+| resize     |  8.89   | 14.23 |  23.78   |  47.82  |  70.56   |
+| libvips    |  11.71  | 60.78 |  53.26   | 114.11  |  193.66  |
+| fir rust   |  0.88   | 16.43 |  26.93   |  50.27  |  74.94   |
+| fir sse4.1 |  0.88   | 12.63 |  19.38   |  32.27  |  46.71   |
+| fir avx2   |  0.88   | 10.95 |  13.96   |  20.31  |  29.14   |
 
 <!-- bench_compare_rgb32f end -->
 
@@ -296,9 +298,11 @@ Pipeline:
 - The `resize` crate does not support multiplying and dividing by alpha channel
   for this pixel format.
 
-|          | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
-|----------|:-------:|:------:|:--------:|:-------:|:--------:|
-| libvips  |  23.29  | 111.87 |  140.37  | 251.12  |  381.52  |
-| fir rust |  0.98   | 35.65  |  45.42   |  70.24  |  92.90   |
+|            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
+|------------|:-------:|:------:|:--------:|:-------:|:--------:|
+| libvips    |  23.22  | 111.20 |  140.22  | 250.45  |  386.72  |
+| fir rust   |  1.06   | 36.13  |  45.93   |  70.53  |  93.30   |
+| fir sse4.1 |  1.06   | 32.10  |  40.35   |  58.59  |  77.88   |
+| fir avx2   |  1.06   | 29.64  |  31.75   |  41.44  |  51.22   |
 
 <!-- bench_compare_rgba32f end -->

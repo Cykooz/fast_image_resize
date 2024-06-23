@@ -11,7 +11,7 @@ Environment:
 - Ubuntu 22.04 (linux 6.5.0)
 - Rust 1.79
 - criterion = "0.5.1"
-- fast_image_resize = "4.0.0"
+- fast_image_resize = "4.1.0"
 {% if arch_id == "wasm32" -%}
 - wasmtime = "20.0.0"
 {% endif %}

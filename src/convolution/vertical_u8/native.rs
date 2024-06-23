@@ -26,21 +26,7 @@ pub(crate) fn vert_convolution<T>(
         let mut x_src = src_x_initial;
         let dst_components = T::components_mut(dst_row);
 
-        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u8; 32]>() };
-        x_src = convolution_by_chunks(
-            src_image,
-            &normalizer,
-            initial,
-            dst_chunks,
-            x_src,
-            first_y_src,
-            ks,
-        );
-        if tail.is_empty() {
-            continue;
-        }
-
-        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 16]>() };
+        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u8; 16]>() };
         x_src = convolution_by_chunks(
             src_image,
             &normalizer,

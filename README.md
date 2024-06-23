@@ -24,7 +24,7 @@ Supported pixel formats and available optimizations:
 |  F32   | One `f32` component per pixel (e.g. L)                        |   +    |  +   |  -   |       -        |
 | F32x2  | Two `f32` components per pixel (e.g. LA32F)                   |   +    |  +   |  -   |       -        |
 | F32x3  | Three `f32` components per pixel (e.g. RGB32F)                |   +    |  +   |  -   |       -        |
-| F32x4  | Four `f32` components per pixel (e.g. RGBA32F)                |   -    |  -   |  -   |       -        |
+| F32x4  | Four `f32` components per pixel (e.g. RGBA32F)                |   +    |  +   |  -   |       -        |
 
 ## Colorspace
 
@@ -58,7 +58,6 @@ Other libraries used to compare of resizing speed:
 - libvips (single-threaded mode, cache disabled)
 
 <!-- bench_compare_rgb start -->
-
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -70,17 +69,15 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  28.28  |   -   |  82.31   | 134.61  |  186.22  |
-| resize     |  7.83   | 26.85 |  53.70   |  97.59  |  144.79  |
-| libvips    |  7.76   | 59.65 |  19.83   |  30.73  |  39.80   |
-| fir rust   |  0.28   | 12.77 |  17.94   |  27.94  |  40.05   |
-| fir sse4.1 |  0.28   | 3.99  |   5.66   |  9.86   |  15.42   |
-| fir avx2   |  0.28   | 3.06  |   3.89   |  6.85   |  13.25   |
-
+| image      |  32.06  |   -   |  94.81   | 153.34  |  212.23  |
+| resize     |  9.12   | 26.76 |  52.27   |  97.57  |  144.36  |
+| libvips    |  7.75   | 59.45 |  19.98   |  30.79  |  39.94   |
+| fir rust   |  0.29   | 11.91 |  16.56   |  26.11  |  37.89   |
+| fir sse4.1 |  0.29   | 4.09  |   5.68   |  9.79   |  15.45   |
+| fir avx2   |  0.29   | 3.10  |   3.98   |  6.82   |  13.30   |
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
-
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -94,16 +91,14 @@ Pipeline:
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  11.34  | 42.76  |  85.43   | 147.41  |  211.31  |
-| libvips    |  8.97   | 120.82 |  190.82  | 341.07  |  500.87  |
-| fir rust   |  0.19   | 21.79  |  28.34   |  42.24  |  56.72   |
-| fir sse4.1 |  0.19   | 10.14  |  12.26   |  18.43  |  24.22   |
-| fir avx2   |  0.19   |  7.44  |   8.48   |  14.10  |  21.31   |
-
+| resize     |  11.45  | 42.73  |  85.20   | 147.41  |  211.63  |
+| libvips    |  9.77   | 120.67 |  189.16  | 336.71  |  500.29  |
+| fir rust   |  0.19   | 21.84  |  26.36   |  36.95  |  50.38   |
+| fir sse4.1 |  0.19   | 10.22  |  12.42   |  17.84  |  24.86   |
+| fir avx2   |  0.19   |  7.85  |   8.87   |  13.82  |  22.10   |
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
-
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -116,13 +111,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  25.53  |   -   |  56.37   |  84.03  |  111.89  |
-| resize     |  5.60   | 10.85 |  18.72   |  37.97  |  65.65   |
-| libvips    |  4.67   | 25.02 |   9.80   |  13.73  |  18.17   |
-| fir rust   |  0.15   | 4.94  |   6.37   |  8.97   |  13.36   |
-| fir sse4.1 |  0.15   | 1.66  |   2.10   |  3.28   |   5.57   |
-| fir avx2   |  0.15   | 1.76  |   1.96   |  2.37   |   4.41   |
-
+| image      |  28.75  |   -   |  60.74   |  89.30  |  117.34  |
+| resize     |  6.83   | 11.03 |  20.67   |  43.74  |  67.86   |
+| libvips    |  4.66   | 25.00 |   9.74   |  13.19  |  17.94   |
+| fir rust   |  0.15   | 4.54  |   5.69   |  8.05   |  12.22   |
+| fir sse4.1 |  0.15   | 1.70  |   2.16   |  3.34   |   5.64   |
+| fir avx2   |  0.15   | 1.74  |   1.90   |  2.31   |   4.28   |
 <!-- bench_compare_l end -->
 
 ## Examples
