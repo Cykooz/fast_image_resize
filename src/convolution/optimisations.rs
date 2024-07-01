@@ -21,8 +21,8 @@ const fn get_clip_table() -> [u8; 1280] {
 // Handles values form -640 to 639.
 static CLIP8_LOOKUPS: [u8; 1280] = get_clip_table();
 
-// 8 bits for result. Filter can have negative areas.
-// In one cases the sum of the coefficients will be negative,
+// 8 bits for a result. Filter can have negative areas.
+// In one case, the sum of the coefficients will be negative,
 // in the other it will be more than 1.0. That is why we need
 // two extra bits for overflow and i32 type.
 const PRECISION_BITS: u8 = 32 - 8 - 2;
@@ -57,8 +57,8 @@ impl Normalizer16 {
         for cur_precision in 0..PRECISION_BITS {
             precision = cur_precision;
             let next_value: i32 = (max_weight * (1 << (precision + 1)) as f64).round() as i32;
-            // The next value will be outside the range, so just stop
             if next_value >= (1 << MAX_COEFFS_PRECISION) {
+                // The next value will be outside the range, so stop
                 break;
             }
         }

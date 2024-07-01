@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [dependencies]
-fast_image_resize = { path = "..", features = ["image"] }
+fast_image_resize = { path = "..", features = ["for_testing"] }
 image = "0.25.1"
 
 

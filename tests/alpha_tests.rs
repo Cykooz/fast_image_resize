@@ -58,6 +58,7 @@ fn mul_div_alpha_test<P: PixelTrait>(
         "divide"
     };
 
+    let cpu_ext_str = cpu_ext_into_str(cpu_extensions);
     let expected_pixels: Vec<P> = expected_pixels_tpl
         .iter()
         .copied()
@@ -71,7 +72,8 @@ fn mul_div_alpha_test<P: PixelTrait>(
     {
         assert_eq!(
             r, *e,
-            "failed test for {oper_str} alpha: src={s:?}, result={r:?}, expected_result={e:?}",
+            "failed test for {oper_str} alpha with '{cpu_ext_str}' CPU extensions: \
+            src={s:?}, result={r:?}, expected_result={e:?}",
         );
     }
 

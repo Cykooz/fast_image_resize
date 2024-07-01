@@ -27,12 +27,17 @@ fn multiplies_alpha(
     let width = 4096;
     let height = 2048;
     let f32x2_bytes: Vec<u8> = [1.0, 0.5].iter().flat_map(|v| v.to_le_bytes()).collect();
+    let f32x4_bytes: Vec<u8> = [1.0, 0.5, 0., 0.5]
+        .iter()
+        .flat_map(|v| v.to_le_bytes())
+        .collect();
     let pixel: &[u8] = match pixel_type {
         PixelType::U8x4 => &[255, 128, 0, 128],
         PixelType::U8x2 => &[255, 128],
         PixelType::U16x2 => &[255, 255, 0, 128],
         PixelType::U16x4 => &[0, 255, 0, 128, 0, 0, 0, 128],
         PixelType::F32x2 => &f32x2_bytes,
+        PixelType::F32x4 => &f32x4_bytes,
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -80,12 +85,17 @@ fn divides_alpha(
     let width = 4095;
     let height = 2048;
     let f32x2_bytes: Vec<u8> = [0.5, 0.5].iter().flat_map(|v| v.to_le_bytes()).collect();
+    let f32x4_bytes: Vec<u8> = [0.5, 0.25, 0., 0.5]
+        .iter()
+        .flat_map(|v| v.to_le_bytes())
+        .collect();
     let pixel: &[u8] = match pixel_type {
         PixelType::U8x4 => &[128, 64, 0, 128],
         PixelType::U8x2 => &[128, 128],
         PixelType::U16x2 => &[0, 128, 0, 128],
         PixelType::U16x4 => &[0, 128, 0, 64, 0, 0, 0, 128],
         PixelType::F32x2 => &f32x2_bytes,
+        PixelType::F32x4 => &f32x4_bytes,
         _ => unreachable!(),
     };
     let src_data = get_src_image(width, height, pixel_type, pixel);
@@ -131,6 +141,7 @@ fn bench_alpha(bench_group: &mut utils::BenchGroup) {
         PixelType::U16x2,
         PixelType::U16x4,
         PixelType::F32x2,
+        PixelType::F32x4,
     ];
     let mut cpu_extensions = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]

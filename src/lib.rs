@@ -39,7 +39,7 @@ pub mod pixels;
 mod resizer;
 #[cfg(target_arch = "x86_64")]
 mod simd_utils;
-#[cfg(feature = "for_test")]
+#[cfg(feature = "for_testing")]
 pub mod testing;
 #[cfg(target_arch = "wasm32")]
 mod wasm32_utils;
