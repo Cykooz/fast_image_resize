@@ -19,9 +19,9 @@ Environment:
 Other libraries used to compare of resizing speed:
 
 - image = "0.25.1" (<https://crates.io/crates/image>)
-- resize = "0.8.4" (<https://crates.io/crates/resize>)
+- resize = "0.8.4" (<https://crates.io/crates/resize>, single-threaded mode)
 {% if arch_id != "wasm32" -%}
-- libvips = "8.12.1" (single-threaded mode, cache disabled)
+- libvips = "8.12.1" (single-threaded mode)
 {% endif %}
 
 Resize algorithms:

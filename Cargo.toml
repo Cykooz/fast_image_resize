@@ -40,7 +40,7 @@ only_u8x4 = []  # This can be used to experiment with the crate's code.
 
 [dev-dependencies]
 fast_image_resize = { path = ".", features = ["for_testing"] }
-resize = "0.8.4"
+resize = { version = "0.8.4", default-features = false, features = ["std"] }
 rgb = "0.8.37"
 png = "0.17.13"
 serde = { version = "1.0", features = ["serde_derive"] }

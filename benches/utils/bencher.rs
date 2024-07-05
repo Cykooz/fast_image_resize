@@ -24,7 +24,9 @@ pub fn run_bench<F>(bench_fn: F, name: &str) -> Vec<BenchResult>
 where
     F: FnOnce(&mut BenchGroup),
 {
-    pin_process_to_cpu0();
+    if env::var("PIN_TO_CPU0").is_ok() {
+        pin_process_to_cpu0();
+    }
 
     let arch_id = get_arch_id_and_name().0;
     let output_dir = criterion_output_directory().join(arch_id);

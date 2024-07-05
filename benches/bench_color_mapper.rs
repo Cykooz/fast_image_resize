@@ -3,6 +3,8 @@ use fast_image_resize::images::Image;
 use fast_image_resize::pixels::U8x3;
 use testing::PixelTestingExt;
 
+use crate::utils::pin_process_to_cpu0;
+
 mod utils;
 
 pub fn bench_color_mapper(bench_group: &mut utils::BenchGroup) {
@@ -23,5 +25,6 @@ pub fn bench_color_mapper(bench_group: &mut utils::BenchGroup) {
 }
 
 fn main() {
+    pin_process_to_cpu0();
     utils::run_bench(bench_color_mapper, "Color mapper");
 }

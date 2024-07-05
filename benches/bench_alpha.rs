@@ -6,6 +6,8 @@ use fast_image_resize::MulDiv;
 use fast_image_resize::PixelType;
 use testing::cpu_ext_into_str;
 
+use crate::utils::pin_process_to_cpu0;
+
 mod utils;
 
 // Multiplies by alpha
@@ -170,6 +172,7 @@ fn bench_alpha(bench_group: &mut utils::BenchGroup) {
 }
 
 fn main() {
+    pin_process_to_cpu0();
     let res = utils::run_bench(bench_alpha, "Bench Alpha");
     println!("{}", utils::build_md_table(&res));
 }

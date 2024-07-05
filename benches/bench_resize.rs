@@ -4,6 +4,8 @@ use fast_image_resize::ResizeOptions;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
 use testing::{cpu_ext_into_str, PixelTestingExt};
 
+use crate::utils::pin_process_to_cpu0;
+
 mod utils;
 
 const NEW_SIZE: u32 = 695;
@@ -216,12 +218,14 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
     native_nearest_u8_bench(bench_group);
 }
 
-fn main() {
+fn main1() {
+    pin_process_to_cpu0();
     let results = utils::run_bench(resize_bench, "Resize");
     println!("{}", utils::build_md_table(&results));
 }
 
-fn main2() {
+fn main() {
+    pin_process_to_cpu0();
     let results = utils::run_bench(resize_in_one_dimension_bench, "Resize one dimension");
     println!("{}", utils::build_md_table(&results));
 }

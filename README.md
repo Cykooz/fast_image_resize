@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/fast_image_resize.svg?logo=rust)](https://crates.io/crates/fast_image_resize)
 [![docs.rs](https://img.shields.io/badge/docs.rs-fast__image__resize-66c2a5?logo=docs.rs)](https://docs.rs/fast_image_resize)
 
-Rust library for fast image resizing with using of SIMD instructions.
+Rust library for fast **single-threaded** image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
@@ -54,10 +54,11 @@ _All benchmarks:_
 Other libraries used to compare of resizing speed:
 
 - image (<https://crates.io/crates/image>)
-- resize (<https://crates.io/crates/resize>)
-- libvips (single-threaded mode, cache disabled)
+- resize (<https://crates.io/crates/resize>, single-threaded mode)
+- libvips (single-threaded mode)
 
 <!-- bench_compare_rgb start -->
+
 ### Resize RGB8 image (U8x3) 4928x3279 => 852x567
 
 Pipeline:
@@ -69,15 +70,17 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  32.06  |   -   |  94.81   | 153.34  |  212.23  |
-| resize     |  9.12   | 26.76 |  52.27   |  97.57  |  144.36  |
-| libvips    |  7.75   | 59.45 |  19.98   |  30.79  |  39.94   |
-| fir rust   |  0.29   | 11.91 |  16.56   |  26.11  |  37.89   |
-| fir sse4.1 |  0.29   | 4.09  |   5.68   |  9.79   |  15.45   |
-| fir avx2   |  0.29   | 3.10  |   3.98   |  6.82   |  13.30   |
+| image      |  32.17  |   -   |  94.60   | 153.14  |  211.14  |
+| resize     |  9.18   | 26.68 |  49.76   |  96.06  |  141.84  |
+| libvips    |  7.75   | 59.58 |  19.81   |  30.46  |  39.96   |
+| fir rust   |  0.29   | 11.99 |  16.56   |  25.93  |  37.85   |
+| fir sse4.1 |  0.29   | 4.13  |   5.67   |  9.77   |  15.52   |
+| fir avx2   |  0.29   | 3.13  |   3.98   |  6.88   |  13.18   |
+
 <!-- bench_compare_rgb end -->
 
 <!-- bench_compare_rgba start -->
+
 ### Resize RGBA8 image (U8x4) 4928x3279 => 852x567
 
 Pipeline:
@@ -91,14 +94,16 @@ Pipeline:
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  11.45  | 42.73  |  85.20   | 147.41  |  211.63  |
-| libvips    |  9.77   | 120.67 |  189.16  | 336.71  |  500.29  |
-| fir rust   |  0.19   | 21.84  |  26.36   |  36.95  |  50.38   |
-| fir sse4.1 |  0.19   | 10.22  |  12.42   |  17.84  |  24.86   |
-| fir avx2   |  0.19   |  7.85  |   8.87   |  13.82  |  22.10   |
+| resize     |  11.98  | 43.60  |  86.90   | 147.95  |  211.64  |
+| libvips    |  10.06  | 122.00 |  188.57  | 336.42  |  499.80  |
+| fir rust   |  0.19   | 22.02  |  26.95   |  38.41  |  51.70   |
+| fir sse4.1 |  0.19   | 10.32  |  12.59   |  18.10  |  24.95   |
+| fir avx2   |  0.19   |  7.75  |   8.88   |  13.78  |  22.12   |
+
 <!-- bench_compare_rgba end -->
 
 <!-- bench_compare_l start -->
+
 ### Resize L8 image (U8) 4928x3279 => 852x567
 
 Pipeline:
@@ -111,12 +116,13 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  28.75  |   -   |  60.74   |  89.30  |  117.34  |
-| resize     |  6.83   | 11.03 |  20.67   |  43.74  |  67.86   |
-| libvips    |  4.66   | 25.00 |   9.74   |  13.19  |  17.94   |
-| fir rust   |  0.15   | 4.54  |   5.69   |  8.05   |  12.22   |
-| fir sse4.1 |  0.15   | 1.70  |   2.16   |  3.34   |   5.64   |
-| fir avx2   |  0.15   | 1.74  |   1.90   |  2.31   |   4.28   |
+| image      |  28.76  |   -   |  60.68   |  89.41  |  117.41  |
+| resize     |  6.40   | 11.24 |  20.84   |  42.92  |  68.93   |
+| libvips    |  4.66   | 25.06 |   9.67   |  13.27  |  17.99   |
+| fir rust   |  0.15   | 4.74  |   6.02   |  8.41   |  12.62   |
+| fir sse4.1 |  0.15   | 1.67  |   2.14   |  3.31   |   5.61   |
+| fir avx2   |  0.15   | 1.74  |   1.91   |  2.31   |   4.16   |
+
 <!-- bench_compare_l end -->
 
 ## Examples
