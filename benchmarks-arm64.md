@@ -226,7 +226,7 @@ Pipeline:
 
 <!-- bench_compare_la32f start -->
 
-### Resize LA-F32 (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
+### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
 
 Pipeline:
 
@@ -248,7 +248,7 @@ Pipeline:
 
 <!-- bench_compare_rgb32f start -->
 
-### Resize RGB16F image (F32x3) 4928x3279 => 852x567
+### Resize RGB32F image (F32x3) 4928x3279 => 852x567
 
 Pipeline:
 

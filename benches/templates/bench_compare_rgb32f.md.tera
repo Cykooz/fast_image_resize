@@ -1,4 +1,4 @@
-### Resize RGB16F image (F32x3) 4928x3279 => 852x567
+### Resize RGB32F image (F32x3) 4928x3279 => 852x567
 
 Pipeline:
 

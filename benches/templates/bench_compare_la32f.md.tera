@@ -1,4 +1,4 @@
-### Resize LA-F32 (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
+### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
 
 Pipeline:
 
