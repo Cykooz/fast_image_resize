@@ -195,3 +195,90 @@ Pipeline:
 | fir simd128 |  0.25   | 28.50 |  40.57   |  65.66  |  92.68   |
 
 <!-- bench_compare_la16 end -->
+
+<!-- bench_compare_l32f start -->
+
+### Resize L32F image (F32) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into grayscale image with two bytes per pixel.
+- Numbers in the table mean a duration of image resizing in milliseconds.
+
+|          | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image    |  24.55  |   -   |  49.54   |  78.44  |  104.51  |
+| resize   |  5.03   | 8.64  |  13.85   |  30.14  |  45.81   |
+| libvips  |  5.96   | 25.74 |  21.52   |  42.24  |  71.71   |
+| fir rust |  0.20   | 9.87  |  14.93   |  29.66  |  51.71   |
+
+<!-- bench_compare_l32f end -->
+
+<!-- bench_compare_la32f start -->
+
+### Resize LA-F32 (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+  has converted into grayscale image with an alpha channel (two `f32` values per pixel).
+- Numbers in the table mean a duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
+- The `resize` crate does not support this pixel format.
+
+|          | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| libvips  |  11.58  | 70.05 |  101.70  | 176.48  |  252.74  |
+| fir rust |  0.38   | 22.75 |  30.35   |  49.41  |  71.81   |
+
+<!-- bench_compare_la32f end -->
+
+<!-- bench_compare_rgb32f start -->
+
+### Resize RGB16F image (F32x3) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => resize => dst_image`
+
+- Source image [nasa-4928x3279.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279.png)
+  has converted into RGB32F image.
+- Numbers in the table mean a duration of image resizing in milliseconds.
+
+|          | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:-----:|:--------:|:-------:|:--------:|
+| image    |  26.32  |   -   |  62.99   | 104.89  |  147.02  |
+| resize   |  8.97   | 16.30 |  24.52   |  48.25  |  72.16   |
+| libvips  |  11.75  | 60.36 |  52.63   | 113.20  |  197.67  |
+| fir rust |  0.83   | 16.39 |  26.95   |  50.36  |  75.58   |
+
+<!-- bench_compare_rgb32f end -->
+
+
+<!-- bench_compare_rgba32f start -->
+
+### Resize RGBA32F image (F32x4) 4928x3279 => 852x567
+
+Pipeline:
+
+`src_image => multiply by alpha => resize => divide by alpha => dst_image`
+
+- Source image
+  [nasa-4928x3279-rgba.png](https://github.com/Cykooz/fast_image_resize/blob/main/data/nasa-4928x3279-rgba.png)
+- Numbers in the table mean a duration of image resizing in milliseconds.
+- The `image` crate does not support multiplying and dividing by alpha channel.
+- The `resize` crate does not support multiplying and dividing by alpha channel
+  for this pixel format.
+
+|          | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
+|----------|:-------:|:------:|:--------:|:-------:|:--------:|
+| libvips  |  23.22  | 111.26 |  140.16  | 249.97  |  381.64  |
+| fir rust |  1.01   | 35.88  |  45.64   |  70.56  |  93.29   |
+
+<!-- bench_compare_rgba32f end -->

@@ -111,7 +111,7 @@ impl PixelComponent for u16 {
 }
 
 impl PixelComponent for i32 {
-    type CountOfComponentValues = Values<0x100000000>;
+    type CountOfComponentValues = Values<0>;
 }
 
 impl PixelComponent for f32 {
