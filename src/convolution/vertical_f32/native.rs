@@ -20,14 +20,39 @@ pub(crate) fn vert_convolution<T>(
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
         let ks = coeffs_chunk.values;
-        let dst_components = T::components_mut(dst_row);
+        let mut dst_components = T::components_mut(dst_row);
         let mut x_src = src_x_initial;
 
-        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[f32; 8]>() };
-        x_src = convolution_by_chunks(src_view, dst_chunks, x_src, first_y_src, ks);
+        #[cfg(target_arch = "aarch64")]
+        {
+            (dst_components, x_src) =
+                convolution_by_chunks::<_, 16>(src_view, dst_components, x_src, first_y_src, ks);
+        }
 
-        if !tail.is_empty() {
-            convolution_by_f32(src_view, tail, x_src, first_y_src, ks);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if !dst_components.is_empty() {
+                (dst_components, x_src) =
+                    convolution_by_chunks::<_, 8>(src_view, dst_components, x_src, first_y_src, ks);
+            }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            if !dst_components.is_empty() {
+                (dst_components, x_src) =
+                    crate::convolution::vertical_f32::native::convolution_by_chunks::<_, 4>(
+                        src_view,
+                        dst_components,
+                        x_src,
+                        first_y_src,
+                        ks,
+                    );
+            }
+        }
+
+        if !dst_components.is_empty() {
+            convolution_by_f32(src_view, dst_components, x_src, first_y_src, ks);
         }
     }
 }
@@ -57,17 +82,19 @@ pub(crate) fn convolution_by_f32<T: InnerPixel<Component = f32>>(
 }
 
 #[inline(always)]
-fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
+fn convolution_by_chunks<'a, T, const CHUNK_SIZE: usize>(
     src_view: &impl ImageView<Pixel = T>,
-    dst_chunks: &mut [[f32; CHUNK_SIZE]],
+    dst_components: &'a mut [f32],
     mut x_src: usize,
     first_y_src: u32,
     ks: &[f64],
-) -> usize
+) -> (&'a mut [f32], usize)
 where
     T: InnerPixel<Component = f32>,
 {
-    for dst_chunk in dst_chunks {
+    let mut dst_chunks = dst_components.chunks_exact_mut(CHUNK_SIZE);
+
+    for dst_chunk in &mut dst_chunks {
         let mut ss = [0.; CHUNK_SIZE];
         let src_rows = src_view.iter_rows(first_y_src);
 
@@ -93,5 +120,6 @@ where
         }
         x_src += CHUNK_SIZE;
     }
-    x_src
+
+    (dst_chunks.into_remainder(), x_src)
 }
