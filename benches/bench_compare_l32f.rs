@@ -22,6 +22,6 @@ pub fn bench_downscale_l32f(bench_group: &mut utils::BenchGroup) {
 }
 
 fn main() {
-    let res = utils::run_bench(bench_downscale_l32f, "Compare resize of F32 image");
+    let res = utils::run_bench(bench_downscale_l32f, "Compare resize of L32F image");
     utils::print_and_write_compare_result(&res);
 }
