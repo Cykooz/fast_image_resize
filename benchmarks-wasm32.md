@@ -216,6 +216,11 @@ Pipeline:
 
 <!-- bench_compare_l32f end -->
 
+Note:
+The `resize` crate uses `f32` for intermediate calculations.
+The `fast_image_resize` uses `f64`. This is a reason why `fast_image_resize`
+is slower or equal in cases with `f32`-based pixels.
+
 <!-- bench_compare_la32f start -->
 
 ### Resize LA32F (luma with alpha channel) image (F32x2) 4928x3279 => 852x567
