@@ -575,7 +575,6 @@ dependencies = [
  "nix",
  "num-traits",
  "png",
- "rayon",
  "resize",
  "rgb",
  "serde",
