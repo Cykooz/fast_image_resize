@@ -163,48 +163,210 @@ pub trait PixelTestingExt: PixelTrait {
     fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8>;
 }
 
-impl PixelTestingExt for U8 {
-    type ImagePixel = image::Luma<u8>;
-    type Container = Vec<u8>;
+#[cfg(not(feature = "only_u8x4"))]
+pub mod not_u8x4 {
+    use super::*;
 
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma8()
+    impl PixelTestingExt for U8 {
+        type ImagePixel = image::Luma<u8>;
+        type Container = Vec<u8>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma8()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.into_raw()
+        }
     }
 
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.into_raw()
-    }
-}
+    impl PixelTestingExt for U8x2 {
+        type ImagePixel = image::LumaA<u8>;
+        type Container = Vec<u8>;
 
-impl PixelTestingExt for U8x2 {
-    type ImagePixel = image::LumaA<u8>;
-    type Container = Vec<u8>;
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma_alpha8()
+        }
 
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma_alpha8()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.into_raw()
-    }
-}
-
-impl PixelTestingExt for U8x3 {
-    type ImagePixel = image::Rgb<u8>;
-    type Container = Vec<u8>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_rgb8()
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.into_raw()
+        }
     }
 
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.into_raw()
+    impl PixelTestingExt for U8x3 {
+        type ImagePixel = image::Rgb<u8>;
+        type Container = Vec<u8>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_rgb8()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.into_raw()
+        }
+    }
+
+    impl PixelTestingExt for U16 {
+        type ImagePixel = image::Luma<u16>;
+        type Container = Vec<u16>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma16()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            // img.as_raw()
+            //     .iter()
+            //     .enumerate()
+            //     .flat_map(|(i, &c)| ((i & 0xffff) as u16).to_le_bytes())
+            //     .collect()
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
+    }
+
+    impl PixelTestingExt for U16x2 {
+        type ImagePixel = image::LumaA<u16>;
+        type Container = Vec<u16>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma_alpha16()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
+    }
+
+    impl PixelTestingExt for U16x3 {
+        type ImagePixel = image::Rgb<u16>;
+        type Container = Vec<u16>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_rgb16()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
+    }
+
+    impl PixelTestingExt for U16x4 {
+        type ImagePixel = image::Rgba<u16>;
+        type Container = Vec<u16>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_rgba16()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
+    }
+
+    impl PixelTestingExt for I32 {
+        type ImagePixel = image::Luma<i32>;
+        type Container = Vec<i32>;
+
+        fn cpu_extensions() -> Vec<CpuExtensions> {
+            vec![CpuExtensions::None]
+        }
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            let image_u16 = img_reader.decode().unwrap().to_luma32f();
+            ImageBuffer::from_fn(image_u16.width(), image_u16.height(), |x, y| {
+                let pixel = image_u16.get_pixel(x, y);
+                image::Luma::from([(pixel.0[0] * i32::MAX as f32).round() as i32])
+            })
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw()
+                .iter()
+                .flat_map(|val| val.to_le_bytes())
+                .collect()
+        }
+    }
+
+    impl PixelTestingExt for F32 {
+        type ImagePixel = image::Luma<f32>;
+        type Container = Vec<f32>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma32f()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw()
+                .iter()
+                .flat_map(|val| val.to_le_bytes())
+                .collect()
+        }
+    }
+
+    impl PixelTestingExt for F32x2 {
+        type ImagePixel = image::LumaA<f32>;
+        type Container = Vec<f32>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_luma_alpha32f()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw()
+                .iter()
+                .flat_map(|val| val.to_le_bytes())
+                .collect()
+        }
+    }
+
+    impl PixelTestingExt for F32x3 {
+        type ImagePixel = image::Rgb<f32>;
+        type Container = Vec<f32>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_rgb32f()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
+    }
+
+    impl PixelTestingExt for F32x4 {
+        type ImagePixel = image::Rgba<f32>;
+        type Container = Vec<f32>;
+
+        fn load_image_buffer(
+            img_reader: Reader<BufReader<File>>,
+        ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
+            img_reader.decode().unwrap().to_rgba32f()
+        }
+
+        fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
+            img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
+        }
     }
 }
 
@@ -220,163 +382,6 @@ impl PixelTestingExt for U8x4 {
 
     fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
         img.into_raw()
-    }
-}
-
-impl PixelTestingExt for U16 {
-    type ImagePixel = image::Luma<u16>;
-    type Container = Vec<u16>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma16()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        // img.as_raw()
-        //     .iter()
-        //     .enumerate()
-        //     .flat_map(|(i, &c)| ((i & 0xffff) as u16).to_le_bytes())
-        //     .collect()
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
-    }
-}
-
-impl PixelTestingExt for U16x2 {
-    type ImagePixel = image::LumaA<u16>;
-    type Container = Vec<u16>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma_alpha16()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
-    }
-}
-
-impl PixelTestingExt for U16x3 {
-    type ImagePixel = image::Rgb<u16>;
-    type Container = Vec<u16>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_rgb16()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
-    }
-}
-
-impl PixelTestingExt for U16x4 {
-    type ImagePixel = image::Rgba<u16>;
-    type Container = Vec<u16>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_rgba16()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
-    }
-}
-
-impl PixelTestingExt for I32 {
-    type ImagePixel = image::Luma<i32>;
-    type Container = Vec<i32>;
-
-    fn cpu_extensions() -> Vec<CpuExtensions> {
-        vec![CpuExtensions::None]
-    }
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        let image_u16 = img_reader.decode().unwrap().to_luma32f();
-        ImageBuffer::from_fn(image_u16.width(), image_u16.height(), |x, y| {
-            let pixel = image_u16.get_pixel(x, y);
-            image::Luma::from([(pixel.0[0] * i32::MAX as f32).round() as i32])
-        })
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw()
-            .iter()
-            .flat_map(|val| val.to_le_bytes())
-            .collect()
-    }
-}
-
-impl PixelTestingExt for F32 {
-    type ImagePixel = image::Luma<f32>;
-    type Container = Vec<f32>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma32f()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw()
-            .iter()
-            .flat_map(|val| val.to_le_bytes())
-            .collect()
-    }
-}
-
-impl PixelTestingExt for F32x2 {
-    type ImagePixel = image::LumaA<f32>;
-    type Container = Vec<f32>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_luma_alpha32f()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw()
-            .iter()
-            .flat_map(|val| val.to_le_bytes())
-            .collect()
-    }
-}
-
-impl PixelTestingExt for F32x3 {
-    type ImagePixel = image::Rgb<f32>;
-    type Container = Vec<f32>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_rgb32f()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
-    }
-}
-
-impl PixelTestingExt for F32x4 {
-    type ImagePixel = image::Rgba<f32>;
-    type Container = Vec<f32>;
-
-    fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
-    ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
-        img_reader.decode().unwrap().to_rgba32f()
-    }
-
-    fn img_into_bytes(img: ImageBuffer<Self::ImagePixel, Self::Container>) -> Vec<u8> {
-        img.as_raw().iter().flat_map(|&c| c.to_le_bytes()).collect()
     }
 }
 

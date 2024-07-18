@@ -21,7 +21,7 @@ Supported pixel formats and available optimizations:
 | U16x3  | Three `u16` components per pixel (e.g. RGB16)                 |   +    |  +   |  +   |       +        |
 | U16x4  | Four `u16` components per pixel (e.g. RGBA16, RGBx16, CMYK16) |   +    |  +   |  +   |       +        |
 |  I32   | One `i32` component per pixel (e.g. L)                        |   -    |  -   |  -   |       -        |
-|  F32   | One `f32` component per pixel (e.g. L)                        |   +    |  +   |  -   |       -        |
+|  F32   | One `f32` component per pixel (e.g. L32F)                     |   +    |  +   |  -   |       -        |
 | F32x2  | Two `f32` components per pixel (e.g. LA32F)                   |   +    |  +   |  -   |       -        |
 | F32x3  | Three `f32` components per pixel (e.g. RGB32F)                |   +    |  +   |  -   |       -        |
 | F32x4  | Four `f32` components per pixel (e.g. RGBA32F)                |   +    |  +   |  -   |       -        |

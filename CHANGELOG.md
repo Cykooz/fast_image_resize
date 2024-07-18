@@ -1,3 +1,13 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added new resize algorythm `ResizeAlg::Interpolation` (#32).
+
+  It is like `ResizeAlg::Convolution` but with fixed kernel size.
+  This algorithm can be useful if you want to get a result similar
+  to `OpenCV` (except `INTER_AREA` interpolation).
+
 ## [4.1.0] - 2024-07-14
 
 ### Added

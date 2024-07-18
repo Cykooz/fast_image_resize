@@ -85,11 +85,12 @@ impl Coefficients {
 
 pub(crate) fn precompute_coefficients(
     in_size: u32,
-    in0: f64, // Left border for cropping
-    in1: f64, // Right border for cropping
+    in0: f64, // Left/top border for cropping
+    in1: f64, // Right/bottom border for cropping
     out_size: u32,
     filter: fn(f64) -> f64,
     filter_support: f64,
+    adaptive_kernel_size: bool,
 ) -> Coefficients {
     if in_size == 0 || out_size == 0 {
         return Coefficients::default();
@@ -98,7 +99,11 @@ pub(crate) fn precompute_coefficients(
     if scale <= 0. {
         return Coefficients::default();
     }
-    let filter_scale = scale.max(1.0);
+    let filter_scale = if adaptive_kernel_size {
+        scale.max(1.0)
+    } else {
+        1.0
+    };
 
     // Determine filter radius size (length of resampling filter)
     let filter_radius = filter_support * filter_scale;
@@ -113,7 +118,7 @@ pub(crate) fn precompute_coefficients(
     let mut bounds: Vec<Bound> = Vec::with_capacity(out_size as usize);
 
     for out_x in 0..out_size {
-        // Find the point in the input image corresponding to the centre
+        // Find the point in the input image corresponding to the center
         // of the current pixel in the output image.
         let in_center = in0 + (out_x as f64 + 0.5) * scale;
 
@@ -131,14 +136,15 @@ pub(crate) fn precompute_coefficients(
         // (x + 0.5) - in_center => x - (in_center - 0.5) => x - center
         let center = in_center - 0.5;
 
+        // Calculate the weight of each input pixel from the given x-range.
         for x in x_min..x_max {
             let w: f64 = filter((x as f64 - center) * recip_filter_scale);
             coeffs.push(w);
             ww += w;
         }
         if ww != 0.0 {
-            // Normalise values of coefficients.
-            // Sum of coefficients must be equal to 1.0.
+            // Normalise values of weights.
+            // The sum of weights must be equal to 1.0.
             coeffs[cur_index..].iter_mut().for_each(|w| *w /= ww);
         }
         // Remaining values should stay empty if they are used despite x_max.

@@ -31,6 +31,7 @@ pub fn change_type_of_pixel_components(
 
     use PixelType as PT;
 
+    #[cfg(not(feature = "only_u8x4"))]
     match src_pixel_type {
         PixelType::U8 => map_dst!(
             U8,
@@ -127,6 +128,12 @@ pub fn change_type_of_pixel_components(
             (PT::U16x4, U16x4),
             (PT::F32x4, F32x4)
         ),
+    }
+
+    #[cfg(feature = "only_u8x4")]
+    match src_pixel_type {
+        PixelType::U8x4 => map_dst!(U8x4, dst_pixel_type, (PT::U8x4, U8x4)),
+        _ => Err(MappingError::UnsupportedCombinationOfImageTypes),
     }
 }
 

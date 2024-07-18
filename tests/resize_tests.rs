@@ -311,6 +311,16 @@ where
                 FilterType::Lanczos3 => "lanczos3",
                 _ => "unknown",
             },
+            ResizeAlg::Interpolation(filter) => match filter {
+                FilterType::Box => "inter_box",
+                FilterType::Bilinear => "inter_bilinear",
+                FilterType::Hamming => "inter_hamming",
+                FilterType::Mitchell => "inter_mitchell",
+                FilterType::CatmullRom => "inter_catmullrom",
+                FilterType::Gaussian => "inter_gaussian",
+                FilterType::Lanczos3 => "inter_lanczos3",
+                _ => "inter_unknown",
+            },
             ResizeAlg::SuperSampling(_, _) => "supersampling",
             _ => "unknown",
         };
@@ -1025,4 +1035,20 @@ mod u8x4 {
             );
         }
     }
+}
+
+#[cfg(not(feature = "only_u8x4"))]
+#[test]
+fn resize_u8x3_interpolation() {
+    U8x3::downscale_test(
+        ResizeAlg::Interpolation(FilterType::Bilinear),
+        CpuExtensions::None,
+        [2938733, 2946338, 2883813],
+    );
+
+    U8x3::upscale_test(
+        ResizeAlg::Interpolation(FilterType::Bilinear),
+        CpuExtensions::None,
+        [1156013474, 1158419787, 1135090328],
+    );
 }

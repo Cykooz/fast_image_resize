@@ -82,7 +82,7 @@ pub enum FilterType {
     ///
     /// Minimal kernel size 1x1 px.    
     Box,
-    /// Bilinear filter calculate the output pixel value using linear
+    /// Bilinear filter calculates the output pixel value using linear
     /// interpolation on all pixels that may contribute to the output value.
     ///
     /// Minimal kernel size 2x2 px.
@@ -91,11 +91,11 @@ pub enum FilterType {
     /// providing the image downscaling quality comparable to bicubic
     /// (`CatmulRom` or `Mitchell`). Produces a sharper image than `Bilinear`,
     /// doesn't have dislocations on local level like with `Box`.
-    /// The filter don’t show good quality for the image upscaling.
+    /// The filter doesn't show good quality for the image upscaling.
     ///
     /// Minimal kernel size 2x2 px.
     Hamming,
-    /// Catmull-Rom bicubic filter calculate the output pixel value using
+    /// Catmull-Rom bicubic filter calculates the output pixel value using
     /// cubic interpolation on all pixels that may contribute to the output
     /// value.
     ///

@@ -2,6 +2,7 @@ use fast_image_resize as fr;
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
 
+#[cfg(not(feature = "only_u8x4"))]
 mod gamma_tests {
     use super::*;
 
@@ -78,6 +79,7 @@ mod gamma_tests {
     }
 }
 
+#[cfg(not(feature = "only_u8x4"))]
 mod srgb_tests {
     use super::*;
 

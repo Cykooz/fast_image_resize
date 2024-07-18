@@ -9,5 +9,9 @@ fast_image_resize = { path = "..", features = ["for_testing"] }
 image = "0.25.1"
 
 
+[features]
+only_u8x4 = []  # This can be used to experiment with the crate's code.
+
+
 [package.metadata.release]
 publish = false

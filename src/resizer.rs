@@ -12,6 +12,11 @@ use crate::{
 pub enum ResizeAlg {
     Nearest,
     Convolution(FilterType),
+    /// It is like `Convolution` but with fixed kernel size.
+    ///
+    /// This algorithm can be useful if you want to get a result
+    /// similar to `OpenCV` (except `INTER_AREA` interpolation).
+    Interpolation(FilterType),
     SuperSampling(FilterType, u8),
 }
 
@@ -100,6 +105,29 @@ impl ResizeOptions {
         let mut options = *self;
         options.mul_div_alpha = v;
         options
+    }
+
+    fn get_crop_box<P: PixelTrait>(
+        &self,
+        src_view: &impl ImageView<Pixel = P>,
+        dst_view: &impl ImageView<Pixel = P>,
+    ) -> CropBox {
+        match self.cropping {
+            SrcCropping::None => CropBox {
+                left: 0.,
+                top: 0.,
+                width: src_view.width() as _,
+                height: src_view.height() as _,
+            },
+            SrcCropping::Crop(crop_box) => crop_box,
+            SrcCropping::FitIntoDestination(centering) => CropBox::fit_src_into_dst_size(
+                src_view.width(),
+                src_view.height(),
+                dst_view.width(),
+                dst_view.height(),
+                Some(centering),
+            ),
+        }
     }
 }
 
@@ -199,24 +227,7 @@ impl Resizer {
         let default_options = ResizeOptions::default();
         let options = options.into().unwrap_or(&default_options);
 
-        let crop_box = match options.cropping {
-            SrcCropping::None => CropBox {
-                left: 0.,
-                top: 0.,
-                width: src_view.width() as _,
-                height: src_view.height() as _,
-            },
-            SrcCropping::Crop(crop_box) => crop_box,
-            SrcCropping::FitIntoDestination(centering) => CropBox::fit_src_into_dst_size(
-                src_view.width(),
-                src_view.height(),
-                dst_view.width(),
-                dst_view.height(),
-                Some(centering),
-            ),
-        };
-        let cropped_src_view = CroppedSrcImageView::cropped(src_view, crop_box)?;
-
+        let crop_box = options.get_crop_box(src_view, dst_view);
         if crop_box.width == 0.
             || crop_box.height == 0.
             || dst_view.width() == 0
@@ -225,6 +236,8 @@ impl Resizer {
             // Do nothing if any size of source or destination image is equal to zero.
             return Ok(());
         }
+
+        let cropped_src_view = CroppedSrcImageView::cropped(src_view, crop_box)?;
 
         if copy_image(&cropped_src_view, dst_view).is_ok() {
             // If `copy_image()` returns `Ok` it means that
@@ -240,6 +253,14 @@ impl Resizer {
                 &cropped_src_view,
                 dst_view,
                 filter_type,
+                true,
+                options.mul_div_alpha,
+            ),
+            ResizeAlg::Interpolation(filter_type) => self.resample_convolution(
+                &cropped_src_view,
+                dst_view,
+                filter_type,
+                false,
                 options.mul_div_alpha,
             ),
             ResizeAlg::SuperSampling(filter_type, multiplicity) => self.resample_super_sampling(
@@ -294,6 +315,7 @@ impl Resizer {
         cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
         dst_view: &mut impl ImageViewMut<Pixel = P>,
         filter_type: FilterType,
+        adaptive_kernel_size: bool,
         use_alpha: bool,
     ) {
         if use_alpha && self.mul_div.is_supported(P::pixel_type()) {
@@ -315,7 +337,12 @@ impl Resizer {
                         cropped_src_view.crop_box(),
                     )
                 };
-                self.do_convolution(&cropped_premultiplied_src, dst_view, filter_type);
+                self.do_convolution(
+                    &cropped_premultiplied_src,
+                    dst_view,
+                    filter_type,
+                    adaptive_kernel_size,
+                );
                 self.mul_div.divide_alpha_inplace_typed(dst_view).unwrap();
                 self.alpha_buffer = alpha_buffer;
                 return;
@@ -323,7 +350,12 @@ impl Resizer {
             self.alpha_buffer = alpha_buffer;
         }
 
-        self.do_convolution(cropped_src_view, dst_view, filter_type);
+        self.do_convolution(
+            cropped_src_view,
+            dst_view,
+            filter_type,
+            adaptive_kernel_size,
+        );
     }
 
     fn do_convolution<P: PixelTrait>(
@@ -331,6 +363,7 @@ impl Resizer {
         cropped_src_view: &CroppedSrcImageView<impl ImageView<Pixel = P>>,
         dst_view: &mut impl ImageViewMut<Pixel = P>,
         filter_type: FilterType,
+        adaptive_kernel_size: bool,
     ) {
         let src_view = cropped_src_view.image_view();
         let crop_box = cropped_src_view.crop_box();
@@ -352,6 +385,7 @@ impl Resizer {
                 dst_width,
                 filter_fn,
                 filter_support,
+                adaptive_kernel_size,
             )
         });
 
@@ -366,13 +400,14 @@ impl Resizer {
                 dst_height,
                 filter_fn,
                 filter_support,
+                adaptive_kernel_size,
             )
         });
 
         match (horiz_coeffs, vert_coeffs) {
             (Some(mut horiz_coeffs), Some(mut vert_coeffs)) => {
                 if P::components_is_u8() {
-                    // For an u8-based images it is faster to do the vertical pass first
+                    // For u8-based images, it is faster to do the vertical pass first
                     // instead of the horizontal.
                     let x_first = horiz_coeffs.bounds[0].start;
                     // Last used col in the source image
@@ -475,7 +510,7 @@ impl Resizer {
         // size is greater than the required size by multiplicity times.
         let factor = width_scale.min(height_scale) / multiplicity as f64;
         if factor > 1.2 {
-            // First step is resizing the source image by fastest algorithm.
+            // The first step is resizing the source image by the fastest algorithm.
             // The temporary image will be about ``multiplicity`` times larger
             // than required.
             let tmp_width = (crop_box.width / factor).round() as u32;
@@ -485,14 +520,14 @@ impl Resizer {
             let mut tmp_img =
                 get_temp_image_from_buffer(&mut super_sampling_buffer, tmp_width, tmp_height);
             resample_nearest(cropped_src_view, &mut tmp_img);
-            // Second step is resizing the temporary image with a convolution.
+            // The second step is resizing the temporary image with a convolution.
             let cropped_tmp_img = CroppedSrcImageView::new(&tmp_img);
-            self.resample_convolution(&cropped_tmp_img, dst_view, filter_type, use_alpha);
+            self.resample_convolution(&cropped_tmp_img, dst_view, filter_type, true, use_alpha);
             self.super_sampling_buffer = super_sampling_buffer;
         } else {
             // There is no point in doing the resizing in two steps.
             // We immediately resize the original image with a convolution.
-            self.resample_convolution(cropped_src_view, dst_view, filter_type, use_alpha);
+            self.resample_convolution(cropped_src_view, dst_view, filter_type, true, use_alpha);
         }
     }
 }
