@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [4.2.0] - 2024-07-19
 
 ### Added
 
