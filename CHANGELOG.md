@@ -2,7 +2,7 @@
 
 ### Added
 
-- Added new resize algorythm `ResizeAlg::Interpolation` (#32).
+- Added new resize algorithm `ResizeAlg::Interpolation` (#32).
 
   It is like `ResizeAlg::Convolution` but with fixed kernel size.
   This algorithm can be useful if you want to get a result similar
