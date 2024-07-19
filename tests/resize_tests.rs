@@ -497,6 +497,22 @@ mod not_u8x4 {
     }
 
     #[test]
+    fn resize_u8x3_interpolation() {
+        type P = U8x3;
+        P::downscale_test(
+            ResizeAlg::Interpolation(FilterType::Bilinear),
+            CpuExtensions::None,
+            [2938733, 2946338, 2883813],
+        );
+
+        P::upscale_test(
+            ResizeAlg::Interpolation(FilterType::Bilinear),
+            CpuExtensions::None,
+            [1156013474, 1158419787, 1135090328],
+        );
+    }
+
+    #[test]
     fn downscale_u16() {
         type P = U16;
         P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [750529436]);
@@ -1035,20 +1051,4 @@ mod u8x4 {
             );
         }
     }
-}
-
-#[cfg(not(feature = "only_u8x4"))]
-#[test]
-fn resize_u8x3_interpolation() {
-    U8x3::downscale_test(
-        ResizeAlg::Interpolation(FilterType::Bilinear),
-        CpuExtensions::None,
-        [2938733, 2946338, 2883813],
-    );
-
-    U8x3::upscale_test(
-        ResizeAlg::Interpolation(FilterType::Bilinear),
-        CpuExtensions::None,
-        [1156013474, 1158419787, 1135090328],
-    );
 }
