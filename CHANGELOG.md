@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Disabled default features of the `image` crate (#36).
+
 ## [4.2.0] - 2024-07-19
 
 ### Added
