@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
-use image::io::Reader as ImageReader;
-
 use fast_image_resize::images::{Image, TypedImage, TypedImageRef};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
@@ -865,9 +863,9 @@ mod not_u8x4 {
 }
 
 mod u8x4 {
-    use std::f64::consts::PI;
-
     use fast_image_resize::ResizeError;
+    use image::ImageReader;
+    use std::f64::consts::PI;
 
     use super::*;
 

@@ -1,4 +1,3 @@
-use super::Bound;
 use crate::convolution::Coefficients;
 
 // This code is based on C-implementation from Pillow-SIMD package for Python
@@ -31,16 +30,21 @@ const MAX_COEFFS_PRECISION: u8 = 16 - 1;
 
 /// Converts `Vec<f64>` into `Vec<i16>`.
 pub(crate) struct Normalizer16 {
-    values: Vec<i16>,
     precision: u8,
-    window_size: usize,
-    bounds: Vec<Bound>,
+    chunks: Vec<CoefficientsI16Chunk>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct CoefficientsI16Chunk<'a> {
+#[derive(Debug, Clone)]
+pub(crate) struct CoefficientsI16Chunk {
     pub start: u32,
-    pub values: &'a [i16],
+    values: Vec<i16>,
+}
+
+impl CoefficientsI16Chunk {
+    #[inline(always)]
+    pub fn values(&self) -> &[i16] {
+        &self.values
+    }
 }
 
 impl Normalizer16 {
@@ -64,34 +68,29 @@ impl Normalizer16 {
         }
         debug_assert!(precision >= 4); // required for some SIMD optimisations
 
-        let mut values_i16 = Vec::with_capacity(coefficients.values.len());
+        let mut chunks = Vec::with_capacity(coefficients.bounds.len());
+        if coefficients.window_size > 0 {
+            let scale = (1 << precision) as f64;
+            let coef_chunks = coefficients.values.chunks_exact(coefficients.window_size);
+            for (chunk, bound) in coef_chunks.zip(&coefficients.bounds) {
+                let chunk_i16: Vec<i16> = chunk
+                    .iter()
+                    .take(bound.size as usize)
+                    .map(|&v| (v * scale).round() as i16)
+                    .collect();
+                chunks.push(CoefficientsI16Chunk {
+                    start: bound.start,
+                    values: chunk_i16,
+                });
+            }
+        }
 
-        let scale = (1 << precision) as f64;
-        for src in coefficients.values.iter().copied() {
-            values_i16.push((src * scale).round() as i16);
-        }
-        Self {
-            values: values_i16,
-            precision,
-            window_size: coefficients.window_size,
-            bounds: coefficients.bounds,
-        }
+        Self { precision, chunks }
     }
 
-    #[inline]
-    pub fn normalized_chunks(&self) -> Vec<CoefficientsI16Chunk> {
-        let mut cooefs = self.values.as_slice();
-        let mut res = Vec::with_capacity(self.bounds.len());
-        for bound in self.bounds.iter() {
-            let (left, right) = cooefs.split_at(self.window_size);
-            cooefs = right;
-            let size = bound.size as usize;
-            res.push(CoefficientsI16Chunk {
-                start: bound.start,
-                values: &left[0..size],
-            });
-        }
-        res
+    #[inline(always)]
+    pub fn coefficients(&self) -> &[CoefficientsI16Chunk] {
+        &self.chunks
     }
 
     #[inline]
@@ -112,7 +111,7 @@ impl Normalizer16 {
     }
 }
 
-// 16 bits for result. Filter can have negative areas.
+// 16 bits for a result. Filter can have negative areas.
 // In one cases the sum of the coefficients will be negative,
 // in the other it will be more than 1.0. That is why we need
 // two extra bits for overflow and i64 type.
@@ -120,18 +119,23 @@ const PRECISION16_BITS: u8 = 64 - 16 - 2;
 // We use i32 type to store coefficients.
 const MAX_COEFFS_PRECISION16: u8 = 32 - 1;
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct CoefficientsI32Chunk<'a> {
+#[derive(Debug, Clone)]
+pub(crate) struct CoefficientsI32Chunk {
     pub start: u32,
-    pub values: &'a [i32],
+    pub values: Vec<i32>,
+}
+
+impl CoefficientsI32Chunk {
+    #[inline(always)]
+    pub fn values(&self) -> &[i32] {
+        &self.values
+    }
 }
 
 /// Converts `Vec<f64>` into `Vec<i32>`.
 pub(crate) struct Normalizer32 {
-    values: Vec<i32>,
     precision: u8,
-    window_size: usize,
-    bounds: Vec<Bound>,
+    chunks: Vec<CoefficientsI32Chunk>,
 }
 
 impl Normalizer32 {
@@ -155,34 +159,29 @@ impl Normalizer32 {
         }
         debug_assert!(precision >= 4); // required for some SIMD optimisations
 
-        let mut values_i32 = Vec::with_capacity(coefficients.values.len());
+        let mut chunks = Vec::with_capacity(coefficients.bounds.len());
+        if coefficients.window_size > 0 {
+            let scale = (1i64 << precision) as f64;
+            let coef_chunks = coefficients.values.chunks_exact(coefficients.window_size);
+            for (chunk, bound) in coef_chunks.zip(&coefficients.bounds) {
+                let chunk_i32: Vec<i32> = chunk
+                    .iter()
+                    .take(bound.size as usize)
+                    .map(|&v| (v * scale).round() as i32)
+                    .collect();
+                chunks.push(CoefficientsI32Chunk {
+                    start: bound.start,
+                    values: chunk_i32,
+                });
+            }
+        }
 
-        let scale = (1i64 << precision) as f64;
-        for src in coefficients.values.iter().copied() {
-            values_i32.push((src * scale).round() as i32);
-        }
-        Self {
-            values: values_i32,
-            precision,
-            window_size: coefficients.window_size,
-            bounds: coefficients.bounds,
-        }
+        Self { precision, chunks }
     }
 
-    #[inline]
-    pub fn normalized_chunks(&self) -> Vec<CoefficientsI32Chunk> {
-        let mut cooefs = self.values.as_slice();
-        let mut res = Vec::with_capacity(self.bounds.len());
-        for bound in self.bounds.iter() {
-            let (left, right) = cooefs.split_at(self.window_size);
-            cooefs = right;
-            let size = bound.size as usize;
-            res.push(CoefficientsI32Chunk {
-                start: bound.start,
-                values: &left[0..size],
-            });
-        }
-        res
+    #[inline(always)]
+    pub fn coefficients(&self) -> &[CoefficientsI32Chunk] {
+        &self.chunks
     }
 
     #[inline]

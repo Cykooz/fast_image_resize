@@ -3,8 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use image::io::Reader as ImageReader;
-use image::ColorType;
+use image::{ColorType, ImageReader};
 use log::debug;
 use once_cell::sync::Lazy;
 

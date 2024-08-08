@@ -29,14 +29,13 @@ fn horiz_convolution_p<const PRECISION: i32>(
     offset: u32,
     normalizer: optimisations::Normalizer16,
 ) {
-    let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_view.height();
 
     let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &coefficients_chunks);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &normalizer);
         }
     }
 
@@ -45,7 +44,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &coefficients_chunks);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &normalizer);
         }
     }
 }
@@ -61,11 +60,12 @@ fn horiz_convolution_p<const PRECISION: i32>(
 unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x3]; 4],
     dst_rows: [&mut [U8x3]; 4],
-    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    normalizer: &optimisations::Normalizer16,
 ) {
     let zero = _mm_setzero_si128();
     let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let src_width = src_rows[0].len();
+    let coefficients_chunks = normalizer.coefficients();
 
     /*
         |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R |
@@ -99,7 +99,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
         let mut x = x_start;
 
         let mut sss_a = [initial; 4];
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
 
         // Next block of code will be load source pixels by 16 bytes per time.
         // We must guarantee what this process will not go beyond
@@ -187,7 +187,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
 unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x3],
     dst_row: &mut [U8x3],
-    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    normalizer: &optimisations::Normalizer16,
 ) {
     #[rustfmt::skip]
     let pix_sh1 = _mm_set_epi8(
@@ -219,11 +219,12 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
         R: |-1 03| |-1 00|
     */
     let src_width = src_row.len();
+    let coefficients_chunks = normalizer.coefficients();
 
-    for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
+    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let x_start = coeffs_chunk.start as usize;
         let mut x = x_start;
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
         let mut sss = _mm_set1_epi32(1 << (PRECISION - 1));
 
         // Next block of code will be load source pixels by 16 bytes per time.

@@ -13,16 +13,16 @@ pub(crate) fn vert_convolution<T>(
     T: InnerPixel<Component = u8>,
 {
     let normalizer = optimisations::Normalizer16::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.coefficients();
     let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
     let src_x_initial = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut(0);
-    let coeffs_chunks_iter = coefficients_chunks.into_iter();
+    let coeffs_chunks_iter = coefficients_chunks.iter();
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
-        let ks = coeffs_chunk.values;
+        let ks = coeffs_chunk.values();
         let mut x_src = src_x_initial;
         let dst_components = T::components_mut(dst_row);
 

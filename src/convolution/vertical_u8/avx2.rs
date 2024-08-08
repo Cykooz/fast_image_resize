@@ -34,7 +34,7 @@ fn vert_convolution_p<T, const PRECISION: i32>(
 ) where
     T: InnerPixel<Component = u8>,
 {
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.coefficients();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_view.iter_rows_mut(0);
@@ -57,13 +57,13 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
-    coeffs_chunk: optimisations::CoefficientsI16Chunk,
+    coeffs_chunk: &optimisations::CoefficientsI16Chunk,
     normalizer: &optimisations::Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {
     let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
+    let coeffs = coeffs_chunk.values();
     let max_rows = coeffs.len() as u32;
 
     let initial = _mm_set1_epi32(1 << (PRECISION as u8 - 1));

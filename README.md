@@ -137,8 +137,7 @@ Otherwise, you have to convert such images into supported by the crate image typ
 use std::io::BufWriter;
 
 use image::codecs::png::PngEncoder;
-use image::io::Reader as ImageReader;
-use image::{ExtendedColorType, ImageEncoder};
+use image::{ExtendedColorType, ImageEncoder, ImageReader};
 
 use fast_image_resize::{IntoImageView, Resizer};
 use fast_image_resize::images::Image;
@@ -181,8 +180,7 @@ fn main() {
 
 ```rust
 use image::codecs::png::PngEncoder;
-use image::io::Reader as ImageReader;
-use image::{ColorType, GenericImageView};
+use image::{ColorType, ImageReader, GenericImageView};
 
 use fast_image_resize::{IntoImageView, Resizer, ResizeOptions};
 use fast_image_resize::images::Image;

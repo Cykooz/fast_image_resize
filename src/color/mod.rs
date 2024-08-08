@@ -284,13 +284,22 @@ impl PixelComponentMapper {
             };
         }
 
-        match_img!(
-            tables,
-            (PT::U8, U8, PT::U16, U16),
-            (PT::U8x2, U8x2, PT::U16x2, U16x2),
-            (PT::U8x3, U8x3, PT::U16x3, U16x3),
-            (PT::U8x4, U8x4, PT::U16x4, U16x4),
-        )
+        #[cfg(not(feature = "only_u8x4"))]
+        {
+            match_img!(
+                tables,
+                (PT::U8, U8, PT::U16, U16),
+                (PT::U8x2, U8x2, PT::U16x2, U16x2),
+                (PT::U8x3, U8x3, PT::U16x3, U16x3),
+                (PT::U8x4, U8x4, PT::U16x4, U16x4),
+            )
+        }
+
+        #[cfg(feature = "only_u8x4")]
+        match (src_pixel_type, dst_pixel_type) {
+            (PT::U8x4, PT::U8x4) => tables.u8_u8.map_image::<U8x4, U8x4>(src_image, dst_image),
+            _ => return Err(MappingError::UnsupportedCombinationOfImageTypes),
+        }
     }
 
     fn map_inplace(
@@ -316,14 +325,23 @@ impl PixelComponentMapper {
             };
         }
 
-        match_img!(
-            tables,
-            image,
-            (PT::U8, U8, PT::U16, U16),
-            (PT::U8x2, U8x2, PT::U16x2, U16x2),
-            (PT::U8x3, U8x3, PT::U16x3, U16x3),
-            (PT::U8x4, U8x4, PT::U16x4, U16x4),
-        )
+        #[cfg(not(feature = "only_u8x4"))]
+        {
+            match_img!(
+                tables,
+                image,
+                (PT::U8, U8, PT::U16, U16),
+                (PT::U8x2, U8x2, PT::U16x2, U16x2),
+                (PT::U8x3, U8x3, PT::U16x3, U16x3),
+                (PT::U8x4, U8x4, PT::U16x4, U16x4),
+            )
+        }
+
+        #[cfg(feature = "only_u8x4")]
+        match pixel_type {
+            PT::U8x4 => tables.u8_u8.map_image_inplace::<U8x4>(image),
+            _ => return Err(MappingError::UnsupportedCombinationOfImageTypes),
+        }
     }
 
     /// Mapping in the forward direction of pixel's components of source image

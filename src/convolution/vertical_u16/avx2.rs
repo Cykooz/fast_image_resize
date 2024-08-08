@@ -13,7 +13,7 @@ pub(crate) fn vert_convolution<T>(
     T: InnerPixel<Component = u16>,
 {
     let normalizer = optimisations::Normalizer32::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.coefficients();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_view.iter_rows_mut(0);
@@ -29,13 +29,13 @@ pub(crate) unsafe fn vert_convolution_into_one_row_u16<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
-    coeffs_chunk: optimisations::CoefficientsI32Chunk,
+    coeffs_chunk: &optimisations::CoefficientsI32Chunk,
     normalizer: &optimisations::Normalizer32,
 ) where
     T: InnerPixel<Component = u16>,
 {
     let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
+    let coeffs = coeffs_chunk.values();
     let mut dst_u16 = T::components_mut(dst_row);
 
     /*

@@ -136,12 +136,28 @@ pub(crate) fn precompute_coefficients(
         // (x + 0.5) - in_center => x - (in_center - 0.5) => x - center
         let center = in_center - 0.5;
 
+        let mut bound_start = x_min;
+        let mut bound_end = x_max;
+
         // Calculate the weight of each input pixel from the given x-range.
         for x in x_min..x_max {
             let w: f64 = filter((x as f64 - center) * recip_filter_scale);
-            coeffs.push(w);
-            ww += w;
+            if x == bound_start && w == 0. {
+                // Don't use zero coefficients at the start of bound;
+                bound_start += 1;
+            } else {
+                coeffs.push(w);
+                ww += w;
+            }
         }
+        for &c in coeffs.iter().rev() {
+            if bound_end <= bound_start || c != 0. {
+                break;
+            }
+            // Don't use zero coefficients at the end of bound;
+            bound_end -= 1;
+        }
+
         if ww != 0.0 {
             // Normalise values of weights.
             // The sum of weights must be equal to 1.0.
@@ -150,8 +166,8 @@ pub(crate) fn precompute_coefficients(
         // Remaining values should stay empty if they are used despite x_max.
         coeffs.resize(cur_index + window_size, 0.);
         bounds.push(Bound {
-            start: x_min,
-            size: x_max - x_min,
+            start: bound_start,
+            size: bound_end - bound_start,
         });
     }
 
