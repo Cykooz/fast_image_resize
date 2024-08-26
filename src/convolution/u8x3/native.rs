@@ -1,4 +1,4 @@
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;
 use crate::{ImageView, ImageViewMut};
 
@@ -7,11 +7,10 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = U8x3>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x3>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
-    let coefficients = normalizer.coefficients();
+    let coefficients = normalizer.chunks();
     let initial = 1i32 << (precision - 1);
 
     let src_rows = src_view.iter_rows(offset);

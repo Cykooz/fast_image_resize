@@ -27,6 +27,7 @@ document-features = "0.2.10"
 # Optional dependencies
 image = { version = "0.25.2", optional = true, default-features = false }
 bytemuck = { version = "1.16", optional = true }
+rayon = { version = "1.10", optional = true }
 
 [features]
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
@@ -34,15 +35,17 @@ bytemuck = { version = "1.16", optional = true }
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
+## This feature enables image processing in `rayon` thread pool.
+rayon = ["dep:rayon", "resize/rayon", "image/rayon", "testing/rayon"]
 for_testing = ["image"]
 only_u8x4 = ["testing/only_u8x4"]  # This can be used to experiment with the crate's code.
 
 
 [dev-dependencies]
 fast_image_resize = { path = ".", features = ["for_testing"] }
-resize = { version = "0.8.5", default-features = false, features = ["std"] }
-rgb = "0.8.48"
-png = "0.17.13"
+resize = { version = "0.8.7", default-features = false, features = ["std"] }
+rgb = "0.8.50"
+png = "0.17.14"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
 walkdir = "2.5"
@@ -134,9 +137,33 @@ name = "bench_color_mapper"
 harness = false
 
 
+[profile.test]
+opt-level = 3
+incremental = true
+
+
+# debug builds for deps
 [profile.dev.package.'*']
 opt-level = 3
 debug = false
+# Strip debug symbols as they are useless with O3 anyway.
+strip = "debuginfo"
+
+
+# debug builds for procmacros
+[profile.dev.build-override]
+opt-level = 2 # reasonable optimization
+codegen-units = 256 # max threading
+# When possible - this is generally scary as some procmacros
+# will fail without any feedback.
+#debug = false
+
+
+# release build for procmacros - same config as debug build for procmacros
+[profile.release.build-override]
+opt-level = 2
+codegen-units = 256
+debug = false # when possible
 
 
 [profile.release]
@@ -157,11 +184,6 @@ codegen-units = 1
 
 [profile.release.package.resize]
 codegen-units = 1
-
-
-[profile.test]
-opt-level = 3
-incremental = true
 
 
 [package.metadata.release]

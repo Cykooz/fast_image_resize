@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/fast_image_resize.svg?logo=rust)](https://crates.io/crates/fast_image_resize)
 [![docs.rs](https://img.shields.io/badge/docs.rs-fast__image__resize-66c2a5?logo=docs.rs)](https://docs.rs/fast_image_resize)
 
-Rust library for fast **single-threaded** image resizing with using of SIMD instructions.
+Rust library for fast image resizing with using of SIMD instructions.
 
 [CHANGELOG](https://github.com/Cykooz/fast_image_resize/blob/main/CHANGELOG.md)
 
@@ -44,7 +44,12 @@ In addition, the crate contains functions `create_gamma_22_mapper()`
 and `create_srgb_mapper()` to create instance of `PixelComponentMapper`
 that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 
-## Some benchmarks for x86_64
+## Multi-threading
+
+You should enable `"rayon"` feature to turn on image processing in
+[rayon](https://docs.rs/rayon/latest/rayon/) thread pool.
+
+## Some benchmarks in single-threaded mode for x86_64
 
 _All benchmarks:_
 [_x86_64_](https://github.com/Cykooz/fast_image_resize/blob/main/benchmarks-x86_64.md),
@@ -70,12 +75,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  32.17  |   -   |  94.60   | 153.14  |  211.14  |
-| resize     |  9.18   | 26.68 |  49.76   |  96.06  |  141.84  |
-| libvips    |  7.75   | 59.58 |  19.81   |  30.46  |  39.96   |
-| fir rust   |  0.29   | 11.99 |  16.56   |  25.93  |  37.85   |
-| fir sse4.1 |  0.29   | 4.13  |   5.67   |  9.77   |  15.52   |
-| fir avx2   |  0.29   | 3.13  |   3.98   |  6.88   |  13.18   |
+| image      |  34.13  |   -   |  88.09   | 142.99  |  191.80  |
+| resize     |  8.87   | 26.97 |  53.08   |  98.26  |  145.74  |
+| libvips    |  2.38   | 61.57 |   5.66   |  9.70   |  16.03   |
+| fir rust   |  0.28   | 10.93 |  15.35   |  25.77  |  37.09   |
+| fir sse4.1 |  0.28   | 3.43  |   5.39   |  9.82   |  15.34   |
+| fir avx2   |  0.28   | 2.62  |   3.80   |  6.89   |  13.22   |
 
 <!-- bench_compare_rgb end -->
 
@@ -94,11 +99,11 @@ Pipeline:
 
 |            | Nearest |  Box   | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:------:|:--------:|:-------:|:--------:|
-| resize     |  11.98  | 43.60  |  86.90   | 147.95  |  211.64  |
-| libvips    |  10.06  | 122.00 |  188.57  | 336.42  |  499.80  |
-| fir rust   |  0.19   | 22.02  |  26.95   |  38.41  |  51.70   |
-| fir sse4.1 |  0.19   | 10.32  |  12.59   |  18.10  |  24.95   |
-| fir avx2   |  0.19   |  7.75  |   8.88   |  13.78  |  22.12   |
+| resize     |  9.90   | 37.85  |  74.20   | 133.72  |  201.29  |
+| libvips    |  4.17   | 169.03 |  141.52  | 232.30  |  330.89  |
+| fir rust   |  0.19   | 20.66  |  26.02   |  37.27  |  50.21   |
+| fir sse4.1 |  0.19   |  9.59  |  11.99   |  17.79  |  24.83   |
+| fir avx2   |  0.19   |  7.21  |   8.61   |  13.22  |  22.41   |
 
 <!-- bench_compare_rgba end -->
 
@@ -116,12 +121,12 @@ Pipeline:
 
 |            | Nearest |  Box  | Bilinear | Bicubic | Lanczos3 |
 |------------|:-------:|:-----:|:--------:|:-------:|:--------:|
-| image      |  28.76  |   -   |  60.68   |  89.41  |  117.41  |
-| resize     |  6.40   | 11.24 |  20.84   |  42.92  |  68.93   |
-| libvips    |  4.66   | 25.06 |   9.67   |  13.27  |  17.99   |
-| fir rust   |  0.15   | 4.74  |   6.02   |  8.41   |  12.62   |
-| fir sse4.1 |  0.15   | 1.67  |   2.14   |  3.31   |   5.61   |
-| fir avx2   |  0.15   | 1.74  |   1.91   |  2.31   |   4.16   |
+| image      |  29.07  |   -   |  60.25   |  89.15  |  117.51  |
+| resize     |  6.42   | 11.26 |  20.87   |  42.87  |  69.50   |
+| libvips    |  2.57   | 25.05 |   6.82   |  9.85   |  12.68   |
+| fir rust   |  0.15   | 4.45  |   5.57   |  9.02   |  12.31   |
+| fir sse4.1 |  0.15   | 1.52  |   2.09   |  3.52   |   5.65   |
+| fir avx2   |  0.15   | 1.54  |   1.76   |  2.80   |   4.03   |
 
 <!-- bench_compare_l end -->
 

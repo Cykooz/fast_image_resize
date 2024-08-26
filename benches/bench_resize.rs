@@ -4,8 +4,6 @@ use fast_image_resize::ResizeOptions;
 use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
 use testing::{cpu_ext_into_str, PixelTestingExt};
 
-use crate::utils::pin_process_to_cpu0;
-
 mod utils;
 
 const NEW_SIZE: u32 = 695;
@@ -111,6 +109,7 @@ pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
             continue;
         }
         for &cpu_extension in cpu_extensions.iter() {
+            #[cfg(not(feature = "only_u8x4"))]
             let image = match pixel_type {
                 PixelType::U8 => U8::load_big_square_src_image(),
                 PixelType::U8x2 => U8x2::load_big_square_src_image(),
@@ -125,6 +124,11 @@ pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
                 PixelType::F32x2 => F32x2::load_big_square_src_image(),
                 PixelType::F32x3 => F32x3::load_big_square_src_image(),
                 PixelType::F32x4 => F32x4::load_big_square_src_image(),
+                _ => unreachable!(),
+            };
+            #[cfg(feature = "only_u8x4")]
+            let image = match pixel_type {
+                PixelType::U8x4 => U8x4::load_big_square_src_image(),
                 _ => unreachable!(),
             };
             downscale_bench(
@@ -185,6 +189,7 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
             continue;
         }
         for &cpu_extension in cpu_extensions.iter() {
+            #[cfg(not(feature = "only_u8x4"))]
             let image = match pixel_type {
                 PixelType::U8 => U8::load_big_square_src_image(),
                 PixelType::U8x2 => U8x2::load_big_square_src_image(),
@@ -199,6 +204,11 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
                 PixelType::F32x2 => F32x2::load_big_square_src_image(),
                 PixelType::F32x3 => F32x3::load_big_square_src_image(),
                 PixelType::F32x4 => F32x4::load_big_square_src_image(),
+                _ => unreachable!(),
+            };
+            #[cfg(feature = "only_u8x4")]
+            let image = match pixel_type {
+                PixelType::U8x4 => U8x4::load_big_square_src_image(),
                 _ => unreachable!(),
             };
             downscale_bench(
@@ -219,13 +229,11 @@ pub fn resize_bench(bench_group: &mut utils::BenchGroup) {
 }
 
 fn main1() {
-    pin_process_to_cpu0();
     let results = utils::run_bench(resize_bench, "Resize");
     println!("{}", utils::build_md_table(&results));
 }
 
 fn main() {
-    pin_process_to_cpu0();
     let results = utils::run_bench(resize_in_one_dimension_bench, "Resize one dimension");
     println!("{}", utils::build_md_table(&results));
 }

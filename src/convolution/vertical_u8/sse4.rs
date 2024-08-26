@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 
+use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::convolution::vertical_u8::native;
-use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::InnerPixel;
 use crate::{simd_utils, ImageView, ImageViewMut};
 
@@ -10,11 +10,10 @@ pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
 
     macro_rules! call {
@@ -29,22 +28,24 @@ fn vert_convolution_p<T, const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    normalizer: optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {
-    let coefficients_chunks = normalizer.coefficients();
+    let coefficients_chunks = normalizer.chunks();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_view.iter_rows_mut(0);
-    for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
+    let dst_row_and_coefs = dst_rows.zip(coefficients_chunks);
+
+    for (dst_row, coeffs_chunk) in dst_row_and_coefs {
         unsafe {
             vert_convolution_into_one_row::<T, PRECISION>(
                 src_view,
                 dst_row,
                 src_x,
                 coeffs_chunk,
-                &normalizer,
+                normalizer,
             );
         }
     }
@@ -55,8 +56,8 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
-    coeffs_chunk: &optimisations::CoefficientsI16Chunk,
-    normalizer: &optimisations::Normalizer16,
+    coeffs_chunk: &CoefficientsI16Chunk,
+    normalizer: &Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {

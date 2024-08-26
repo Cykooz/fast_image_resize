@@ -1,7 +1,7 @@
 use std::arch::wasm32::*;
 
+use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::convolution::vertical_u8::native;
-use crate::convolution::{optimisations, Coefficients};
 use crate::pixels::InnerPixel;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
@@ -11,16 +11,15 @@ pub(crate) fn vert_convolution<T: InnerPixel<Component = u8>>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.chunks();
     let src_x = offset as usize * T::count_of_components();
 
     let dst_rows = dst_view.iter_rows_mut(0);
     for (dst_row, coeffs_chunk) in dst_rows.zip(coefficients_chunks) {
         unsafe {
-            vert_convolution_into_one_row_u8(src_view, dst_row, src_x, coeffs_chunk, &normalizer);
+            vert_convolution_into_one_row_u8(src_view, dst_row, src_x, coeffs_chunk, normalizer);
         }
     }
 }
@@ -31,12 +30,12 @@ unsafe fn vert_convolution_into_one_row_u8<T: InnerPixel<Component = u8>>(
     src_view: &impl ImageView<Pixel = T>,
     dst_row: &mut [T],
     mut src_x: usize,
-    coeffs_chunk: optimisations::CoefficientsI16Chunk,
-    normalizer: &optimisations::Normalizer16,
+    coeffs_chunk: &CoefficientsI16Chunk,
+    normalizer: &Normalizer16,
 ) {
     const ZERO: v128 = i64x2(0, 0);
     let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
+    let coeffs = coeffs_chunk.values();
     let max_rows = coeffs.len() as u32;
     let precision = normalizer.precision() as u32;
     let mut dst_u8 = T::components_mut(dst_row);

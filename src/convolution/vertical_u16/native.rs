@@ -1,4 +1,4 @@
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::Normalizer32;
 use crate::pixels::InnerPixel;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
@@ -8,18 +8,17 @@ pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer32,
 ) where
     T: InnerPixel<Component = u16>,
 {
-    let normalizer = optimisations::Normalizer32::new(coeffs);
-    let coefficients_chunks = normalizer.coefficients();
+    let coefficients_chunks = normalizer.chunks();
     let precision = normalizer.precision();
     let initial: i64 = 1 << (precision - 1);
     let src_x_initial = offset as usize * T::count_of_components();
 
     let dst_rows = dst_view.iter_rows_mut(0);
-    let coeffs_chunks_iter = coefficients_chunks.into_iter();
+    let coeffs_chunks_iter = coefficients_chunks.iter();
     for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
         let first_y_src = coeffs_chunk.start;
         let ks = coeffs_chunk.values();
@@ -29,7 +28,7 @@ pub(crate) fn vert_convolution<T>(
         let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u16; 16]>() };
         x_src = convolution_by_chunks(
             src_view,
-            &normalizer,
+            normalizer,
             initial,
             dst_chunks,
             x_src,
@@ -38,7 +37,7 @@ pub(crate) fn vert_convolution<T>(
         );
 
         if !tail.is_empty() {
-            convolution_by_u16(src_view, &normalizer, initial, tail, x_src, first_y_src, ks);
+            convolution_by_u16(src_view, normalizer, initial, tail, x_src, first_y_src, ks);
         }
     }
 }
@@ -46,7 +45,7 @@ pub(crate) fn vert_convolution<T>(
 #[inline(always)]
 pub(crate) fn convolution_by_u16<T: InnerPixel<Component = u16>>(
     src_view: &impl ImageView<Pixel = T>,
-    normalizer: &optimisations::Normalizer32,
+    normalizer: &Normalizer32,
     initial: i64,
     dst_components: &mut [u16],
     mut x_src: usize,
@@ -72,7 +71,7 @@ pub(crate) fn convolution_by_u16<T: InnerPixel<Component = u16>>(
 #[inline(always)]
 fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
     src_view: &impl ImageView<Pixel = T>,
-    normalizer: &optimisations::Normalizer32,
+    normalizer: &Normalizer32,
     initial: i64,
     dst_chunks: &mut [[u16; CHUNK_SIZE]],
     mut x_src: usize,

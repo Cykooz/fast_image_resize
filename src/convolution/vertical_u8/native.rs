@@ -1,4 +1,4 @@
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::image_view::{ImageView, ImageViewMut};
 use crate::pixels::InnerPixel;
 use crate::utils::foreach_with_pre_reading;
@@ -8,81 +8,94 @@ pub(crate) fn vert_convolution<T>(
     src_image: &impl ImageView<Pixel = T>,
     dst_image: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
-    let coefficients_chunks = normalizer.coefficients();
+    let coefficients_chunks = normalizer.chunks();
     let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
     let src_x_initial = offset as usize * T::count_of_components();
 
     let dst_rows = dst_image.iter_rows_mut(0);
     let coeffs_chunks_iter = coefficients_chunks.iter();
-    for (coeffs_chunk, dst_row) in coeffs_chunks_iter.zip(dst_rows) {
-        let first_y_src = coeffs_chunk.start;
-        let ks = coeffs_chunk.values();
-        let mut x_src = src_x_initial;
-        let dst_components = T::components_mut(dst_row);
+    let coefs_and_dst_row = coeffs_chunks_iter.zip(dst_rows);
 
-        let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u8; 16]>() };
-        x_src = convolution_by_chunks(
+    for (coeffs_chunk, dst_row) in coefs_and_dst_row {
+        scale_row(
             src_image,
-            &normalizer,
+            dst_row,
             initial,
-            dst_chunks,
-            x_src,
-            first_y_src,
-            ks,
+            src_x_initial,
+            coeffs_chunk,
+            normalizer,
         );
-        if tail.is_empty() {
-            continue;
-        }
+    }
+}
 
-        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 8]>() };
-        x_src = convolution_by_chunks(
-            src_image,
-            &normalizer,
-            initial,
-            dst_chunks,
-            x_src,
-            first_y_src,
-            ks,
-        );
-        if tail.is_empty() {
-            continue;
-        }
+fn scale_row<T>(
+    src_image: &impl ImageView<Pixel = T>,
+    dst_row: &mut [T],
+    initial: i32,
+    src_x_initial: usize,
+    coeffs_chunk: &CoefficientsI16Chunk,
+    normalizer: &Normalizer16,
+) where
+    T: InnerPixel<Component = u8>,
+{
+    let first_y_src = coeffs_chunk.start;
+    let ks = coeffs_chunk.values();
+    let mut x_src = src_x_initial;
+    let dst_components = T::components_mut(dst_row);
 
-        let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 4]>() };
-        x_src = convolution_by_chunks(
-            src_image,
-            &normalizer,
-            initial,
-            dst_chunks,
-            x_src,
-            first_y_src,
-            ks,
-        );
+    let (_, dst_chunks, tail) = unsafe { dst_components.align_to_mut::<[u8; 16]>() };
+    x_src = convolution_by_chunks(
+        src_image,
+        normalizer,
+        initial,
+        dst_chunks,
+        x_src,
+        first_y_src,
+        ks,
+    );
+    if tail.is_empty() {
+        return;
+    }
 
-        if !tail.is_empty() {
-            convolution_by_u8(
-                src_image,
-                &normalizer,
-                initial,
-                tail,
-                x_src,
-                first_y_src,
-                ks,
-            );
-        }
+    let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 8]>() };
+    x_src = convolution_by_chunks(
+        src_image,
+        normalizer,
+        initial,
+        dst_chunks,
+        x_src,
+        first_y_src,
+        ks,
+    );
+    if tail.is_empty() {
+        return;
+    }
+
+    let (_, dst_chunks, tail) = unsafe { tail.align_to_mut::<[u8; 4]>() };
+    x_src = convolution_by_chunks(
+        src_image,
+        normalizer,
+        initial,
+        dst_chunks,
+        x_src,
+        first_y_src,
+        ks,
+    );
+
+    if !tail.is_empty() {
+        convolution_by_u8(src_image, normalizer, initial, tail, x_src, first_y_src, ks);
     }
 }
 
 #[inline(always)]
 pub(crate) fn convolution_by_u8<T>(
     src_image: &impl ImageView<Pixel = T>,
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
     initial: i32,
     dst_components: &mut [u8],
     mut x_src: usize,
@@ -109,7 +122,7 @@ where
 #[inline(always)]
 fn convolution_by_chunks<T, const CHUNK_SIZE: usize>(
     src_image: &impl ImageView<Pixel = T>,
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
     initial: i32,
     dst_chunks: &mut [[u8; CHUNK_SIZE]],
     mut x_src: usize,

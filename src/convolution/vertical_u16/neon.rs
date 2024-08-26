@@ -1,7 +1,7 @@
 use std::arch::aarch64::*;
 use std::mem::transmute;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::{CoefficientsI32Chunk, Normalizer32};
 use crate::neon_utils;
 use crate::pixels::InnerPixel;
 use crate::{ImageView, ImageViewMut};
@@ -10,12 +10,11 @@ pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer32,
 ) where
     T: InnerPixel<Component = u16>,
 {
-    let normalizer = optimisations::Normalizer32::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.chunks();
     let precision = normalizer.precision();
     let initial = 1i64 << (precision - 1);
     let start_src_x = offset as usize * T::count_of_components();
@@ -30,7 +29,7 @@ pub(crate) fn vert_convolution<T>(
             let dst_comp = T::components_mut(dst_row);
             macro_rules! call {
                 ($imm8:expr) => {{
-                    store_tmp_buf_into_dst_row::<$imm8>(tmp_buf, dst_comp, &normalizer);
+                    store_tmp_buf_into_dst_row::<$imm8>(tmp_buf, dst_comp, normalizer);
                 }};
             }
             constify_64_imm8!(precision as i64, call);
@@ -43,11 +42,11 @@ unsafe fn vert_convolution_into_one_row_i64<T: InnerPixel<Component = u16>>(
     src_view: &impl ImageView<Pixel = T>,
     dst_buf: &mut [i64],
     start_src_x: usize,
-    coeffs_chunk: optimisations::CoefficientsI32Chunk,
+    coeffs_chunk: &CoefficientsI32Chunk,
 ) {
     let width = dst_buf.len();
     let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
+    let coeffs = coeffs_chunk.values();
 
     let zero_u16x8 = vdupq_n_u16(0);
     let zero_u16x4 = vdup_n_u16(0);
@@ -130,7 +129,7 @@ unsafe fn vert_convolution_into_one_row_i64<T: InnerPixel<Component = u16>>(
 unsafe fn store_tmp_buf_into_dst_row<const IMM: i32>(
     mut src_buf: &[i64],
     dst_buf: &mut [u16],
-    normalizer: &optimisations::Normalizer32,
+    normalizer: &Normalizer32,
 ) {
     let mut dst_chunks_8 = dst_buf.chunks_exact_mut(8);
     let src_chunks_8 = src_buf.chunks_exact(8);

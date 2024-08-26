@@ -97,7 +97,12 @@ mod vips {
         has_alpha: bool,
     ) {
         let app = VipsApp::new("Test Libvips", false).expect("Cannot initialize libvips");
-        app.concurrency_set(1);
+        let num_threads: u32 = std::env::var("RAYON_NUM_THREADS")
+            .map(|s| s.parse().unwrap_or(1))
+            .unwrap_or(1);
+        if num_threads > 0 {
+            app.concurrency_set(num_threads as i32);
+        }
         app.cache_set_max(0);
         app.cache_set_max_mem(0);
 
@@ -152,7 +157,7 @@ mod vips {
                 "Lanczos3" => Kernel::Lanczos3,
                 _ => continue,
             };
-            let options = ReduceOptions { kernel };
+            let options = ReduceOptions { kernel, gap: 0. };
             bench(bench_group, SAMPLE_SIZE, "libvips", alg_name, |bencher| {
                 if has_alpha && alg_name != "Nearest" {
                     bencher.iter(|| {

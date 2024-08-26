@@ -1,8 +1,8 @@
-use std::fmt::Debug;
-
 use crate::images::BufferContainer;
 use crate::pixels::InnerPixel;
 use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidPixelsSize};
+use std::fmt::Debug;
+use std::num::NonZeroU32;
 
 /// Generic reference to image data that provides [ImageView].
 #[derive(Debug)]
@@ -86,6 +86,35 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
             y += step;
             cur_row
         })
+    }
+
+    fn split_by_height(
+        &self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+        let height = height.get();
+        let num_parts = num_parts.get();
+        if num_parts > height || height > self.height() || start_row > self.height() - height {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = height as f32 / num_parts as f32;
+        let row_size = self.width as usize;
+        let mut top = start_row;
+        let mut bottom_f = start_row as f32;
+        let mut remains_pixels = self.pixels.split_at(top as usize * row_size).1;
+        for _ in 0..num_parts {
+            bottom_f += step;
+            let height = bottom_f as u32 - top;
+            let parts = remains_pixels.split_at(height as usize * row_size);
+            let image = TypedImageRef::new(self.width, height, parts.0).unwrap();
+            res.push(image);
+            remains_pixels = parts.1;
+            top += height;
+        }
+        Some(res)
     }
 }
 
@@ -184,6 +213,36 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
                 .chunks_exact(width)
         }
     }
+
+    fn split_by_height(
+        &self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+        let height = height.get();
+        let num_parts = num_parts.get();
+        if num_parts > height || height > self.height() || start_row > self.height() - height {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = height as f32 / num_parts as f32;
+        let row_size = self.width as usize;
+        let mut top = start_row;
+        let mut bottom_f = start_row as f32;
+        let mut remains_pixels = self.pixels.borrow().split_at(top as usize * row_size).1;
+        for _ in 0..num_parts {
+            bottom_f += step;
+            let height = bottom_f as u32 - top;
+            let parts = remains_pixels.split_at(height as usize * row_size);
+            let image = TypedImageRef::new(self.width, height, parts.0).unwrap();
+            res.push(image);
+            remains_pixels = parts.1;
+            top += height;
+        }
+        debug_assert!(top - start_row == height);
+        Some(res)
+    }
 }
 
 unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImage<'a, P> {
@@ -199,6 +258,40 @@ unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImage<'a, P> {
                 .unwrap_or_default()
                 .chunks_exact_mut(width)
         }
+    }
+
+    fn split_by_height_mut(
+        &mut self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+        let height = height.get();
+        let num_parts = num_parts.get();
+        if num_parts > height || height > self.height() || start_row > self.height() - height {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = height as f32 / num_parts as f32;
+        let row_size = self.width as usize;
+        let mut top = start_row;
+        let mut bottom_f = start_row as f32;
+        let mut remains_pixels = self
+            .pixels
+            .borrow_mut()
+            .split_at_mut(top as usize * row_size)
+            .1;
+        for _ in 0..num_parts {
+            bottom_f += step;
+            let height = bottom_f as u32 - top;
+            let parts = remains_pixels.split_at_mut(height as usize * row_size);
+            let image = TypedImage::from_pixels_slice(self.width, height, parts.0).unwrap();
+            res.push(image);
+            remains_pixels = parts.1;
+            top += height;
+        }
+        debug_assert!(top - start_row == height);
+        Some(res)
     }
 }
 

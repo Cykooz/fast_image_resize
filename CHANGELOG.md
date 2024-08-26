@@ -1,3 +1,24 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added support for multi-thread image processing with the help of `rayon` crate.
+  You should enable `rayon` feature to turn on this behavior.
+- Added methods to split image in different directions:
+    - `ImageView::split_by_height()`
+    - `ImageView::split_by_width()`
+    - `ImageViewMut::split_by_height_mut()`
+    - `ImageViewMut::split_by_width_mut()`
+
+  These methods have default implementation and are used for multi-thread
+  image processing.
+
+## Changed
+
+- **BREAKING**: Added supertraits `Send`, `Sync` and `Sized` to the `ImageView` trait.
+- Optimized convolution algorythm by deleting zero coefficients from start and
+  end of bounds.
+
 ## [4.2.1] - 2024-07-24
 
 ### Fixed

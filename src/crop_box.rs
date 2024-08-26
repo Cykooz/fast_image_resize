@@ -100,7 +100,7 @@ impl<'a, T: ImageView> CroppedSrcImageView<'a, T> {
         }
     }
 
-    pub fn cropped(image_view: &'a T, crop_box: CropBox) -> Result<Self, CropBoxError> {
+    pub fn crop(image_view: &'a T, crop_box: CropBox) -> Result<Self, CropBoxError> {
         if crop_box.width < 0. || crop_box.height < 0. {
             return Err(CropBoxError::WidthOrHeightLessThanZero);
         }
@@ -122,7 +122,7 @@ impl<'a, T: ImageView> CroppedSrcImageView<'a, T> {
         })
     }
 
-    pub unsafe fn cropped_unchecked(image_view: &'a T, crop_box: CropBox) -> Self {
+    pub unsafe fn crop_unchecked(image_view: &'a T, crop_box: CropBox) -> Self {
         Self {
             image_view,
             crop_box,

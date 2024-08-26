@@ -1,4 +1,6 @@
+use crate::images::{View, ViewMut};
 use crate::{CropBoxError, ImageView, ImageViewMut};
+use std::num::NonZeroU32;
 
 pub(crate) fn check_crop_box(
     img_width: u32,
@@ -17,69 +19,6 @@ pub(crate) fn check_crop_box(
         return Err(CropBoxError::SizeIsOutOfImageBoundaries);
     }
     Ok(())
-}
-
-macro_rules! image_view_impl {
-    ($wrapper_name:ident<$view_trait:ident>) => {
-        unsafe impl<'a, V: $view_trait> ImageView for $wrapper_name<'a, V> {
-            type Pixel = V::Pixel;
-
-            fn width(&self) -> u32 {
-                self.width
-            }
-
-            fn height(&self) -> u32 {
-                self.height
-            }
-
-            fn iter_rows(&self, start_row: u32) -> impl Iterator<Item = &[Self::Pixel]> {
-                let left = self.left as usize;
-                let right = left + self.width as usize;
-                self.image_view
-                    .get_ref()
-                    .iter_rows(self.top + start_row)
-                    .take((self.height - start_row) as usize)
-                    // SAFETY: correct values of the left and the right
-                    // are guaranteed by new() method.
-                    .map(move |row| unsafe { row.get_unchecked(left..right) })
-            }
-        }
-    };
-}
-
-enum View<'a, V: 'a> {
-    Borrowed(&'a V),
-    Owned(V),
-}
-
-impl<'a, V> View<'a, V> {
-    fn get_ref(&self) -> &V {
-        match self {
-            Self::Borrowed(v_ref) => v_ref,
-            Self::Owned(v_own) => v_own,
-        }
-    }
-}
-
-enum ViewMut<'a, V: 'a> {
-    Borrowed(&'a mut V),
-    Owned(V),
-}
-
-impl<'a, V> ViewMut<'a, V> {
-    fn get_ref(&self) -> &V {
-        match self {
-            Self::Borrowed(v_ref) => v_ref,
-            Self::Owned(v_own) => v_own,
-        }
-    }
-
-    fn get_mut(&mut self) -> &mut V {
-        match self {
-            Self::Borrowed(p_ref) => p_ref,
-            Self::Owned(vec) => vec,
-        }
-    }
 }
 
 /// It is a typed wrapper that provides [ImageView] for part of wrapped image.
@@ -200,6 +139,86 @@ impl<'a, V: ImageViewMut> TypedCroppedImageMut<'a, V> {
     }
 }
 
+macro_rules! image_view_impl {
+    ($wrapper_name:ident<$view_trait:ident>) => {
+        unsafe impl<'a, V: $view_trait> ImageView for $wrapper_name<'a, V> {
+            type Pixel = V::Pixel;
+
+            fn width(&self) -> u32 {
+                self.width
+            }
+
+            fn height(&self) -> u32 {
+                self.height
+            }
+
+            fn iter_rows(&self, start_row: u32) -> impl Iterator<Item = &[Self::Pixel]> {
+                let left = self.left as usize;
+                let right = left + self.width as usize;
+                self.image_view
+                    .get_ref()
+                    .iter_rows(self.top + start_row)
+                    .take((self.height - start_row) as usize)
+                    // SAFETY: correct values of the left and the right
+                    // are guaranteed by new() method.
+                    .map(move |row| unsafe { row.get_unchecked(left..right) })
+            }
+
+            fn split_by_height(
+                &self,
+                start_row: u32,
+                height: NonZeroU32,
+                num_parts: NonZeroU32,
+            ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+                let height_u32 = height.get();
+                if num_parts > height
+                    || height_u32 > self.height()
+                    || start_row > self.height() - height_u32
+                {
+                    return None;
+                }
+                let image_view = self.image_view.get_ref();
+                let images = image_view.split_by_height(start_row + self.top, height, num_parts);
+                images.map(|v| {
+                    v.into_iter()
+                        .map(|img| {
+                            let img_height = img.height();
+                            TypedCroppedImage::new(img, self.left, 0, self.width, img_height)
+                                .unwrap()
+                        })
+                        .collect()
+                })
+            }
+
+            fn split_by_width(
+                &self,
+                start_col: u32,
+                width: NonZeroU32,
+                num_parts: NonZeroU32,
+            ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+                let width_u32 = width.get();
+                if num_parts > width
+                    || width_u32 > self.width()
+                    || start_col > self.width() - width_u32
+                {
+                    return None;
+                }
+                let image_view = self.image_view.get_ref();
+                let images = image_view.split_by_width(start_col + self.left, width, num_parts);
+                images.map(|v| {
+                    v.into_iter()
+                        .map(|img| {
+                            let img_width = img.width();
+                            TypedCroppedImage::new(img, 0, self.top, img_width, self.height)
+                                .unwrap()
+                        })
+                        .collect()
+                })
+            }
+        }
+    };
+}
+
 image_view_impl!(TypedCroppedImage<ImageView>);
 
 image_view_impl!(TypedCroppedImageMut<ImageViewMut>);
@@ -215,5 +234,52 @@ unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
             // SAFETY: correct values of the left and the right
             // are guaranteed by new() method.
             .map(move |row| unsafe { row.get_unchecked_mut(left..right) })
+    }
+
+    fn split_by_height_mut(
+        &mut self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+        let height_u32 = height.get();
+        if num_parts > height
+            || height_u32 > self.height()
+            || start_row > self.height() - height_u32
+        {
+            return None;
+        }
+        let image_view = self.image_view.get_mut();
+        let images = image_view.split_by_height_mut(start_row + self.top, height, num_parts);
+        images.map(|v| {
+            v.into_iter()
+                .map(|img| {
+                    let img_height = img.height();
+                    TypedCroppedImageMut::new(img, self.left, 0, self.width, img_height).unwrap()
+                })
+                .collect()
+        })
+    }
+
+    fn split_by_width_mut(
+        &mut self,
+        start_col: u32,
+        width: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+        let width_u32 = width.get();
+        if num_parts > width || width_u32 > self.width() || start_col > self.width() - width_u32 {
+            return None;
+        }
+        let image_view = self.image_view.get_mut();
+        let images = image_view.split_by_width_mut(start_col + self.left, width, num_parts);
+        images.map(|v| {
+            v.into_iter()
+                .map(|img| {
+                    let img_width = img.width();
+                    TypedCroppedImageMut::new(img, 0, self.top, img_width, self.height).unwrap()
+                })
+                .collect()
+        })
     }
 }

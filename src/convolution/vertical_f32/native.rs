@@ -8,7 +8,7 @@ pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    coeffs: &Coefficients,
 ) where
     T: InnerPixel<Component = f32>,
 {

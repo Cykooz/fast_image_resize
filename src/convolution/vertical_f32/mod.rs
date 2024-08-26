@@ -16,7 +16,7 @@ pub(crate) fn vert_convolution_f32<T: InnerPixel<Component = f32>>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    coeffs: &Coefficients,
     cpu_extensions: CpuExtensions,
 ) {
     // Check safety conditions

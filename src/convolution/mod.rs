@@ -7,6 +7,7 @@ use crate::{CpuExtensions, ImageView, ImageViewMut};
 mod macros;
 
 mod filters;
+#[macro_use]
 mod optimisations;
 mod u8x4;
 mod vertical_u8;

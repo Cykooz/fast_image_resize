@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x4;
 use crate::{simd_utils, ImageView, ImageViewMut};
 
@@ -13,9 +13,8 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = U8x4>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
 
     macro_rules! call {
@@ -30,7 +29,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = U8x4>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
     offset: u32,
-    normalizer: optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let dst_height = dst_view.height();
 
@@ -38,7 +37,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &normalizer);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, normalizer);
         }
     }
 
@@ -47,7 +46,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &normalizer);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, normalizer);
         }
     }
 }
@@ -62,15 +61,15 @@ fn horiz_convolution_p<const PRECISION: i32>(
 unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x4]; 4],
     dst_rows: [&mut [U8x4]; 4],
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let mask_lo = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
     let mask_hi = _mm_set_epi8(-1, 15, -1, 11, -1, 14, -1, 10, -1, 13, -1, 9, -1, 12, -1, 8);
     let mask = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
 
-    for (dst_x, chunk) in normalizer.coefficients().iter().enumerate() {
-        let mut x: usize = chunk.start as usize;
+    for (dst_x, chunk) in normalizer.chunks().iter().enumerate() {
+        let mut x = chunk.start as usize;
 
         let mut sss0 = initial;
         let mut sss1 = initial;
@@ -168,13 +167,13 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
         sss2 = _mm_packs_epi32(sss2, sss2);
         sss3 = _mm_packs_epi32(sss3, sss3);
         *dst_rows[0].get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss0, sss0)));
+            transmute::<i32, U8x4>(_mm_cvtsi128_si32(_mm_packus_epi16(sss0, sss0)));
         *dst_rows[1].get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss1, sss1)));
+            transmute::<i32, U8x4>(_mm_cvtsi128_si32(_mm_packus_epi16(sss1, sss1)));
         *dst_rows[2].get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss2, sss2)));
+            transmute::<i32, U8x4>(_mm_cvtsi128_si32(_mm_packus_epi16(sss2, sss2)));
         *dst_rows[3].get_unchecked_mut(dst_x) =
-            transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss3, sss3)));
+            transmute::<i32, U8x4>(_mm_cvtsi128_si32(_mm_packus_epi16(sss3, sss3)));
     }
 }
 
@@ -187,7 +186,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
 unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x4],
     dst_row: &mut [U8x4],
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let sh1 = _mm_set_epi8(-1, 11, -1, 3, -1, 10, -1, 2, -1, 9, -1, 1, -1, 8, -1, 0);
@@ -200,8 +199,8 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     );
     let sh7 = _mm_set_epi8(-1, 7, -1, 3, -1, 6, -1, 2, -1, 5, -1, 1, -1, 4, -1, 0);
 
-    for (dst_x, chunk) in normalizer.coefficients().iter().enumerate() {
-        let mut x: usize = chunk.start as usize;
+    for (dst_x, chunk) in normalizer.chunks().iter().enumerate() {
+        let mut x = chunk.start as usize;
         let mut sss = initial;
 
         let coeffs_by_8 = chunk.values().chunks_exact(8);

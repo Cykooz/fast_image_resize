@@ -1,7 +1,9 @@
 use crate::{pixels, CpuExtensions, ImageError, ImageView, ImageViewMut};
 
+#[macro_use]
 mod common;
 pub(crate) mod errors;
+
 mod u8x4;
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "only_u8x4"))] {

@@ -1,5 +1,4 @@
 use crate::convolution::Coefficients;
-
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
 
@@ -28,12 +27,6 @@ const PRECISION_BITS: u8 = 32 - 8 - 2;
 // We use i16 type to store coefficients.
 const MAX_COEFFS_PRECISION: u8 = 16 - 1;
 
-/// Converts `Vec<f64>` into `Vec<i16>`.
-pub(crate) struct Normalizer16 {
-    precision: u8,
-    chunks: Vec<CoefficientsI16Chunk>,
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct CoefficientsI16Chunk {
     pub start: u32,
@@ -45,6 +38,11 @@ impl CoefficientsI16Chunk {
     pub fn values(&self) -> &[i16] {
         &self.values
     }
+}
+
+pub(crate) struct Normalizer16 {
+    precision: u8,
+    chunks: Vec<CoefficientsI16Chunk>,
 }
 
 impl Normalizer16 {
@@ -89,13 +87,17 @@ impl Normalizer16 {
     }
 
     #[inline(always)]
-    pub fn coefficients(&self) -> &[CoefficientsI16Chunk] {
+    pub fn precision(&self) -> u8 {
+        self.precision
+    }
+
+    #[inline(always)]
+    pub fn chunks(&self) -> &[CoefficientsI16Chunk] {
         &self.chunks
     }
 
-    #[inline]
-    pub fn precision(&self) -> u8 {
-        self.precision
+    pub fn chunks_len(&self) -> usize {
+        self.chunks.len()
     }
 
     /// # Safety
@@ -122,7 +124,7 @@ const MAX_COEFFS_PRECISION16: u8 = 32 - 1;
 #[derive(Debug, Clone)]
 pub(crate) struct CoefficientsI32Chunk {
     pub start: u32,
-    pub values: Vec<i32>,
+    values: Vec<i32>,
 }
 
 impl CoefficientsI32Chunk {
@@ -179,14 +181,19 @@ impl Normalizer32 {
         Self { precision, chunks }
     }
 
-    #[inline(always)]
-    pub fn coefficients(&self) -> &[CoefficientsI32Chunk] {
-        &self.chunks
-    }
-
     #[inline]
     pub fn precision(&self) -> u8 {
         self.precision
+    }
+
+    #[inline(always)]
+    pub fn chunks(&self) -> &[CoefficientsI32Chunk] {
+        &self.chunks
+    }
+
+    #[inline(always)]
+    pub fn chunks_len(&self) -> usize {
+        self.chunks.len()
     }
 
     #[inline(always)]
@@ -195,15 +202,57 @@ impl Normalizer32 {
     }
 }
 
+macro_rules! try_process_in_threads_h {
+    {$op: ident($src_view: ident, $dst_view: ident, $offset: ident, $($arg: ident),+$(,)?);}  => {
+        #[allow(unused_labels)]
+        'block: {
+            #[cfg(feature = "rayon")]
+            {
+                use crate::threading::split_h_two_images_for_threading;
+                use rayon::prelude::*;
+
+                if let Some(iter) = split_h_two_images_for_threading($src_view, $dst_view, $offset) {
+                    iter.for_each(|(src, mut dst)| {
+                        $op(&src, &mut dst, 0, $($arg),+);
+                    });
+                    break 'block;
+                }
+            }
+            $op($src_view, $dst_view, $offset, $($arg),+);
+        }
+    };
+}
+
+macro_rules! try_process_in_threads_v {
+    {$op: ident($src_view: ident, $dst_view: ident, $offset: ident, $($arg: ident),+$(,)?);}  => {
+        #[allow(unused_labels)]
+        'block: {
+            #[cfg(feature = "rayon")]
+            {
+                use crate::threading::split_v_two_images_for_threading;
+                use rayon::prelude::*;
+
+                if let Some(iter) = split_v_two_images_for_threading($src_view, $dst_view, $offset) {
+                    iter.for_each(|(src, mut dst)| {
+                        $op(&src, &mut dst, 0, $($arg),+);
+                    });
+                    break 'block;
+                }
+            }
+            $op($src_view, $dst_view, $offset, $($arg),+);
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::convolution::Bound;
     fn get_coefficients(value: f64) -> Coefficients {
         Coefficients {
             values: vec![value],
-            window_size: 0,
-            bounds: vec![],
+            window_size: 1,
+            bounds: vec![Bound { start: 0, size: 1 }],
         }
     }
 

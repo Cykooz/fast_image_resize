@@ -71,5 +71,5 @@ Run benchmarks to compare with other crates for image resizing and write results
 report files, such as `./benchmarks-x86_64.md`:
 
 ```shell
-CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1 --" cargo bench -- --color=always Compare
+CARGO_TARGET_WASM32_WASI_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1 --" cargo bench --no-fail-fast -- --color=always Compare
 ```

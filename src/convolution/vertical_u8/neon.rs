@@ -1,7 +1,7 @@
 use std::arch::aarch64::*;
 use std::mem::transmute;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::neon_utils;
 use crate::pixels::InnerPixel;
 use crate::{ImageView, ImageViewMut};
@@ -10,12 +10,11 @@ pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_view: &mut impl ImageViewMut<Pixel = T>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) where
     T: InnerPixel<Component = u8>,
 {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.chunks();
     let precision = normalizer.precision();
     let initial = 1 << (precision - 1);
     let start_src_x = offset as usize * T::count_of_components();
@@ -43,13 +42,13 @@ unsafe fn vert_convolution_into_one_row_i32<T>(
     src_view: &impl ImageView<Pixel = T>,
     dst_buf: &mut [i32],
     start_src_x: usize,
-    coeffs_chunk: optimisations::CoefficientsI16Chunk,
+    coeffs_chunk: &CoefficientsI16Chunk,
 ) where
     T: InnerPixel<Component = u8>,
 {
     let width = dst_buf.len();
     let y_start = coeffs_chunk.start;
-    let coeffs = coeffs_chunk.values;
+    let coeffs = coeffs_chunk.values();
 
     let zero_u8x16 = vdupq_n_u8(0);
     let zero_u8x8 = vdup_n_u8(0);
@@ -142,7 +141,7 @@ unsafe fn vert_convolution_into_one_row_i32<T>(
 unsafe fn store_tmp_buf_into_dst_row<const IMM: i32>(
     mut src_buf: &[i32],
     dst_buf: &mut [u8],
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let mut dst_chunks_16 = dst_buf.chunks_exact_mut(16);
     let src_chunks_16 = src_buf.chunks_exact(16);

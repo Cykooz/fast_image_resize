@@ -52,6 +52,48 @@ pub(crate) fn div_and_clip16(v: u16, recip_alpha: u64) -> u16 {
 pub(crate) const RECIP_ALPHA: [u32; 256] = recip_alpha_array(PRECISION);
 pub(crate) static RECIP_ALPHA16: [u64; 65536] = recip_alpha16_array(PRECISION16);
 
+macro_rules! process_two_images {
+    {$op: ident($src_view: ident, $dst_view: ident, $($arg: ident),+);}  => {
+        #[allow(unused_labels)]
+        'block: {
+            #[cfg(feature = "rayon")]
+            {
+                use crate::threading::split_h_two_images_for_threading;
+                use rayon::prelude::*;
+
+                if let Some(iter) = split_h_two_images_for_threading($src_view, $dst_view, 0) {
+                    iter.for_each(|(src, mut dst)| {
+                        $op(&src, &mut dst, $($arg),+);
+                    });
+                    break 'block;
+                }
+            }
+            $op($src_view, $dst_view, $($arg),+);
+        }
+    };
+}
+
+macro_rules! process_one_images {
+    {$op: ident($image_view: ident, $($arg: ident),+);} => {
+        #[allow(unused_labels)]
+        'block: {
+            #[cfg(feature = "rayon")]
+            {
+                use crate::threading::split_h_one_image_for_threading;
+                use rayon::prelude::*;
+
+                if let Some(iter) = split_h_one_image_for_threading($image_view) {
+                    iter.for_each(|mut img| {
+                        $op(&mut img, $($arg),+);
+                    });
+                    break 'block;
+                }
+            }
+            $op($image_view, $($arg),+);
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

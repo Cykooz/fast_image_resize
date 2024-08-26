@@ -1,7 +1,7 @@
 use std::arch::x86_64::*;
 use std::intrinsics::transmute;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;
 use crate::{simd_utils, ImageView, ImageViewMut};
 
@@ -10,9 +10,8 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = U8x3>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x3>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
 
     macro_rules! call {
@@ -27,7 +26,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = U8x3>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x3>,
     offset: u32,
-    normalizer: optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let dst_height = dst_view.height();
 
@@ -35,7 +34,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, &normalizer);
+            horiz_convolution_four_rows::<PRECISION>(src_rows, dst_rows, normalizer);
         }
     }
 
@@ -44,7 +43,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, &normalizer);
+            horiz_convolution_one_row::<PRECISION>(src_row, dst_row, normalizer);
         }
     }
 }
@@ -60,12 +59,11 @@ fn horiz_convolution_p<const PRECISION: i32>(
 unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x3]; 4],
     dst_rows: [&mut [U8x3]; 4],
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     let zero = _mm_setzero_si128();
     let initial = _mm_set1_epi32(1 << (PRECISION - 1));
     let src_width = src_rows[0].len();
-    let coefficients_chunks = normalizer.coefficients();
 
     /*
         |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R  G  B | |R |
@@ -94,16 +92,16 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
         -1, -1, -1, -1, -1, 11, -1, 8, -1, 10, -1, 7, -1, 9, -1, 6,
     );
 
-    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let x_start = coeffs_chunk.start as usize;
+    for (dst_x, chunk) in normalizer.chunks().iter().enumerate() {
+        let x_start = chunk.start as usize;
         let mut x = x_start;
 
         let mut sss_a = [initial; 4];
-        let mut coeffs = coeffs_chunk.values();
+        let mut coeffs = chunk.values();
 
-        // Next block of code will be load source pixels by 16 bytes per time.
-        // We must guarantee what this process will not go beyond
-        // the one row of image.
+        // The next block of code will load source pixels by 16 bytes per time.
+        // We must guarantee that this process won't go beyond
+        // the one row of the image.
         // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 byte
         let max_x = src_width.saturating_sub(5);
         if x < max_x {
@@ -128,9 +126,9 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
             }
         }
 
-        // Next block of code will be load source pixels by 8 bytes per time.
-        // We must guarantee what this process will not go beyond
-        // the one row of image.
+        // The next block of code will load source pixels by 8 bytes per time.
+        // We must guarantee that this process won't go beyond
+        // the one row of the image.
         // (8 bytes) / (3 bytes per pixel) = 2 whole pixels + 2 bytes
         let max_x = src_width.saturating_sub(2);
         if x < max_x {
@@ -172,7 +170,8 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
             let sss = _mm_packs_epi32(sss_a[i], zero);
             let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, zero)));
             let bytes = pixel.to_le_bytes();
-            dst_rows[i].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+            let dst_pixel = dst_rows[i].get_unchecked_mut(dst_x);
+            dst_pixel.0 = [bytes[0], bytes[1], bytes[2]];
         }
     }
 }
@@ -187,7 +186,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
 unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x3],
     dst_row: &mut [U8x3],
-    normalizer: &optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
     #[rustfmt::skip]
     let pix_sh1 = _mm_set_epi8(
@@ -219,18 +218,18 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
         R: |-1 03| |-1 00|
     */
     let src_width = src_row.len();
-    let coefficients_chunks = normalizer.coefficients();
 
-    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
-        let x_start = coeffs_chunk.start as usize;
+    for (dst_x, chunk) in normalizer.chunks().iter().enumerate() {
+        let x_start = chunk.start as usize;
         let mut x = x_start;
-        let mut coeffs = coeffs_chunk.values();
+
+        let mut coeffs = chunk.values();
         let mut sss = _mm_set1_epi32(1 << (PRECISION - 1));
 
-        // Next block of code will be load source pixels by 16 bytes per time.
-        // We must guarantee what this process will not go beyond
-        // the one row of image.
-        // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 bytes
+        // The next block of code will load source pixels by 16 bytes per time.
+        // We must guarantee that this process won't go beyond
+        // the one row of the image.
+        // (16 bytes) / (3 bytes per pixel) = 5 whole pixels + 1 byte
         let max_x = src_width.saturating_sub(5);
         if x < max_x {
             let coeffs_by_4 = coeffs.chunks_exact(4);
@@ -253,9 +252,9 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
             }
         }
 
-        // Next block of code will be load source pixels by 8 bytes per time.
-        // We must guarantee what this process will not go beyond
-        // the one row of image.
+        // The next block of code will load source pixels by 8 bytes per time.
+        // We must guarantee that this process won't go beyond
+        // the one row of the image.
         // (8 bytes) / (3 bytes per pixel) = 2 whole pixels + 2 bytes
         let max_x = src_width.saturating_sub(2);
         if x < max_x {
@@ -286,6 +285,7 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
         sss = _mm_packs_epi32(sss, sss);
         let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
         let bytes = pixel.to_le_bytes();
-        dst_row.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
+        let dst_pixel = dst_row.get_unchecked_mut(dst_x);
+        dst_pixel.0 = [bytes[0], bytes[1], bytes[2]];
     }
 }

@@ -130,7 +130,7 @@ mod private {
 ///
 /// This trait is sealed and cannot be implemented for types outside this crate.
 pub trait InnerPixel:
-    private::Sealed + Copy + Clone + Sized + Debug + PartialEq + Default + 'static
+    private::Sealed + Copy + Clone + Sized + Debug + PartialEq + Default + Send + Sync + 'static
 {
     /// Type of pixel components
     type Component: PixelComponent;

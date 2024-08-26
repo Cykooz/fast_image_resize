@@ -8,8 +8,9 @@ pub(crate) fn multiply_alpha(
 ) {
     let src_rows = src_view.iter_rows(0);
     let dst_rows = dst_view.iter_rows_mut(0);
+    let rows = src_rows.zip(dst_rows);
 
-    for (src_row, dst_row) in src_rows.zip(dst_rows) {
+    for (src_row, dst_row) in rows {
         for (src_pixel, dst_pixel) in src_row.iter().zip(dst_row.iter_mut()) {
             *dst_pixel = multiply_alpha_pixel(*src_pixel);
         }
@@ -17,7 +18,8 @@ pub(crate) fn multiply_alpha(
 }
 
 pub(crate) fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
-    for row in image_view.iter_rows_mut(0) {
+    let rows = image_view.iter_rows_mut(0);
+    for row in rows {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -57,15 +59,16 @@ pub(crate) fn divide_alpha(
 ) {
     let src_rows = src_view.iter_rows(0);
     let dst_rows = dst_view.iter_rows_mut(0);
-
-    for (src_row, dst_row) in src_rows.zip(dst_rows) {
+    let rows = src_rows.zip(dst_rows);
+    for (src_row, dst_row) in rows {
         divide_alpha_row(src_row, dst_row);
     }
 }
 
 #[inline]
 pub(crate) fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
-    for row in image_view.iter_rows_mut(0) {
+    let rows = image_view.iter_rows_mut(0);
+    for row in rows {
         row.iter_mut().for_each(|pixel| {
             *pixel = divide_alpha_pixel(*pixel);
         });

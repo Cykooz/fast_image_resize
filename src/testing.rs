@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-thread_local!(static TEST_LOGS: RefCell<Vec<String>> = RefCell::new(Vec::new()));
+thread_local!(static TEST_LOGS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) });
 
 pub fn log_message(msg: &str) {
     TEST_LOGS.with(|f| {

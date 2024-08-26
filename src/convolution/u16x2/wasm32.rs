@@ -1,6 +1,6 @@
 use std::arch::wasm32::*;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::Normalizer32;
 use crate::pixels::U16x2;
 use crate::wasm32_utils;
 use crate::{ImageView, ImageViewMut};
@@ -10,17 +10,15 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = U16x2>,
     dst_view: &mut impl ImageViewMut<Pixel = U16x2>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer32,
 ) {
-    let normalizer = optimisations::Normalizer32::new(coeffs);
-    let coefficients_chunks = normalizer.normalized_chunks();
     let dst_height = dst_view.height();
 
     let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
     let dst_iter = dst_view.iter_4_rows_mut();
     for (src_rows, dst_rows) in src_iter.zip(dst_iter) {
         unsafe {
-            horiz_convolution_four_rows(src_rows, dst_rows, &coefficients_chunks, &normalizer);
+            horiz_convolution_four_rows(src_rows, dst_rows, normalizer);
         }
     }
 
@@ -29,7 +27,7 @@ pub(crate) fn horiz_convolution(
     let dst_rows = dst_view.iter_rows_mut(yy);
     for (src_row, dst_row) in src_rows.zip(dst_rows) {
         unsafe {
-            horiz_convolution_one_row(src_row, dst_row, &coefficients_chunks, &normalizer);
+            horiz_convolution_one_row(src_row, dst_row, normalizer);
         }
     }
 }
@@ -44,8 +42,7 @@ pub(crate) fn horiz_convolution(
 unsafe fn horiz_convolution_four_rows(
     src_rows: [&[U16x2]; 4],
     dst_rows: [&mut [U16x2]; 4],
-    coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
-    normalizer: &optimisations::Normalizer32,
+    normalizer: &Normalizer32,
 ) {
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
@@ -75,11 +72,11 @@ unsafe fn horiz_convolution_four_rows(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
-    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
+    for (dst_x, coeffs_chunk) in normalizer.chunks().iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
         let mut ll_sum = [i64x2_splat(half_error); 4];
 
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
 
         let coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();
@@ -160,8 +157,7 @@ unsafe fn horiz_convolution_four_rows(
 unsafe fn horiz_convolution_one_row(
     src_row: &[U16x2],
     dst_row: &mut [U16x2],
-    coefficients_chunks: &[optimisations::CoefficientsI32Chunk],
-    normalizer: &optimisations::Normalizer32,
+    normalizer: &Normalizer32,
 ) {
     let precision = normalizer.precision();
     let half_error = 1i64 << (precision - 1);
@@ -191,10 +187,10 @@ unsafe fn horiz_convolution_one_row(
         12, 13, -1, -1, -1, -1, -1, -1, 14, 15, -1, -1, -1, -1, -1, -1,
     );
 
-    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
+    for (dst_x, coeffs_chunk) in normalizer.chunks().iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
         let mut ll_sum = i64x2_splat(half_error);
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
 
         let coeffs_by_4 = coeffs.chunks_exact(4);
         coeffs = coeffs_by_4.remainder();

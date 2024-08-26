@@ -13,15 +13,16 @@ pub(crate) unsafe fn multiply_alpha(
 ) {
     let src_rows = src_view.iter_rows(0);
     let dst_rows = dst_view.iter_rows_mut(0);
-
-    for (src_row, dst_row) in src_rows.zip(dst_rows) {
+    let rows = src_rows.zip(dst_rows);
+    for (src_row, dst_row) in rows {
         multiply_alpha_row(src_row, dst_row);
     }
 }
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn multiply_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
-    for row in image_view.iter_rows_mut(0) {
+    let rows = image_view.iter_rows_mut(0);
+    for row in rows {
         multiply_alpha_row_inplace(row);
     }
 }
@@ -106,14 +107,16 @@ pub(crate) unsafe fn divide_alpha(
 ) {
     let src_rows = src_view.iter_rows(0);
     let dst_rows = dst_view.iter_rows_mut(0);
-    for (src_row, dst_row) in src_rows.zip(dst_rows) {
+    let rows = src_rows.zip(dst_rows);
+    for (src_row, dst_row) in rows {
         divide_alpha_row(src_row, dst_row);
     }
 }
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x4>) {
-    for row in image_view.iter_rows_mut(0) {
+    let rows = image_view.iter_rows_mut(0);
+    for row in rows {
         divide_alpha_row_inplace(row);
     }
 }

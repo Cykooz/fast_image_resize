@@ -237,7 +237,7 @@ impl Resizer {
             return Ok(());
         }
 
-        let cropped_src_view = CroppedSrcImageView::cropped(src_view, crop_box)?;
+        let cropped_src_view = CroppedSrcImageView::crop(src_view, crop_box)?;
 
         if copy_image(&cropped_src_view, dst_view).is_ok() {
             // If `copy_image()` returns `Ok` it means that
@@ -280,7 +280,7 @@ impl Resizer {
         (self.alpha_buffer.capacity()
             + self.convolution_buffer.capacity()
             + self.super_sampling_buffer.capacity())
-            * std::mem::size_of::<u8>()
+            * size_of::<u8>()
     }
 
     /// Deallocates the internal buffers used to store the results of
@@ -332,7 +332,7 @@ impl Resizer {
             {
                 // SAFETY: `premultiplied_src` has the same size as `src_view`
                 let cropped_premultiplied_src = unsafe {
-                    CroppedSrcImageView::cropped_unchecked(
+                    CroppedSrcImageView::crop_unchecked(
                         &premultiplied_src,
                         cropped_src_view.crop_box(),
                     )
@@ -433,6 +433,7 @@ impl Resizer {
                         .bounds
                         .iter_mut()
                         .for_each(|b| b.start -= x_first);
+
                     P::horiz_convolution(
                         &temp_image,
                         dst_view,

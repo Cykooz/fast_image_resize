@@ -1,6 +1,6 @@
 use std::arch::aarch64::*;
 
-use crate::convolution::{optimisations, Coefficients};
+use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::neon_utils;
 use crate::pixels::U8x4;
 use crate::{ImageView, ImageViewMut};
@@ -10,9 +10,8 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = U8x4>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
     offset: u32,
-    coeffs: Coefficients,
+    normalizer: &Normalizer16,
 ) {
-    let normalizer = optimisations::Normalizer16::new(coeffs);
     let precision = normalizer.precision();
 
     macro_rules! call {
@@ -27,9 +26,9 @@ fn horiz_convolution_p<const PRECISION: i32>(
     src_view: &impl ImageView<Pixel = U8x4>,
     dst_view: &mut impl ImageViewMut<Pixel = U8x4>,
     offset: u32,
-    normalizer: optimisations::Normalizer16,
+    normalizer: &Normalizer16,
 ) {
-    let coefficients_chunks = normalizer.normalized_chunks();
+    let coefficients_chunks = normalizer.chunks();
     let dst_height = dst_view.height();
 
     let src_iter = src_view.iter_4_rows(offset, dst_height + offset);
@@ -60,7 +59,7 @@ fn horiz_convolution_p<const PRECISION: i32>(
 unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
     src_rows: [&[U8x4]; 4],
     dst_rows: [&mut [U8x4]; 4],
-    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    coefficients_chunks: &[CoefficientsI16Chunk],
 ) {
     let initial = vdupq_n_s32(1 << (PRECISION - 1));
     let zero_u8x16 = vdupq_n_u8(0);
@@ -71,7 +70,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
 
         let mut sss_a = [initial; 4];
 
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();
@@ -204,16 +203,16 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
 unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
     src_row: &[U8x4],
     dst_row: &mut [U8x4],
-    coefficients_chunks: &[optimisations::CoefficientsI16Chunk],
+    coefficients_chunks: &[CoefficientsI16Chunk],
 ) {
     let initial = vdupq_n_s32(1 << (PRECISION - 1));
     let zero_u8x16 = vdupq_n_u8(0);
     let zero_u8x8 = vdup_n_u8(0);
 
-    for (dst_x, &coeffs_chunk) in coefficients_chunks.iter().enumerate() {
+    for (dst_x, coeffs_chunk) in coefficients_chunks.iter().enumerate() {
         let mut x: usize = coeffs_chunk.start as usize;
         let mut sss = initial;
-        let mut coeffs = coeffs_chunk.values;
+        let mut coeffs = coeffs_chunk.values();
 
         let coeffs_by_8 = coeffs.chunks_exact(8);
         coeffs = coeffs_by_8.remainder();

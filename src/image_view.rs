@@ -1,3 +1,6 @@
+use std::num::NonZeroU32;
+
+use crate::images::{TypedCroppedImage, TypedCroppedImageMut, UnsafeImageMut};
 use crate::pixels::InnerPixel;
 use crate::{ArrayChunks, ImageError, PixelTrait, PixelType};
 
@@ -7,7 +10,7 @@ use crate::{ArrayChunks, ImageError, PixelTrait, PixelType};
 ///
 /// The length of the image rows returned by methods of this trait
 /// must be equal or greater than the image width.
-pub unsafe trait ImageView {
+pub unsafe trait ImageView: Sync + Send + Sized {
     type Pixel: InnerPixel;
 
     fn width(&self) -> u32;
@@ -61,6 +64,66 @@ pub unsafe trait ImageView {
             cur_row
         })
     }
+
+    /// Takes a part of the image from the given start row with the given height
+    /// and divides it by height into `num_parts` of small images without
+    /// mutual intersections.
+    fn split_by_height(
+        &self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+        let height = height.get();
+        let num_parts = num_parts.get();
+        if num_parts > height || height > self.height() || start_row > self.height() - height {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = height as f32 / num_parts as f32;
+        let mut top = start_row;
+        let mut top_f = start_row as f32;
+        let width = self.width();
+        for _ in 0..num_parts {
+            top_f += step;
+            let part_height = top_f as u32 - top;
+            let image = TypedCroppedImage::from_ref(self, 0, top, width, part_height).unwrap();
+            res.push(image);
+            top += part_height;
+        }
+        debug_assert!(top - start_row == height);
+        Some(res)
+    }
+
+    /// Takes a part of the image from the given start column with the given width
+    /// and divides it by width into `num_parts` of small images without
+    /// mutual intersections.
+    fn split_by_width(
+        &self,
+        start_col: u32,
+        width: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageView<Pixel = Self::Pixel>>> {
+        let width = width.get();
+        let num_parts = num_parts.get();
+        if num_parts > width || width > self.width() || start_col > self.width() - width {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = width as f32 / num_parts as f32;
+        let mut left = start_col;
+        let mut right_f = start_col as f32;
+        let height = self.height();
+        for _ in 0..num_parts {
+            right_f += step;
+            let part_width = right_f as u32 - left;
+            let image = TypedCroppedImage::from_ref(self, left, 0, part_width, height).unwrap();
+            res.push(image);
+            left += part_width;
+        }
+        debug_assert!(left - start_col == width);
+        Some(res)
+    }
 }
 
 /// A trait for getting mutable access to image data.
@@ -81,6 +144,71 @@ pub unsafe trait ImageViewMut: ImageView {
     /// Returns iterator by arrays with four mutable image rows.
     fn iter_4_rows_mut(&mut self) -> ArrayChunks<impl Iterator<Item = &mut [Self::Pixel]>, 4> {
         ArrayChunks::new(self.iter_rows_mut(0))
+    }
+
+    /// Takes a part of the image from the given start row with the given height
+    /// and divides it by height into `num_parts` of small mutable images without
+    /// mutual intersections.
+    fn split_by_height_mut(
+        &mut self,
+        start_row: u32,
+        height: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+        let height = height.get();
+        let num_parts = num_parts.get();
+        if num_parts > height || height > self.height() || start_row > self.height() - height {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = height as f32 / num_parts as f32;
+        let mut top = start_row;
+        let mut top_f = start_row as f32;
+        let width = self.width();
+        let unsafe_image = UnsafeImageMut::new(self);
+        for _ in 0..num_parts {
+            top_f += step;
+            let part_height = top_f as u32 - top;
+            let image = TypedCroppedImageMut::new(unsafe_image.clone(), 0, top, width, part_height)
+                .unwrap();
+            res.push(image);
+            top += part_height;
+        }
+        debug_assert!(top - start_row == height);
+        Some(res)
+    }
+
+    /// Takes a part of the image from the given start column with the given width
+    /// and divides it by width into `num_parts` of small mutable images without
+    /// mutual intersections.
+    fn split_by_width_mut(
+        &mut self,
+        start_col: u32,
+        width: NonZeroU32,
+        num_parts: NonZeroU32,
+    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+        let width = width.get();
+        let num_parts = num_parts.get();
+        if num_parts > width || width > self.width() || start_col > self.width() - width {
+            return None;
+        }
+        let mut res = Vec::with_capacity(num_parts as usize);
+        let step = width as f32 / num_parts as f32;
+        let mut left = start_col;
+        let mut right_f = start_col as f32;
+        let height = self.height();
+        let unsafe_image = UnsafeImageMut::new(self);
+        for _ in 0..num_parts {
+            right_f += step;
+            let part_width = right_f as u32 - left;
+            let image =
+                TypedCroppedImageMut::new(unsafe_image.clone(), left, 0, part_width, height)
+                    .unwrap();
+            res.push(image);
+            left += part_width;
+        }
+        debug_assert!(left - start_col == width);
+        Some(res)
     }
 }
 

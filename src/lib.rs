@@ -41,6 +41,8 @@ mod resizer;
 mod simd_utils;
 #[cfg(feature = "for_testing")]
 pub mod testing;
+#[cfg(feature = "rayon")]
+pub(crate) mod threading;
 #[cfg(target_arch = "wasm32")]
 mod wasm32_utils;
 

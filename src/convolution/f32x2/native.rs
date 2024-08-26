@@ -6,7 +6,7 @@ pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = F32x2>,
     dst_view: &mut impl ImageViewMut<Pixel = F32x2>,
     offset: u32,
-    coeffs: Coefficients,
+    coeffs: &Coefficients,
 ) {
     let coefficients_chunks = coeffs.get_chunks();
     let src_rows = src_view.iter_rows(offset);

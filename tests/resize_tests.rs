@@ -92,7 +92,7 @@ fn resize_to_same_size_after_cropping() {
 }
 
 /// In this test, we check that resizer won't use horizontal convolution
-/// if width of destination image is equal to width of cropped source image.
+/// if the width of destination image is equal to the width of cropped source image.
 fn resize_to_same_width<const C: usize>(
     pixel_type: PixelType,
     cpu_extensions: CpuExtensions,
@@ -125,6 +125,13 @@ fn resize_to_same_width<const C: usize>(
         )
         .unwrap();
 
+    assert!(fr_testing::logs_contain(
+        "compute vertical convolution coefficients"
+    ));
+    assert!(!fr_testing::logs_contain(
+        "compute horizontal convolution coefficients"
+    ));
+
     let expected_result: Vec<u8> = (0..8000u32)
         .flat_map(|v| create_pixel((10 + v % 100) as u8))
         .collect();
@@ -135,17 +142,10 @@ fn resize_to_same_width<const C: usize>(
         pixel_type,
         cpu_extensions
     );
-
-    assert!(fr_testing::logs_contain(
-        "compute vertical convolution coefficients"
-    ));
-    assert!(!fr_testing::logs_contain(
-        "compute horizontal convolution coefficients"
-    ));
 }
 
 /// In this test, we check that resizer won't use vertical convolution
-/// if height of destination image is equal to height of cropped source image.
+/// if the height of destination image is equal to the height of cropped source image.
 fn resize_to_same_height<const C: usize>(
     pixel_type: PixelType,
     cpu_extensions: CpuExtensions,
@@ -177,6 +177,13 @@ fn resize_to_same_height<const C: usize>(
         )
         .unwrap();
 
+    assert!(!fr_testing::logs_contain(
+        "compute vertical convolution coefficients"
+    ));
+    assert!(fr_testing::logs_contain(
+        "compute horizontal convolution coefficients"
+    ));
+
     let expected_result: Vec<u8> = (0..8000u32)
         .flat_map(|v| create_pixel((10 + v / 100) as u8))
         .collect();
@@ -187,17 +194,10 @@ fn resize_to_same_height<const C: usize>(
         pixel_type,
         cpu_extensions
     );
-
-    assert!(!fr_testing::logs_contain(
-        "compute vertical convolution coefficients"
-    ));
-    assert!(fr_testing::logs_contain(
-        "compute horizontal convolution coefficients"
-    ));
 }
 
 #[test]
-fn resize_to_same_width_after_cropping() {
+fn resize_to_same_width_or_height_after_cropping() {
     let mut cpu_extensions_vec = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]
     {
