@@ -9,7 +9,7 @@ Environment:
 - Ubuntu 24.04 (linux 6.8.0)
 - Rust 1.81.0
 - criterion = "0.5.1"
-- fast_image_resize = "4.3.0"
+- fast_image_resize = "5.0.0"
 - wasmtime = "25.0.1"
 
 Other libraries used to compare of resizing speed:
