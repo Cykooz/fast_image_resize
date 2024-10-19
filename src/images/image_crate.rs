@@ -1,11 +1,10 @@
 use std::ops::DerefMut;
 
-use bytemuck::cast_slice_mut;
-use image::DynamicImage;
-
 use crate::image_view::try_pixel_type;
 use crate::images::{TypedImage, TypedImageRef};
 use crate::{ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait, PixelType};
+use bytemuck::cast_slice_mut;
+use image::DynamicImage;
 
 impl IntoImageView for DynamicImage {
     fn pixel_type(&self) -> Option<PixelType> {

@@ -162,7 +162,6 @@ codegen-units = 256 # max threading
 # release build for procmacros - same config as debug build for procmacros
 [profile.release.build-override]
 opt-level = 2
-codegen-units = 256
 debug = false # when possible
 
 

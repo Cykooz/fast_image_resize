@@ -108,8 +108,8 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
             let coeffs_by_4 = coeffs.chunks_exact(4);
 
             for k in coeffs_by_4 {
-                let mmk0 = simd_utils::ptr_i16_to_set1_epi32(k, 0);
-                let mmk1 = simd_utils::ptr_i16_to_set1_epi32(k, 2);
+                let mmk0 = simd_utils::mm_load_and_clone_i16x2(k);
+                let mmk1 = simd_utils::mm_load_and_clone_i16x2(&k[2..]);
                 for i in 0..4 {
                     let source = simd_utils::loadu_si128(src_rows[i], x);
                     let pix = _mm_shuffle_epi8(source, sh_lo);
@@ -135,7 +135,7 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
             let coeffs_by_2 = coeffs[x - x_start..].chunks_exact(2);
 
             for k in coeffs_by_2 {
-                let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
+                let mmk = simd_utils::mm_load_and_clone_i16x2(k);
 
                 for i in 0..4 {
                     let source = simd_utils::loadl_epi64(src_rows[i], x);
@@ -261,7 +261,7 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
             let coeffs_by_2 = coeffs[x - x_start..].chunks_exact(2);
 
             for k in coeffs_by_2 {
-                let mmk = simd_utils::ptr_i16_to_set1_epi32(k, 0);
+                let mmk = simd_utils::mm_load_and_clone_i16x2(k);
                 let source = simd_utils::loadl_epi64(src_row, x);
                 let pix = _mm_shuffle_epi8(source, pix_sh1);
                 sss = _mm_add_epi32(sss, _mm_madd_epi16(pix, mmk));

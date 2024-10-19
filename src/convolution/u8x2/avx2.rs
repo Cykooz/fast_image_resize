@@ -133,7 +133,7 @@ unsafe fn horiz_convolution_four_rows(
         let reminder = coeffs_by_2.remainder();
 
         for k in coeffs_by_2 {
-            let mmk = simd_utils::ptr_i16_to_256set1_epi32(k, 0);
+            let mmk = simd_utils::mm256_load_and_clone_i16x2(k);
 
             let source = _mm256_inserti128_si256::<1>(
                 _mm256_castsi128_si256(simd_utils::loadl_epi32(src_rows[0], x)),

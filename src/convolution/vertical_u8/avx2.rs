@@ -65,6 +65,7 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     let y_start = coeffs_chunk.start;
     let coeffs = coeffs_chunk.values();
     let max_rows = coeffs.len() as u32;
+    let y_last = (y_start + max_rows).max(1) - 1;
 
     let initial = _mm_set1_epi32(1 << (PRECISION as u8 - 1));
     let initial_256 = _mm256_set1_epi32(1 << (PRECISION as u8 - 1));
@@ -79,14 +80,15 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
         let mut sss2 = initial_256;
         let mut sss3 = initial_256;
 
-        let mut y: u32 = 0;
+        let coeffs_chunks = coeffs.chunks_exact(2);
+        let coeffs_reminder = coeffs_chunks.remainder();
 
-        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_chunks) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
 
             // Load two coefficients at once
-            let mmk = simd_utils::ptr_i16_to_256set1_epi32(coeffs, y as usize);
+            let mmk = simd_utils::mm256_load_and_clone_i16x2(two_coeffs);
 
             let source1 = simd_utils::loadu_si256(components1, src_x); // top line
             let source2 = simd_utils::loadu_si256(components2, src_x); // bottom line
@@ -102,12 +104,10 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
             sss2 = _mm256_add_epi32(sss2, _mm256_madd_epi16(pix, mmk));
             let pix = _mm256_unpackhi_epi8(source, _mm256_setzero_si256());
             sss3 = _mm256_add_epi32(sss3, _mm256_madd_epi16(pix, mmk));
-
-            y += 2;
         }
 
-        if let Some(&k) = coeffs.get(y as usize) {
-            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+        if let Some(&k) = coeffs_reminder.first() {
+            if let Some(s_row) = src_view.iter_rows(y_last).next() {
                 let components = T::components(s_row);
                 let mmk = _mm256_set1_epi32(k as i32);
 
@@ -149,13 +149,15 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     for dst_chunk in &mut dst_chunks_8 {
         let mut sss0 = initial; // left row
         let mut sss1 = initial; // right row
-        let mut y: u32 = 0;
 
-        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
+        let coeffs_chunks = coeffs.chunks_exact(2);
+        let coeffs_reminder = coeffs_chunks.remainder();
+
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_chunks) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
-            let mmk = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
+            let mmk = simd_utils::mm_load_and_clone_i16x2(two_coeffs);
 
             let source1 = simd_utils::loadl_epi64(components1, src_x); // top line
             let source2 = simd_utils::loadl_epi64(components2, src_x); // bottom line
@@ -165,12 +167,10 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
             sss0 = _mm_add_epi32(sss0, _mm_madd_epi16(pix, mmk));
             let pix = _mm_unpackhi_epi8(source, _mm_setzero_si128());
             sss1 = _mm_add_epi32(sss1, _mm_madd_epi16(pix, mmk));
-
-            y += 2;
         }
 
-        if let Some(&k) = coeffs.get(y as usize) {
-            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+        if let Some(&k) = coeffs_reminder.first() {
+            if let Some(s_row) = src_view.iter_rows(y_last).next() {
                 let components = T::components(s_row);
                 let mmk = _mm_set1_epi32(k as i32);
 
@@ -201,12 +201,15 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
     let mut dst_chunks_4 = dst_u8.chunks_exact_mut(4);
     if let Some(dst_chunk) = dst_chunks_4.next() {
         let mut sss = initial;
-        let mut y: u32 = 0;
-        for src_rows in src_view.iter_2_rows(y_start, max_rows) {
+
+        let coeffs_chunks = coeffs.chunks_exact(2);
+        let coeffs_reminder = coeffs_chunks.remainder();
+
+        for (src_rows, two_coeffs) in src_view.iter_2_rows(y_start, max_rows).zip(coeffs_chunks) {
             let components1 = T::components(src_rows[0]);
             let components2 = T::components(src_rows[1]);
             // Load two coefficients at once
-            let two_coeffs = simd_utils::ptr_i16_to_set1_epi32(coeffs, y as usize);
+            let two_coeffs = simd_utils::mm_load_and_clone_i16x2(two_coeffs);
 
             let row1 = simd_utils::mm_cvtsi32_si128_from_u8(components1, src_x); // top line
             let row2 = simd_utils::mm_cvtsi32_si128_from_u8(components2, src_x); // bottom line
@@ -214,12 +217,10 @@ unsafe fn vert_convolution_into_one_row<T, const PRECISION: i32>(
             let pixels_u8 = _mm_unpacklo_epi8(row1, row2);
             let pixels_i16 = _mm_unpacklo_epi8(pixels_u8, _mm_setzero_si128());
             sss = _mm_add_epi32(sss, _mm_madd_epi16(pixels_i16, two_coeffs));
-
-            y += 2;
         }
 
-        if let Some(&k) = coeffs.get(y as usize) {
-            if let Some(s_row) = src_view.iter_rows(y_start + y).next() {
+        if let Some(&k) = coeffs_reminder.first() {
+            if let Some(s_row) = src_view.iter_rows(y_last).next() {
                 let components = T::components(s_row);
                 let pix = simd_utils::mm_cvtepu8_epi32_from_u8(components, src_x);
                 let mmk = _mm_set1_epi32(k as i32);

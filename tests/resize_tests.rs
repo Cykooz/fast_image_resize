@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
-use fast_image_resize::images::{Image, TypedImage, TypedImageRef};
+use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
     testing as fr_testing, CpuExtensions, CropBoxError, Filter, FilterType, IntoImageView,
@@ -42,11 +42,8 @@ fn resize_to_same_size() {
         .collect();
     let src_image = Image::from_vec_u8(width, height, buffer, PixelType::U8x4).unwrap();
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
-    let src_view: TypedImageRef<U8x4> = src_image.typed_image().unwrap();
-    let mut dst_view: TypedImage<U8x4> = dst_image.typed_image_mut().unwrap();
-    let mut resizer = Resizer::new();
-    resizer
-        .resize_typed(&src_view, &mut dst_view, None)
+    Resizer::new()
+        .resize(&src_image, &mut dst_image, None)
         .unwrap();
     assert!(matches!(
         src_image.buffer().cmp(dst_image.buffer()),
@@ -65,14 +62,11 @@ fn resize_to_same_size_after_cropping() {
         .flat_map(|v| [v; 4])
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, PixelType::U8x4).unwrap();
-    let src_view = src_image.typed_image::<U8x4>().unwrap();
-
     let mut dst_image = Image::new(width, height, PixelType::U8x4);
-    let mut dst_view: TypedImage<U8x4> = dst_image.typed_image_mut().unwrap();
-    let mut resizer = Resizer::new();
+
     let options = ResizeOptions::new().crop(10., 10., width as _, height as _);
-    resizer
-        .resize_typed(&src_view, &mut dst_view, &options)
+    Resizer::new()
+        .resize(&src_image, &mut dst_image, &options)
         .unwrap();
 
     let cropped_buffer: Vec<u8> = (0..12000u32)
@@ -108,13 +102,12 @@ fn resize_to_same_width<const C: usize>(
         .flat_map(|v| create_pixel((v % 120) as u8))
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
-
     let mut dst_image = Image::new(width, height, pixel_type);
+
     let mut resizer = Resizer::new();
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);
     }
-
     resizer
         .resize(
             &src_image,
@@ -161,8 +154,8 @@ fn resize_to_same_height<const C: usize>(
         .flat_map(|v| create_pixel((v / 120) as u8))
         .collect();
     let src_image = Image::from_vec_u8(src_width, src_height, buffer, pixel_type).unwrap();
-
     let mut dst_image = Image::new(width, height, pixel_type);
+
     let mut resizer = Resizer::new();
     unsafe {
         resizer.set_cpu_extensions(cpu_extensions);

@@ -76,13 +76,15 @@ pub unsafe fn mm_cvtsi32_si128_from_u8(buf: &[u8], index: usize) -> __m128i {
 }
 
 #[inline(always)]
-pub unsafe fn ptr_i16_to_set1_epi32(buf: &[i16], index: usize) -> __m128i {
-    _mm_set1_epi32((buf.get_unchecked(index..).as_ptr() as *const i32).read_unaligned())
+pub unsafe fn mm_load_and_clone_i16x2(buf: &[i16]) -> __m128i {
+    debug_assert!(buf.len() >= 2);
+    _mm_set1_epi32((buf.as_ptr() as *const i32).read_unaligned())
 }
 
 #[inline(always)]
-pub unsafe fn ptr_i16_to_256set1_epi32(buf: &[i16], index: usize) -> __m256i {
-    _mm256_set1_epi32((buf.get_unchecked(index..).as_ptr() as *const i32).read_unaligned())
+pub unsafe fn mm256_load_and_clone_i16x2(buf: &[i16]) -> __m256i {
+    debug_assert!(buf.len() >= 2);
+    _mm256_set1_epi32((buf.as_ptr() as *const i32).read_unaligned())
 }
 
 #[inline(always)]

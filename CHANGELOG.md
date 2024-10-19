@@ -1,5 +1,10 @@
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- Improved speed (about 9%) of `SSE4.1` implementation for vertical
+  convolution pass for pixel types based on `u8` components.
+
 ### Fixed
 
 - `is_aarch64_feature_detected()` is used now in
