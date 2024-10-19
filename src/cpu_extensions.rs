@@ -27,7 +27,7 @@ impl CpuExtensions {
             #[cfg(target_arch = "x86_64")]
             Self::Sse4_1 => is_x86_feature_detected!("sse4.1"),
             #[cfg(target_arch = "aarch64")]
-            Self::Neon => true,
+            Self::Neon => std::arch::is_aarch64_feature_detected!("neon"),
             #[cfg(target_arch = "wasm32")]
             Self::Simd128 => true,
             Self::None => true,
@@ -49,8 +49,7 @@ impl Default for CpuExtensions {
 
     #[cfg(target_arch = "aarch64")]
     fn default() -> Self {
-        use std::arch::is_aarch64_feature_detected;
-        if is_aarch64_feature_detected!("neon") {
+        if std::arch::is_aarch64_feature_detected!("neon") {
             Self::Neon
         } else {
             Self::None

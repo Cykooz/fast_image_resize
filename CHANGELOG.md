@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- `is_aarch64_feature_detected()` is used now in
+  the `CpuExtensions::is_supported()` method for `aarch64` architecture.
+
 ## [5.0.0] - 2024-10-03
 
 ### Added
@@ -13,7 +20,7 @@
   These methods have default implementation and are used for multi-thread
   image processing.
 
-## Changed
+### Changed
 
 - **BREAKING**: Added supertraits `Send`, `Sync` and `Sized` to the `ImageView` trait.
 - Optimized convolution algorythm by deleting zero coefficients from start and
