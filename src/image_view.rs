@@ -86,7 +86,7 @@ pub unsafe trait ImageView: Sync + Send + Sized {
         let width = self.width();
         for _ in 0..num_parts {
             top_f += step;
-            let part_height = top_f as u32 - top;
+            let part_height = top_f.round() as u32 - top;
             let image = TypedCroppedImage::from_ref(self, 0, top, width, part_height).unwrap();
             res.push(image);
             top += part_height;
@@ -116,7 +116,7 @@ pub unsafe trait ImageView: Sync + Send + Sized {
         let height = self.height();
         for _ in 0..num_parts {
             right_f += step;
-            let part_width = right_f as u32 - left;
+            let part_width = right_f.round() as u32 - left;
             let image = TypedCroppedImage::from_ref(self, left, 0, part_width, height).unwrap();
             res.push(image);
             left += part_width;
@@ -168,7 +168,7 @@ pub unsafe trait ImageViewMut: ImageView {
         let unsafe_image = UnsafeImageMut::new(self);
         for _ in 0..num_parts {
             top_f += step;
-            let part_height = top_f as u32 - top;
+            let part_height = top_f.round() as u32 - top;
             let image = TypedCroppedImageMut::new(unsafe_image.clone(), 0, top, width, part_height)
                 .unwrap();
             res.push(image);
@@ -200,7 +200,7 @@ pub unsafe trait ImageViewMut: ImageView {
         let unsafe_image = UnsafeImageMut::new(self);
         for _ in 0..num_parts {
             right_f += step;
-            let part_width = right_f as u32 - left;
+            let part_width = right_f.round() as u32 - left;
             let image =
                 TypedCroppedImageMut::new(unsafe_image.clone(), left, 0, part_width, height)
                     .unwrap();

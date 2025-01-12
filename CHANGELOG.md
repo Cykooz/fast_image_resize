@@ -1,3 +1,8 @@
+## Fixed
+
+- Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
+  `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`(#43).
+
 ## [5.1.0] - 2024-12-09
 
 ### Changed

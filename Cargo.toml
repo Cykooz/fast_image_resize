@@ -45,11 +45,11 @@ only_u8x4 = ["testing/only_u8x4"]  # This can be used to experiment with the cra
 fast_image_resize = { path = ".", features = ["for_testing"] }
 resize = { version = "0.8.7", default-features = false, features = ["std"] }
 rgb = "0.8.50"
-png = "0.17.14"
+png = "0.17.16"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_json = "1.0"
 walkdir = "2.5"
-itertools = "0.13.0"
+itertools = "0.14.0"
 criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
 tera = "1.20"
 testing = { path = "testing" }
