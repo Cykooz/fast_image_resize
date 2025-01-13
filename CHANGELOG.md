@@ -1,3 +1,5 @@
+## [Unreleased] - ReleaseDate
+
 ## Fixed
 
 - Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
