@@ -179,7 +179,7 @@ struct MappingTablesGroup {
 /// This structure holds tables for mapping values of pixel's
 /// components in forward and backward directions.
 ///
-/// All pixel types except `I32` and `F32` are supported.
+/// All pixel types except `I32` and `F32xN` are supported.
 ///
 /// Source and destination images may have different bit depth of one
 /// pixel component.

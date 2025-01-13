@@ -63,6 +63,61 @@ nix = { version = "0.29.0", default-features = false, features = ["sched"] }
 libvips = "1.7"
 
 
+[profile.test]
+opt-level = 3
+incremental = true
+
+
+# debug builds for deps
+[profile.dev.package.'*']
+opt-level = 3
+debug = false
+# Strip debug symbols as they are useless with O3 anyway.
+strip = "debuginfo"
+
+
+# debug builds for procmacros
+[profile.dev.build-override]
+opt-level = 2 # reasonable optimization
+codegen-units = 256 # max threading
+# When possible - this is generally scary as some procmacros
+# will fail without any feedback.
+#debug = false
+
+
+# release build for procmacros - same config as debug build for procmacros
+[profile.release.build-override]
+opt-level = 2
+debug = false # when possible
+
+
+[profile.release]
+opt-level = 3
+incremental = true
+#lto = true
+#codegen-units = 1
+strip = true
+
+
+#[profile.release.package.fast_image_resize]
+#codegen-units = 1
+
+
+[profile.release.package.image]
+codegen-units = 1
+
+
+[profile.release.package.resize]
+codegen-units = 1
+
+
+[package.metadata.release]
+pre-release-replacements = [
+    { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
+    { file = "CHANGELOG.md", search = "ReleaseDate", replace = "{{date}}" }
+]
+
+
 [[bench]]
 name = "bench_resize"
 harness = false
@@ -132,64 +187,11 @@ harness = false
 name = "bench_compare_la32f"
 harness = false
 
+
 [[bench]]
 name = "bench_color_mapper"
 harness = false
 
-
-[profile.test]
-opt-level = 3
-incremental = true
-
-
-# debug builds for deps
-[profile.dev.package.'*']
-opt-level = 3
-debug = false
-# Strip debug symbols as they are useless with O3 anyway.
-strip = "debuginfo"
-
-
-# debug builds for procmacros
-[profile.dev.build-override]
-opt-level = 2 # reasonable optimization
-codegen-units = 256 # max threading
-# When possible - this is generally scary as some procmacros
-# will fail without any feedback.
-#debug = false
-
-
-# release build for procmacros - same config as debug build for procmacros
-[profile.release.build-override]
-opt-level = 2
-debug = false # when possible
-
-
-[profile.release]
-opt-level = 3
-incremental = true
-#lto = true
-#codegen-units = 1
-strip = true
-
-
-#[profile.release.package.fast_image_resize]
-#codegen-units = 1
-
-
-[profile.release.package.image]
-codegen-units = 1
-
-
-[profile.release.package.resize]
-codegen-units = 1
-
-
-[package.metadata.release]
-pre-release-replacements = [
-    { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
-    { file = "CHANGELOG.md", search = "ReleaseDate", replace = "{{date}}" }
-]
 
 # Header of next release in CHANGELOG.md:
 #   ## [Unreleased] - ReleaseDate

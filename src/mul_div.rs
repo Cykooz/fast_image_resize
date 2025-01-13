@@ -4,9 +4,9 @@ use crate::pixels::{F32x2, F32x4, U16x2, U16x4, U8x2, U8x4};
 use crate::{ImageError, ImageView, MulDivImagesError, PixelTrait, PixelType};
 
 /// Methods of this structure used to multiply or divide color-channels (RGB or Luma)
-/// by alpha-channel. Supported pixel types: U8x2, U8x4, U16x2 and U16x4.
+/// by alpha-channel. Supported pixel types: U8x2, U8x4, U16x2, U16x4, F32x2 and F32x4.
 ///
-/// By default, instance of `MulDiv` created with best CPU-extensions provided by your CPU.
+/// By default, the instance of `MulDiv` created with the best CPU-extension provided by your CPU.
 /// You can change this by using method [MulDiv::set_cpu_extensions].
 ///
 /// # Examples
