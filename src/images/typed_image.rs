@@ -107,7 +107,7 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
         let mut remains_pixels = self.pixels.split_at(top as usize * row_size).1;
         for _ in 0..num_parts {
             bottom_f += step;
-            let height = bottom_f as u32 - top;
+            let height = bottom_f.round() as u32 - top;
             let parts = remains_pixels.split_at(height as usize * row_size);
             let image = TypedImageRef::new(self.width, height, parts.0).unwrap();
             res.push(image);
