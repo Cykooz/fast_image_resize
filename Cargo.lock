@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "fast_image_resize"
-version = "5.1.1"
+version = "5.1.2"
 dependencies = [
  "bytemuck",
  "cfg-if",
