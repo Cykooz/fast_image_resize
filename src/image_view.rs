@@ -80,13 +80,16 @@ pub unsafe trait ImageView: Sync + Send + Sized {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = height as f32 / num_parts as f32;
+        let step = height / num_parts;
+        let mut modulo = height % num_parts;
         let mut top = start_row;
-        let mut top_f = start_row as f32;
         let width = self.width();
         for _ in 0..num_parts {
-            top_f += step;
-            let part_height = top_f.round() as u32 - top;
+            let mut part_height = step;
+            if modulo > 0 {
+                part_height += 1;
+                modulo -= 1;
+            }
             let image = TypedCroppedImage::from_ref(self, 0, top, width, part_height).unwrap();
             res.push(image);
             top += part_height;
@@ -110,13 +113,16 @@ pub unsafe trait ImageView: Sync + Send + Sized {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = width as f32 / num_parts as f32;
+        let step = width / num_parts;
+        let mut modulo = width % num_parts;
         let mut left = start_col;
-        let mut right_f = start_col as f32;
         let height = self.height();
         for _ in 0..num_parts {
-            right_f += step;
-            let part_width = right_f.round() as u32 - left;
+            let mut part_width = step;
+            if modulo > 0 {
+                part_width += 1;
+                modulo -= 1;
+            }
             let image = TypedCroppedImage::from_ref(self, left, 0, part_width, height).unwrap();
             res.push(image);
             left += part_width;
@@ -161,14 +167,17 @@ pub unsafe trait ImageViewMut: ImageView {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = height as f32 / num_parts as f32;
+        let step = height / num_parts;
+        let mut modulo = height % num_parts;
         let mut top = start_row;
-        let mut top_f = start_row as f32;
         let width = self.width();
         let unsafe_image = UnsafeImageMut::new(self);
         for _ in 0..num_parts {
-            top_f += step;
-            let part_height = top_f.round() as u32 - top;
+            let mut part_height = step;
+            if modulo > 0 {
+                part_height += 1;
+                modulo -= 1;
+            }
             let image = TypedCroppedImageMut::new(unsafe_image.clone(), 0, top, width, part_height)
                 .unwrap();
             res.push(image);
@@ -193,14 +202,17 @@ pub unsafe trait ImageViewMut: ImageView {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = width as f32 / num_parts as f32;
+        let step = width / num_parts;
+        let mut modulo = width % num_parts;
         let mut left = start_col;
-        let mut right_f = start_col as f32;
         let height = self.height();
         let unsafe_image = UnsafeImageMut::new(self);
         for _ in 0..num_parts {
-            right_f += step;
-            let part_width = right_f.round() as u32 - left;
+            let mut part_width = step;
+            if modulo > 0 {
+                part_width += 1;
+                modulo -= 1;
+            }
             let image =
                 TypedCroppedImageMut::new(unsafe_image.clone(), left, 0, part_width, height)
                     .unwrap();

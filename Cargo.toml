@@ -23,10 +23,10 @@ exclude = ["/data"]
 cfg-if = "1.0"
 num-traits = "0.2.19"
 thiserror = "1.0"
-document-features = "0.2.10"
+document-features = "0.2.11"
 # Optional dependencies
 image = { version = "0.25.5", optional = true, default-features = false }
-bytemuck = { version = "1.20", optional = true }
+bytemuck = { version = "1.21", optional = true }
 rayon = { version = "1.10", optional = true }
 
 [features]
@@ -43,7 +43,7 @@ only_u8x4 = ["testing/only_u8x4"]  # This can be used to experiment with the cra
 
 [dev-dependencies]
 fast_image_resize = { path = ".", features = ["for_testing"] }
-resize = { version = "0.8.7", default-features = false, features = ["std"] }
+resize = { version = "0.8.8", default-features = false, features = ["std"] }
 rgb = "0.8.50"
 png = "0.17.16"
 serde = { version = "1.0", features = ["serde_derive"] }
@@ -64,25 +64,13 @@ libvips = "1.7"
 
 
 [profile.test]
-opt-level = 3
+opt-level = 1
 incremental = true
 
 
 # debug builds for deps
 [profile.dev.package.'*']
 opt-level = 3
-debug = false
-# Strip debug symbols as they are useless with O3 anyway.
-strip = "debuginfo"
-
-
-# debug builds for procmacros
-[profile.dev.build-override]
-opt-level = 2 # reasonable optimization
-codegen-units = 256 # max threading
-# When possible - this is generally scary as some procmacros
-# will fail without any feedback.
-#debug = false
 
 
 # release build for procmacros - same config as debug build for procmacros

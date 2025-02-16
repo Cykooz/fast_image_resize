@@ -100,19 +100,22 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = height as f32 / num_parts as f32;
-        let row_size = self.width as usize;
+        let step = height / num_parts;
+        let mut modulo = height % num_parts;
         let mut top = start_row;
-        let mut bottom_f = start_row as f32;
+        let row_size = self.width as usize;
         let mut remains_pixels = self.pixels.split_at(top as usize * row_size).1;
         for _ in 0..num_parts {
-            bottom_f += step;
-            let height = bottom_f.round() as u32 - top;
-            let parts = remains_pixels.split_at(height as usize * row_size);
-            let image = TypedImageRef::new(self.width, height, parts.0).unwrap();
+            let mut part_height = step;
+            if modulo > 0 {
+                part_height += 1;
+                modulo -= 1;
+            }
+            let parts = remains_pixels.split_at(part_height as usize * row_size);
+            let image = TypedImageRef::new(self.width, part_height, parts.0).unwrap();
             res.push(image);
             remains_pixels = parts.1;
-            top += height;
+            top += part_height;
         }
         Some(res)
     }
@@ -226,19 +229,22 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = height as f32 / num_parts as f32;
-        let row_size = self.width as usize;
+        let step = height / num_parts;
+        let mut modulo = height % num_parts;
         let mut top = start_row;
-        let mut bottom_f = start_row as f32;
+        let row_size = self.width as usize;
         let mut remains_pixels = self.pixels.borrow().split_at(top as usize * row_size).1;
         for _ in 0..num_parts {
-            bottom_f += step;
-            let height = bottom_f.round() as u32 - top;
-            let parts = remains_pixels.split_at(height as usize * row_size);
-            let image = TypedImageRef::new(self.width, height, parts.0).unwrap();
+            let mut part_height = step;
+            if modulo > 0 {
+                part_height += 1;
+                modulo -= 1;
+            }
+            let parts = remains_pixels.split_at(part_height as usize * row_size);
+            let image = TypedImageRef::new(self.width, part_height, parts.0).unwrap();
             res.push(image);
             remains_pixels = parts.1;
-            top += height;
+            top += part_height;
         }
         debug_assert!(top - start_row == height);
         Some(res)
@@ -272,23 +278,26 @@ unsafe impl<'a, P: InnerPixel> ImageViewMut for TypedImage<'a, P> {
             return None;
         }
         let mut res = Vec::with_capacity(num_parts as usize);
-        let step = height as f32 / num_parts as f32;
-        let row_size = self.width as usize;
+        let step = height / num_parts;
+        let mut modulo = height % num_parts;
         let mut top = start_row;
-        let mut bottom_f = start_row as f32;
+        let row_size = self.width as usize;
         let mut remains_pixels = self
             .pixels
             .borrow_mut()
             .split_at_mut(top as usize * row_size)
             .1;
         for _ in 0..num_parts {
-            bottom_f += step;
-            let height = bottom_f.round() as u32 - top;
-            let parts = remains_pixels.split_at_mut(height as usize * row_size);
-            let image = TypedImage::from_pixels_slice(self.width, height, parts.0).unwrap();
+            let mut part_height = step;
+            if modulo > 0 {
+                part_height += 1;
+                modulo -= 1;
+            }
+            let parts = remains_pixels.split_at_mut(part_height as usize * row_size);
+            let image = TypedImage::from_pixels_slice(self.width, part_height, parts.0).unwrap();
             res.push(image);
             remains_pixels = parts.1;
-            top += height;
+            top += part_height;
         }
         debug_assert!(top - start_row == height);
         Some(res)

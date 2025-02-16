@@ -1043,3 +1043,27 @@ mod u8x4 {
         }
     }
 }
+
+#[cfg(feature = "rayon")]
+#[test]
+fn split_image_on_different_number_of_parts() {
+    let src_image = Image::new(2176, 4608, PixelType::U8x4);
+    let mut dst_image = Image::new(582, 552, src_image.pixel_type());
+    let options = ResizeOptions::new()
+        .use_alpha(false)
+        .resize_alg(ResizeAlg::Convolution(FilterType::Box))
+        .crop(740.0, 1645.2, 58.200000000000045, 55.299999999999955);
+
+    for num in 2..32 {
+        let mut builder = rayon::ThreadPoolBuilder::new();
+        builder = builder.num_threads(num);
+        let pool = builder.build().unwrap();
+
+        pool.install(|| {
+            let mut resizer = Resizer::new();
+            resizer
+                .resize(&src_image, &mut dst_image, &options)
+                .expect("resize failed with {num} threads");
+        });
+    }
+}

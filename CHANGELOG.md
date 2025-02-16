@@ -1,9 +1,18 @@
+## [Unreleased] - ReleaseDate
+
+## Fixed
+
+- Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
+  `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`
+  ([#46](https://github.com/Cykooz/fast_image_resize/issues/46)).
+
 ## [5.1.1] - 2025-01-13
 
 ## Fixed
 
 - Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
-  `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`(#43).
+  `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`
+  ([#43](https://github.com/Cykooz/fast_image_resize/issues/43)).
 
 ## [5.1.0] - 2024-12-09
 
