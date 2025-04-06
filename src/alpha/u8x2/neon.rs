@@ -36,13 +36,13 @@ unsafe fn multiply_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
     foreach_with_pre_reading(
         src_dst,
         |(src, dst)| {
-            let pixels = neon_utils::load_deintrel_u8x16x2(src, 0);
+            let pixels = neon_utils::load_deintrel_u8x16x4(src, 0);
             let dst_ptr = dst.as_mut_ptr() as *mut u8;
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
             pixels = multiplies_alpha_32_pixels(pixels);
-            vst2q_u8(dst_ptr, pixels);
+            vst4q_u8(dst_ptr, pixels);
         },
     );
 
@@ -82,19 +82,19 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U8x2]) {
     foreach_with_pre_reading(
         &mut chunks,
         |chunk| {
-            let pixels = neon_utils::load_deintrel_u8x16x2(chunk, 0);
+            let pixels = neon_utils::load_deintrel_u8x16x4(chunk, 0);
             let dst_ptr = chunk.as_mut_ptr() as *mut u8;
             (pixels, dst_ptr)
         },
         |(mut pixels, dst_ptr)| {
             pixels = multiplies_alpha_32_pixels(pixels);
-            vst2q_u8(dst_ptr, pixels);
+            vst4q_u8(dst_ptr, pixels);
         },
     );
 
     let reminder = chunks.into_remainder();
     let mut chunks = reminder.chunks_exact_mut(16);
-    for chunk in &mut chunks {
+    if let Some(chunk) = chunks.next() {
         let mut pixels = neon_utils::load_deintrel_u8x8x4(chunk, 0);
         pixels = multiplies_alpha_16_pixels(pixels);
         let chunk_ptr = chunk.as_mut_ptr() as *mut u8;
@@ -103,7 +103,7 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U8x2]) {
 
     let reminder = chunks.into_remainder();
     let mut chunks = reminder.chunks_exact_mut(8);
-    for chunk in &mut chunks {
+    if let Some(chunk) = chunks.next() {
         let mut pixels = neon_utils::load_deintrel_u8x8x2(chunk, 0);
         pixels = multiplies_alpha_8_pixels(pixels);
         let chunk_ptr = chunk.as_mut_ptr() as *mut u8;
@@ -116,31 +116,20 @@ unsafe fn multiply_alpha_row_inplace(row: &mut [U8x2]) {
     }
 }
 
-// #[inline(always)]
-// unsafe fn multiplies_alpha_64_pixels(mut pixels: uint8x16x4_t) -> uint8x16x4_t {
-//     let zero_u8x16 = vdupq_n_u8(0);
-//     let alpha_u16 = uint16x8x2_t(
-//         vreinterpretq_u16_u8(vzip1q_u8(pixels.1, zero_u8x16)),
-//         vreinterpretq_u16_u8(vzip2q_u8(pixels.1, zero_u8x16)),
-//     );
-//     pixels.0 = neon_utils::mul_color_to_alpha_u8x16(pixels.0, alpha_u16, zero_u8x16);
-
-//     let alpha_u16 = uint16x8x2_t(
-//         vreinterpretq_u16_u8(vzip1q_u8(pixels.3, zero_u8x16)),
-//         vreinterpretq_u16_u8(vzip2q_u8(pixels.3, zero_u8x16)),
-//     );
-//     pixels.2 = neon_utils::mul_color_to_alpha_u8x16(pixels.2, alpha_u16, zero_u8x16);
-//     pixels
-// }
-
 #[inline(always)]
-unsafe fn multiplies_alpha_32_pixels(mut pixels: uint8x16x2_t) -> uint8x16x2_t {
+unsafe fn multiplies_alpha_32_pixels(mut pixels: uint8x16x4_t) -> uint8x16x4_t {
     let zero_u8x16 = vdupq_n_u8(0);
     let alpha_u16 = uint16x8x2_t(
         vreinterpretq_u16_u8(vzip1q_u8(pixels.1, zero_u8x16)),
         vreinterpretq_u16_u8(vzip2q_u8(pixels.1, zero_u8x16)),
     );
     pixels.0 = neon_utils::mul_color_to_alpha_u8x16(pixels.0, alpha_u16, zero_u8x16);
+
+    let alpha_u16 = uint16x8x2_t(
+        vreinterpretq_u16_u8(vzip1q_u8(pixels.3, zero_u8x16)),
+        vreinterpretq_u16_u8(vzip2q_u8(pixels.3, zero_u8x16)),
+    );
+    pixels.2 = neon_utils::mul_color_to_alpha_u8x16(pixels.2, alpha_u16, zero_u8x16);
     pixels
 }
 

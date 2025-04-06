@@ -23,78 +23,80 @@ fn mul_div_alpha_test<P: PixelTrait>(
         return;
     }
 
-    let width: u32 = 8 + 8 + 7;
     let height: u32 = 3;
+    for width in [1, 9, 17, 25, 33, 41, 49, 57, 65] {
+        let src_size = width as usize * height as usize;
+        let src_pixels: Vec<P> = src_pixels_tpl
+            .iter()
+            .copied()
+            .cycle()
+            .take(src_size)
+            .collect();
+        let mut dst_pixels = src_pixels.clone();
 
-    let src_size = width as usize * height as usize;
-    let src_pixels: Vec<P> = src_pixels_tpl
-        .iter()
-        .copied()
-        .cycle()
-        .take(src_size)
-        .collect();
-    let mut dst_pixels = src_pixels.clone();
+        let src_image = TypedImageRef::new(width, height, &src_pixels).unwrap();
+        let mut dst_image = TypedImage::from_pixels_slice(width, height, &mut dst_pixels).unwrap();
 
-    let src_image = TypedImageRef::new(width, height, &src_pixels).unwrap();
-    let mut dst_image = TypedImage::from_pixels_slice(width, height, &mut dst_pixels).unwrap();
+        let mut alpha_mul_div: MulDiv = Default::default();
+        unsafe {
+            alpha_mul_div.set_cpu_extensions(cpu_extensions);
+        }
 
-    let mut alpha_mul_div: MulDiv = Default::default();
-    unsafe {
-        alpha_mul_div.set_cpu_extensions(cpu_extensions);
-    }
+        match oper {
+            Oper::Mul => alpha_mul_div
+                .multiply_alpha_typed(&src_image, &mut dst_image)
+                .unwrap(),
+            Oper::Div => alpha_mul_div
+                .divide_alpha_typed(&src_image, &mut dst_image)
+                .unwrap(),
+        }
 
-    match oper {
-        Oper::Mul => alpha_mul_div
-            .multiply_alpha_typed(&src_image, &mut dst_image)
-            .unwrap(),
-        Oper::Div => alpha_mul_div
-            .divide_alpha_typed(&src_image, &mut dst_image)
-            .unwrap(),
-    }
+        let oper_str = if oper == Oper::Mul {
+            "multiple"
+        } else {
+            "divide"
+        };
 
-    let oper_str = if oper == Oper::Mul {
-        "multiple"
-    } else {
-        "divide"
-    };
+        let cpu_ext_str = cpu_ext_into_str(cpu_extensions);
+        let expected_pixels: Vec<P> = expected_pixels_tpl
+            .iter()
+            .copied()
+            .cycle()
+            .take(src_size)
+            .collect();
+        for ((s, r), e) in src_pixels
+            .iter()
+            .zip(dst_pixels)
+            .zip(expected_pixels.iter())
+        {
+            assert_eq!(
+                r, *e,
+                "failed test for {oper_str} alpha with '{cpu_ext_str}' CPU extensions \
+                and image width {width}: src={s:?}, result={r:?}, expected_result={e:?}",
+            );
+        }
 
-    let cpu_ext_str = cpu_ext_into_str(cpu_extensions);
-    let expected_pixels: Vec<P> = expected_pixels_tpl
-        .iter()
-        .copied()
-        .cycle()
-        .take(src_size)
-        .collect();
-    for ((s, r), e) in src_pixels
-        .iter()
-        .zip(dst_pixels)
-        .zip(expected_pixels.iter())
-    {
-        assert_eq!(
-            r, *e,
-            "failed test for {oper_str} alpha with '{cpu_ext_str}' CPU extensions: \
-            src={s:?}, result={r:?}, expected_result={e:?}",
-        );
-    }
+        // Inplace
+        let mut src_pixels_clone = src_pixels.clone();
+        let mut image =
+            TypedImage::from_pixels_slice(width, height, &mut src_pixels_clone).unwrap();
 
-    // Inplace
-    let mut src_pixels_clone = src_pixels.clone();
-    let mut image = TypedImage::from_pixels_slice(width, height, &mut src_pixels_clone).unwrap();
+        match oper {
+            Oper::Mul => alpha_mul_div
+                .multiply_alpha_inplace_typed(&mut image)
+                .unwrap(),
+            Oper::Div => alpha_mul_div
+                .divide_alpha_inplace_typed(&mut image)
+                .unwrap(),
+        }
 
-    match oper {
-        Oper::Mul => alpha_mul_div
-            .multiply_alpha_inplace_typed(&mut image)
-            .unwrap(),
-        Oper::Div => alpha_mul_div
-            .divide_alpha_inplace_typed(&mut image)
-            .unwrap(),
-    }
-
-    for ((s, r), e) in src_pixels.iter().zip(src_pixels_clone).zip(expected_pixels) {
-        assert_eq!(
-            r, e,
-            "failed inplace test for {oper_str} alpha: src={s:?}, result={r:?}, expected_result={e:?}",
-        );
+        for ((s, r), e) in src_pixels.iter().zip(src_pixels_clone).zip(expected_pixels) {
+            assert_eq!(
+                r, e,
+                "failed inplace test for {oper_str} alpha with '{cpu_ext_str}' CPU extensions \
+                and image width {width}: src={s:?}, result={r:?}, expected_result={e:?}",
+            );
+        }
     }
 }
 

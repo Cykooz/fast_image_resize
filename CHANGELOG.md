@@ -1,3 +1,11 @@
+## [Unreleased] - ReleaseDate
+
+## Fixed
+
+- Fixed error in `NEON` implementation of `MulDiv::multiply_alpha()` and
+  `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels
+  ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
+
 ## [4.2.1] - 2024-07-24
 
 ### Fixed
