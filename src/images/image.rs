@@ -149,7 +149,7 @@ impl Image<'static> {
 }
 
 impl<'a> Image<'a> {
-    /// Create an image with from slice with pixels data.
+    /// Create an image from slice with pixels data.
     pub fn from_slice_u8(
         width: u32,
         height: u32,
