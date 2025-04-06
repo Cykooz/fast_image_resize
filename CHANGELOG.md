@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [4.2.2] - 2025-04-06
 
 ## Fixed
 
