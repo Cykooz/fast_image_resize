@@ -1,8 +1,7 @@
+use fast_image_resize::pixels::U16;
 use resize::Pixel::Gray16;
 use rgb::FromSlice;
-
-use fast_image_resize::pixels::U16;
-use testing::PixelTestingExt;
+use utils::testing::PixelTestingExt;
 
 mod utils;
 

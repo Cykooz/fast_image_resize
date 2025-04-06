@@ -1,10 +1,7 @@
-use num_traits::ToBytes;
-
 use fast_image_resize::images::Image;
-use fast_image_resize::CpuExtensions;
-use fast_image_resize::MulDiv;
-use fast_image_resize::PixelType;
-use testing::cpu_ext_into_str;
+use fast_image_resize::{CpuExtensions, MulDiv, PixelType};
+use num_traits::ToBytes;
+use utils::testing::cpu_ext_into_str;
 
 mod utils;
 

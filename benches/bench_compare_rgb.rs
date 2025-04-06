@@ -1,8 +1,7 @@
+use fast_image_resize::pixels::U8x3;
 use resize::Pixel::RGB8;
 use rgb::FromSlice;
-
-use fast_image_resize::pixels::U8x3;
-use testing::PixelTestingExt;
+use utils::testing::PixelTestingExt;
 
 mod utils;
 

@@ -3,6 +3,8 @@ use fast_image_resize::pixels::U8;
 use fast_image_resize::{ImageView, ImageViewMut};
 use testing::non_zero_u32;
 
+mod testing;
+
 mod split_by_width {
     use super::*;
     use fast_image_resize::images::{TypedCroppedImage, TypedImageRef};

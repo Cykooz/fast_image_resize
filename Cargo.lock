@@ -582,7 +582,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tera",
- "testing",
  "thiserror 1.0.69",
  "walkdir",
 ]
@@ -1589,14 +1588,6 @@ dependencies = [
  "serde_json",
  "slug",
  "unic-segment",
-]
-
-[[package]]
-name = "testing"
-version = "0.1.0"
-dependencies = [
- "fast_image_resize",
- "image",
 ]
 
 [[package]]

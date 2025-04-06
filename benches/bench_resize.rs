@@ -1,8 +1,7 @@
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
-use fast_image_resize::ResizeOptions;
-use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, Resizer};
-use testing::{cpu_ext_into_str, PixelTestingExt};
+use fast_image_resize::{CpuExtensions, FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer};
+use utils::testing::{cpu_ext_into_str, PixelTestingExt};
 
 mod utils;
 

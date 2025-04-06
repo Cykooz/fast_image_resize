@@ -1,9 +1,8 @@
 use fast_image_resize::create_srgb_mapper;
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::U8x3;
-use testing::PixelTestingExt;
-
-use crate::utils::pin_process_to_cpu0;
+use utils::pin_process_to_cpu0;
+use utils::testing::PixelTestingExt;
 
 mod utils;
 

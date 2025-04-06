@@ -2,15 +2,15 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use serde::Deserialize;
-
 pub use bencher::*;
 pub use resize_functions::*;
 pub use results::*;
+use serde::Deserialize;
 
 mod bencher;
 mod resize_functions;
 mod results;
+pub mod testing;
 
 const fn get_arch_id_and_name() -> (&'static str, &'static str) {
     #[cfg(target_arch = "x86_64")]

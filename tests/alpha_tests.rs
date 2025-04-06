@@ -1,6 +1,7 @@
 use fast_image_resize::images::{Image, TypedImage, TypedImageRef};
 use fast_image_resize::{CpuExtensions, MulDiv, PixelTrait};
 use testing::{cpu_ext_into_str, PixelTestingExt};
+mod testing;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Oper {

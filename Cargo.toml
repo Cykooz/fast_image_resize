@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "testing",
     "resizer",
 ]
 
@@ -16,7 +15,7 @@ readme = "README.md"
 keywords = ["image", "resize"]
 repository = "https://github.com/cykooz/fast_image_resize"
 documentation = "https://docs.rs/crate/fast_image_resize"
-exclude = ["/data"]
+exclude = ["/data", "/.github"]
 
 
 [dependencies]
@@ -29,6 +28,7 @@ image = { version = "0.25.5", optional = true, default-features = false }
 bytemuck = { version = "1.21", optional = true }
 rayon = { version = "1.10", optional = true }
 
+
 [features]
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
@@ -36,9 +36,9 @@ rayon = { version = "1.10", optional = true }
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
 ## This feature enables image processing in `rayon` thread pool.
-rayon = ["dep:rayon", "resize/rayon", "image/rayon", "testing/rayon"]
-for_testing = ["image"]
-only_u8x4 = ["testing/only_u8x4"]  # This can be used to experiment with the crate's code.
+rayon = ["dep:rayon", "resize/rayon", "image/rayon"]
+for_testing = ["image", "image/png"]
+only_u8x4 = []  # This can be used to experiment with the crate's code.
 
 
 [dev-dependencies]
@@ -52,7 +52,6 @@ walkdir = "2.5"
 itertools = "0.14.0"
 criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
 tera = "1.20"
-testing = { path = "testing" }
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]

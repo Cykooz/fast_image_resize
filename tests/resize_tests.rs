@@ -9,6 +9,8 @@ use fast_image_resize::{
 };
 use testing::{cpu_ext_into_str, image_checksum, save_result, PixelTestingExt};
 
+mod testing;
+
 fn get_new_height(src_image: &impl IntoImageView, new_width: u32) -> u32 {
     let scale = new_width as f32 / src_image.width() as f32;
     (src_image.height() as f32 * scale).round() as u32

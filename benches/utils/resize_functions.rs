@@ -1,13 +1,12 @@
 use std::ops::Deref;
 
 use criterion::black_box;
-use image::{imageops, ImageBuffer};
-
 use fast_image_resize::images::Image;
 use fast_image_resize::{CpuExtensions, FilterType, ResizeAlg, ResizeOptions, Resizer};
-use testing::{cpu_ext_into_str, PixelTestingExt};
+use image::{imageops, ImageBuffer};
 
-use crate::utils::bencher::{bench, BenchGroup};
+use super::bencher::{bench, BenchGroup};
+use super::testing::{cpu_ext_into_str, PixelTestingExt};
 
 const ALG_NAMES: [&str; 5] = ["Nearest", "Box", "Bilinear", "Bicubic", "Lanczos3"];
 const NEW_WIDTH: u32 = 852;

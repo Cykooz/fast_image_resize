@@ -1,8 +1,7 @@
+use fast_image_resize::pixels::F32;
 use resize::Pixel::GrayF32;
 use rgb::FromSlice;
-
-use fast_image_resize::pixels::F32;
-use testing::PixelTestingExt;
+use utils::testing::PixelTestingExt;
 
 mod utils;
 

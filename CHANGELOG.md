@@ -5,6 +5,8 @@
 - Fixed error in `NEON` implementation of `MulDiv::multiply_alpha()` and
   `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels
   ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
+- Replaced the internal crate `testing` on the corresponding module in the `tests` directory
+  ([#48](https://github.com/Cykooz/fast_image_resize/issues/48)).
 
 ## [5.1.2] - 2025-02-16
 
