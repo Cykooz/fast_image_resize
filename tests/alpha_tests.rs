@@ -329,6 +329,7 @@ mod u16_tests {
             new_case_16(0xffff, 0, 0),
             new_case_16(0x8000, 0, 0),
             new_case_16(0, 0, 0),
+            new_case_16(0xffff, 0xc0c0, 0xffff),
         ];
         let mut scr_pixels = vec![];
         let mut expected_pixels = vec![];
@@ -455,6 +456,8 @@ mod f32_tests {
             new_case_f32(1., 0., 0.),
             new_case_f32(0.5, 0., 0.),
             new_case_f32(0., 0., 0.),
+            // f32 can afford to have a value greater than 1.0
+            new_case_f32(1., 0.7, 1. / 0.7),
         ];
         let mut scr_pixels = vec![];
         let mut expected_pixels = vec![];

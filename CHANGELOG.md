@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed dividing image by alpha channel for images with `U16x2` pixels.
+
 ## [4.2.2] - 2025-04-06
 
 ## Fixed

@@ -1,10 +1,9 @@
 use std::arch::x86_64::*;
 
+use super::sse4;
 use crate::pixels::U16x4;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
-
-use super::sse4;
 
 #[target_feature(enable = "avx2")]
 pub(crate) unsafe fn multiply_alpha(
@@ -238,6 +237,7 @@ unsafe fn divide_alpha_4_pixels(pixels: __m256i) -> __m256i {
     let divided_pix0_i32x8 = _mm256_cvtps_epi32(_mm256_div_ps(scaled_pix0_f32x8, alpha0_f32x8));
     let divided_pix1_i32x8 = _mm256_cvtps_epi32(_mm256_div_ps(scaled_pix1_f32x8, alpha1_f32x8));
 
+    // All negative values will be stored as 0.
     let two_pixels_i16x16 = _mm256_packus_epi32(divided_pix0_i32x8, divided_pix1_i32x8);
     let alpha = _mm256_and_si256(pixels, alpha_mask);
     _mm256_blendv_epi8(two_pixels_i16x16, alpha, alpha_mask)
