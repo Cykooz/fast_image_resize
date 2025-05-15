@@ -3,12 +3,10 @@ use std::io::BufReader;
 use std::num::NonZeroU32;
 use std::ops::Deref;
 
-use image::ImageReader;
-use image::{ColorType, ExtendedColorType, ImageBuffer};
-
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
 use fast_image_resize::{change_type_of_pixel_components, CpuExtensions, PixelTrait, PixelType};
+use image::{ColorType, ExtendedColorType, ImageBuffer, ImageReader};
 
 pub fn non_zero_u32(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()

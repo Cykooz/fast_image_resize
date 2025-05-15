@@ -858,9 +858,10 @@ mod not_u8x4 {
 }
 
 mod u8x4 {
+    use std::f64::consts::PI;
+
     use fast_image_resize::ResizeError;
     use image::ImageReader;
-    use std::f64::consts::PI;
 
     use super::*;
 

@@ -1,6 +1,12 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed dividing image by alpha channel for images with `U16x2` pixels.
+
 ## [5.1.3] - 2025-04-06
 
-## Fixed
+### Fixed
 
 - Fixed error in `NEON` implementation of `MulDiv::multiply_alpha()` and
   `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels
@@ -10,7 +16,7 @@
 
 ## [5.1.2] - 2025-02-16
 
-## Fixed
+### Fixed
 
 - Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
   `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`
@@ -18,7 +24,7 @@
 
 ## [5.1.1] - 2025-01-13
 
-## Fixed
+### Fixed
 
 - Fixed error in implementation of `ImageView::split_by_width()`, `ImageView::split_by_height()`,
   `ImageViewMut::split_by_width_mut()` and `ImageViewMut::split_by_height_mut()`

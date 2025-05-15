@@ -3,13 +3,12 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use image::{ColorType, ImageReader};
-use log::debug;
-use once_cell::sync::Lazy;
-
 use fast_image_resize as fr;
 use fast_image_resize::images::Image;
 use fast_image_resize::ResizeOptions;
+use image::{ColorType, ImageReader};
+use log::debug;
+use once_cell::sync::Lazy;
 
 mod structs;
 
