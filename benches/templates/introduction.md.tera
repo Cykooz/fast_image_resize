@@ -8,18 +8,18 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 4000 MHz
 {% endif -%}
-- Ubuntu 24.04 (linux 6.8.0)
-- Rust 1.81.0
+- Ubuntu 24.04 (linux 6.11.0)
+- Rust 1.87.0
 - criterion = "0.5.1"
-- fast_image_resize = "5.0.0"
+- fast_image_resize = "5.1.4"
 {% if arch_id == "wasm32" -%}
-- wasmtime = "25.0.1"
+- wasmtime = "32.0.0"
 {% endif %}
 
 Other libraries used to compare of resizing speed:
 
-- image = "0.25.2" (<https://crates.io/crates/image>)
-- resize = "0.8.7" (<https://crates.io/crates/resize>, single-threaded mode)
+- image = "0.25.6" (<https://crates.io/crates/image>)
+- resize = "0.8.8" (<https://crates.io/crates/resize>, single-threaded mode)
 {% if arch_id != "wasm32" -%}
 - libvips = "8.15.1" (single-threaded mode)
 {% endif %}
