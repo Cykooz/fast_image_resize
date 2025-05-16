@@ -221,7 +221,6 @@ unsafe fn divide_alpha_8_pixels(pixels: __m256i) -> __m256i {
     let divided_luma_f32x8 = _mm256_div_ps(scaled_luma_f32x8, alpha_f32x8);
     let mut divided_luma_i32x8 = _mm256_cvtps_epi32(divided_luma_f32x8);
     // Clamp result to [0..0xffff]
-    divided_luma_i32x8 = _mm256_max_epi32(divided_luma_i32x8, _mm256_setzero_si256());
     divided_luma_i32x8 = _mm256_min_epi32(divided_luma_i32x8, luma_mask);
 
     let alpha = _mm256_and_si256(pixels, alpha_mask);

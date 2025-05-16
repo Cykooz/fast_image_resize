@@ -211,7 +211,6 @@ unsafe fn divide_alpha_4_pixels(pixels: __m128i) -> __m128i {
     let scaled_luma_f32x4 = _mm_mul_ps(luma_f32x4, alpha_max);
     let mut divided_luma_i32x4 = _mm_cvtps_epi32(_mm_div_ps(scaled_luma_f32x4, alpha_f32x4));
     // Clamp result to [0..0xffff]
-    divided_luma_i32x4 = _mm_max_epi32(divided_luma_i32x4, _mm_setzero_si128());
     divided_luma_i32x4 = _mm_min_epi32(divided_luma_i32x4, luma_mask);
 
     let alpha = _mm_and_si128(pixels, alpha_mask);
