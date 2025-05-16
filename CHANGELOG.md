@@ -2,7 +2,7 @@
 
 ### Fixed
 
-- Fixed `SSE4.1` and `AVX2` implementation fo dividing image by
+- Fixed `SSE4.1` and `AVX2` implementation for dividing image by
   alpha channel for images with `U16x2` pixels.
 - Fixed `NEON` implementation for dividing image by
   alpha channel for images with `U16x2` and `U16x4` pixels .
