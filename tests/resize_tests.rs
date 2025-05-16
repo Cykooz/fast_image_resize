@@ -1,14 +1,13 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
-use image::io::Reader as ImageReader;
-
 use fast_image_resize::images::{Image, TypedImage, TypedImageRef};
 use fast_image_resize::pixels::*;
 use fast_image_resize::{
     testing as fr_testing, CpuExtensions, CropBoxError, Filter, FilterType, IntoImageView,
     PixelTrait, PixelType, ResizeAlg, ResizeError, ResizeOptions, Resizer,
 };
+use image::ImageReader;
 use testing::{cpu_ext_into_str, image_checksum, save_result, PixelTestingExt};
 
 fn get_new_height(src_image: &impl IntoImageView, new_width: u32) -> u32 {

@@ -3,12 +3,10 @@ use std::io::BufReader;
 use std::num::NonZeroU32;
 use std::ops::Deref;
 
-use image::io::{Reader as ImageReader, Reader};
-use image::{ColorType, ExtendedColorType, ImageBuffer};
-
 use fast_image_resize::images::Image;
 use fast_image_resize::pixels::*;
 use fast_image_resize::{change_type_of_pixel_components, CpuExtensions, PixelTrait, PixelType};
+use image::{ColorType, ExtendedColorType, ImageBuffer, ImageReader};
 
 pub fn nonzero(v: u32) -> NonZeroU32 {
     NonZeroU32::new(v).unwrap()
@@ -112,7 +110,7 @@ pub trait PixelTestingExt: PixelTrait {
     }
 
     fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
+        img_reader: ImageReader<BufReader<File>>,
     ) -> ImageBuffer<Self::ImagePixel, Self::Container>;
 
     fn load_big_image() -> ImageBuffer<Self::ImagePixel, Self::Container> {
@@ -172,7 +170,7 @@ pub mod not_u8x4 {
         type Container = Vec<u8>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma8()
         }
@@ -187,7 +185,7 @@ pub mod not_u8x4 {
         type Container = Vec<u8>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma_alpha8()
         }
@@ -202,7 +200,7 @@ pub mod not_u8x4 {
         type Container = Vec<u8>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_rgb8()
         }
@@ -217,7 +215,7 @@ pub mod not_u8x4 {
         type Container = Vec<u16>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma16()
         }
@@ -237,7 +235,7 @@ pub mod not_u8x4 {
         type Container = Vec<u16>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma_alpha16()
         }
@@ -252,7 +250,7 @@ pub mod not_u8x4 {
         type Container = Vec<u16>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_rgb16()
         }
@@ -267,7 +265,7 @@ pub mod not_u8x4 {
         type Container = Vec<u16>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_rgba16()
         }
@@ -286,7 +284,7 @@ pub mod not_u8x4 {
         }
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             let image_u16 = img_reader.decode().unwrap().to_luma32f();
             ImageBuffer::from_fn(image_u16.width(), image_u16.height(), |x, y| {
@@ -308,7 +306,7 @@ pub mod not_u8x4 {
         type Container = Vec<f32>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma32f()
         }
@@ -326,7 +324,7 @@ pub mod not_u8x4 {
         type Container = Vec<f32>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_luma_alpha32f()
         }
@@ -344,7 +342,7 @@ pub mod not_u8x4 {
         type Container = Vec<f32>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_rgb32f()
         }
@@ -359,7 +357,7 @@ pub mod not_u8x4 {
         type Container = Vec<f32>;
 
         fn load_image_buffer(
-            img_reader: Reader<BufReader<File>>,
+            img_reader: ImageReader<BufReader<File>>,
         ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
             img_reader.decode().unwrap().to_rgba32f()
         }
@@ -375,7 +373,7 @@ impl PixelTestingExt for U8x4 {
     type Container = Vec<u8>;
 
     fn load_image_buffer(
-        img_reader: Reader<BufReader<File>>,
+        img_reader: ImageReader<BufReader<File>>,
     ) -> ImageBuffer<Self::ImagePixel, Self::Container> {
         img_reader.decode().unwrap().to_rgba8()
     }
