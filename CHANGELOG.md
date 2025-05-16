@@ -1,4 +1,4 @@
-## [4.2.3] - 2025-05-16
+## [Unreleased] - ReleaseDate
 
 ### Fixed
 
@@ -66,7 +66,7 @@
 - Optimized convolution algorythm by deleting zero coefficients from start and
   end of bounds.
 
-## [Unreleased] - ReleaseDate
+## [4.2.3] - 2025-05-16
 
 ### Fixed
 
