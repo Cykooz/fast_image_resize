@@ -1,10 +1,9 @@
 use std::arch::x86_64::*;
 
+use super::native;
 use crate::pixels::U8x2;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
-
-use super::native;
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn multiply_alpha(
@@ -212,7 +211,7 @@ unsafe fn divide_alpha_8_pixels(pixels: __m128i) -> __m128i {
     let scaled_alpha_lo_i32 = _mm_cvtps_epi32(_mm_div_ps(alpha_scale, alpha_lo_f32));
     let alpha_hi_f32 = _mm_cvtepi32_ps(_mm_shuffle_epi8(pixels, alpha32_sh_hi));
     let scaled_alpha_hi_i32 = _mm_cvtps_epi32(_mm_div_ps(alpha_scale, alpha_hi_f32));
-    // All negative values will stored as 0.
+    // All negative values will be stored as 0.
     let scaled_alpha_i16 = _mm_packus_epi32(scaled_alpha_lo_i32, scaled_alpha_hi_i32);
 
     let luma_i16 = _mm_and_si128(pixels, luma_mask);

@@ -1,10 +1,9 @@
 use std::arch::x86_64::*;
 
+use super::native;
 use crate::pixels::U16x2;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
-
-use super::native;
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn multiply_alpha(
@@ -210,7 +209,9 @@ unsafe fn divide_alpha_4_pixels(pixels: __m128i) -> __m128i {
     let alpha_f32x4 = _mm_cvtepi32_ps(_mm_shuffle_epi8(pixels, alpha32_sh));
     let luma_f32x4 = _mm_cvtepi32_ps(_mm_and_si128(pixels, luma_mask));
     let scaled_luma_f32x4 = _mm_mul_ps(luma_f32x4, alpha_max);
-    let divided_luma_i32x4 = _mm_cvtps_epi32(_mm_div_ps(scaled_luma_f32x4, alpha_f32x4));
+    let mut divided_luma_i32x4 = _mm_cvtps_epi32(_mm_div_ps(scaled_luma_f32x4, alpha_f32x4));
+    // Clamp result to [0..0xffff]
+    divided_luma_i32x4 = _mm_min_epi32(divided_luma_i32x4, luma_mask);
 
     let alpha = _mm_and_si128(pixels, alpha_mask);
     _mm_blendv_epi8(divided_luma_i32x4, alpha, alpha_mask)

@@ -400,11 +400,14 @@ pub unsafe fn mul_color_recip_alpha_u16x8(
     recip_alpha_hi: float32x4_t,
     zero: uint16x8_t,
 ) -> uint16x8_t {
+    let max_value = vdupq_n_u32(0xffff);
     let color_lo_f32 = vcvtq_f32_u32(vreinterpretq_u32_u16(vzip1q_u16(color, zero)));
-    let res_lo_u32 = vcvtaq_u32_f32(vmulq_f32(color_lo_f32, recip_alpha_lo));
+    let mut res_lo_u32 = vcvtaq_u32_f32(vmulq_f32(color_lo_f32, recip_alpha_lo));
+    res_lo_u32 = vminq_u32(res_lo_u32, max_value);
 
     let color_hi_f32 = vcvtq_f32_u32(vreinterpretq_u32_u16(vzip2q_u16(color, zero)));
-    let res_hi_u32 = vcvtaq_u32_f32(vmulq_f32(color_hi_f32, recip_alpha_hi));
+    let mut res_hi_u32 = vcvtaq_u32_f32(vmulq_f32(color_hi_f32, recip_alpha_hi));
+    res_hi_u32 = vminq_u32(res_hi_u32, max_value);
 
     vcombine_u16(vmovn_u32(res_lo_u32), vmovn_u32(res_hi_u32))
 }
