@@ -17,6 +17,8 @@ impl IntoImageView for DynamicImage {
             DynamicImage::ImageLumaA16(_) => Some(PixelType::U16x2),
             DynamicImage::ImageRgb16(_) => Some(PixelType::U16x3),
             DynamicImage::ImageRgba16(_) => Some(PixelType::U16x4),
+            DynamicImage::ImageRgb32F(_) => Some(PixelType::F32x3),
+            DynamicImage::ImageRgba32F(_) => Some(PixelType::F32x4),
             _ => None,
         }
     }
@@ -70,6 +72,8 @@ fn image_as_bytes_mut(image: &mut DynamicImage) -> &mut [u8] {
         DynamicImage::ImageLumaA16(img) => cast_slice_mut((*img).deref_mut()),
         DynamicImage::ImageRgb16(img) => cast_slice_mut((*img).deref_mut()),
         DynamicImage::ImageRgba16(img) => cast_slice_mut((*img).deref_mut()),
+        DynamicImage::ImageRgb32F(img) => cast_slice_mut((*img).deref_mut()),
+        DynamicImage::ImageRgba32F(img) => cast_slice_mut((*img).deref_mut()),
         _ => &mut [],
     }
 }
