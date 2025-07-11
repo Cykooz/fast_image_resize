@@ -1,5 +1,4 @@
 use std::arch::x86_64::*;
-use std::intrinsics::transmute;
 
 use crate::pixels::{U8x3, U8x4};
 
@@ -52,7 +51,7 @@ pub unsafe fn loadu_pd256<T>(buf: &[T], index: usize) -> __m256d {
 
 #[inline(always)]
 pub unsafe fn mm_cvtepu8_epi32(buf: &[U8x4], index: usize) -> __m128i {
-    let v: i32 = transmute(buf.get_unchecked(index).0);
+    let v: i32 = i32::from_ne_bytes(buf.get_unchecked(index).0);
     _mm_cvtepu8_epi32(_mm_cvtsi32_si128(v))
 }
 

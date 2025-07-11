@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added support of `DynamicImage::ImageRgb32F` and `DynamicImage::ImageRgba32F`
+  form the `image` crate ([#50](https://github.com/Cykooz/fast_image_resize/pull/50)).
+
 ## [5.1.4] - 2025-05-16
 
 ### Fixed

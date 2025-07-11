@@ -384,11 +384,14 @@ impl PixelTestingExt for U8x4 {
 }
 
 pub fn save_result(image: &Image, name: &str) {
-    if std::env::var("SAVE_RESULT").unwrap_or_else(|_| "".to_owned()) == "" {
+    if std::env::var("SAVE_RESULT")
+        .unwrap_or_else(|_| "".to_owned())
+        .is_empty()
+    {
         return;
     }
     std::fs::create_dir_all("./data/result").unwrap();
-    let path = format!("./data/result/{}.png", name);
+    let path = format!("./data/result/{name}.png");
 
     let color_type: ExtendedColorType = match image.pixel_type() {
         PixelType::U8 => ColorType::L8.into(),

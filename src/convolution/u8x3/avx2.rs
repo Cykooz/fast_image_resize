@@ -1,5 +1,4 @@
 use std::arch::x86_64::*;
-use std::intrinsics::transmute;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;
@@ -194,19 +193,19 @@ unsafe fn horiz_convolution_four_rows<const PRECISION: i32>(
         sss0 = _mm256_packus_epi16(sss0, zero);
         sss1 = _mm256_packus_epi16(sss1, zero);
 
-        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
+        let pixel: u32 = i32::cast_unsigned(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss0)));
         let bytes = pixel.to_le_bytes();
         dst_rows[0].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
 
-        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
+        let pixel: u32 = i32::cast_unsigned(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss0)));
         let bytes = pixel.to_le_bytes();
         dst_rows[1].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
 
-        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
+        let pixel: u32 = i32::cast_unsigned(_mm_cvtsi128_si32(_mm256_extracti128_si256::<0>(sss1)));
         let bytes = pixel.to_le_bytes();
         dst_rows[2].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
 
-        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
+        let pixel: u32 = i32::cast_unsigned(_mm_cvtsi128_si32(_mm256_extracti128_si256::<1>(sss1)));
         let bytes = pixel.to_le_bytes();
         dst_rows[3].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
     }
@@ -366,7 +365,7 @@ unsafe fn horiz_convolution_one_row<const PRECISION: i32>(
 
         sss = _mm_srai_epi32::<PRECISION>(sss);
         sss = _mm_packs_epi32(sss, sss);
-        let pixel: u32 = transmute(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
+        let pixel: u32 = i32::cast_unsigned(_mm_cvtsi128_si32(_mm_packus_epi16(sss, sss)));
         let bytes = pixel.to_le_bytes();
         dst_row.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
     }

@@ -1,5 +1,5 @@
 use std::arch::x86_64::*;
-use std::intrinsics::transmute;
+use std::mem::transmute;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x4;
