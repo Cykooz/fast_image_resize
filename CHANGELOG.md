@@ -1,3 +1,9 @@
+## [Unreleased] - ReleaseDate
+
+### Changed
+
+- Added minimum supported Rust version (MSRV) into `Cargo.toml`.
+
 ## [5.2.0] - 2025-07-12
 
 ### Added
