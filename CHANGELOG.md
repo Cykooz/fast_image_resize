@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Fixed
+
+- Fixed a "divide by zero" error in case of using multithreading to resize images
+  with particular sizes ([#55](https://github.com/Cykooz/fast_image_resize/issues/55)).
+
 ## [5.2.1] - 2025-07-27
 
 ### Changed

@@ -1,8 +1,10 @@
-use crate::pixels::InnerPixel;
-use crate::{ImageView, ImageViewMut};
+use std::num::NonZeroU32;
+
 use rayon::current_num_threads;
 use rayon::prelude::*;
-use std::num::NonZeroU32;
+
+use crate::pixels::InnerPixel;
+use crate::{ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn split_h_two_images_for_threading<'a, P: InnerPixel>(
@@ -21,7 +23,7 @@ pub(crate) fn split_h_two_images_for_threading<'a, P: InnerPixel>(
 
     let dst_width = dst_view.width();
     let dst_height = dst_view.height();
-    let max_num_parts = calculate_max_h_parts_number(dst_width, dst_height);
+    let max_num_parts = calculate_max_number_of_horizonal_parts(dst_width, dst_height).get();
 
     let num_threads = current_num_threads() as u32;
     if num_threads > 1 && max_num_parts > 1 {
@@ -44,7 +46,7 @@ pub(crate) fn split_h_one_image_for_threading<P: InnerPixel>(
 ) -> Option<impl ParallelIterator<Item = impl ImageViewMut<Pixel = P> + '_>> {
     let width = image_view.width();
     let height = image_view.height();
-    let max_num_parts = calculate_max_h_parts_number(width, height);
+    let max_num_parts = calculate_max_number_of_horizonal_parts(width, height).get();
 
     let num_threads = current_num_threads() as u32;
     if num_threads > 1 && max_num_parts > 1 {
@@ -54,19 +56,6 @@ pub(crate) fn split_h_one_image_for_threading<P: InnerPixel>(
         return img_parts.map(|parts| parts.into_par_iter());
     }
     None
-}
-
-/// It is not optimal to split images on too small parts.
-/// We have to calculate minimal height of one part.
-/// For small images, it is equal to `constant / area`.
-/// For tall images, it is equal to `height / 256`.
-fn calculate_max_h_parts_number(width: u32, height: u32) -> u32 {
-    if width == 0 || height == 0 {
-        return 1;
-    }
-    let area = height * height.max(width);
-    let min_height = ((1 << 14) / area).max(height / 256);
-    height / min_height.max(1)
 }
 
 #[inline]
@@ -86,7 +75,7 @@ pub(crate) fn split_v_two_images_for_threading<'a, P: InnerPixel>(
 
     let dst_width = dst_view.width();
     let dst_height = dst_view.height();
-    let max_num_parts = calculate_max_v_parts_number(dst_width, dst_height);
+    let max_num_parts = calculate_max_number_of_vertical_parts(dst_width, dst_height).get();
 
     let num_threads = current_num_threads() as u32;
     if num_threads > 1 && max_num_parts > 1 {
@@ -103,15 +92,16 @@ pub(crate) fn split_v_two_images_for_threading<'a, P: InnerPixel>(
     None
 }
 
-/// It is not optimal to split images on too small parts.
-/// We have to calculate minimal width of one part.
-/// For small images, it is equal to `constant / area`.
-/// For wide images, it is equal to `width / 256`.
-fn calculate_max_v_parts_number(width: u32, height: u32) -> u32 {
-    if width == 0 || height == 0 {
-        return 1;
-    }
-    let area = width * height.max(width);
-    let min_width = ((1 << 14) / area).max(width / 256);
-    width / min_width.max(1)
+const PIXELS_PER_THREAD: u64 = 1_024; // It was selected as a result of simple benchmarking.
+
+fn calculate_max_number_of_horizonal_parts(width: u32, height: u32) -> NonZeroU32 {
+    let area = width as u64 * height as u64;
+    let num_parts = (area / PIXELS_PER_THREAD).min(height as _) as u32;
+    NonZeroU32::new(num_parts).unwrap_or(NonZeroU32::MIN)
+}
+
+fn calculate_max_number_of_vertical_parts(width: u32, height: u32) -> NonZeroU32 {
+    let area = width as u64 * height as u64;
+    let num_parts = (area / PIXELS_PER_THREAD).min(width as _) as u32;
+    NonZeroU32::new(num_parts).unwrap_or(NonZeroU32::MIN)
 }

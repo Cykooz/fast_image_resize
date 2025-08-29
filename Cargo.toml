@@ -9,7 +9,7 @@ name = "fast_image_resize"
 version = "5.2.1"
 authors = ["Kirill Kuzminykh <cykooz@gmail.com>"]
 edition = "2021"
-rust-version = " 1.87.0"
+rust-version = "1.87.0"
 license = "MIT OR Apache-2.0"
 description = "Library for fast image resizing with using of SIMD instructions"
 readme = "README.md"
@@ -36,7 +36,7 @@ rayon = { version = "1.10", optional = true }
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
-## This feature enables image processing in `rayon` thread pool.
+## This feature enables image processing in the ` rayon ` thread pool.
 rayon = ["dep:rayon", "resize/rayon", "image/rayon"]
 for_testing = ["image", "image/png"]
 only_u8x4 = []  # This can be used to experiment with the crate's code.
@@ -181,5 +181,11 @@ name = "bench_color_mapper"
 harness = false
 
 
-# Header of next release in CHANGELOG.md:
+[[bench]]
+name = "bench_threads"
+harness = false
+
+
+
+# Header of the next release in CHANGELOG.md:
 #   ## [Unreleased] - ReleaseDate
