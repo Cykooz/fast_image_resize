@@ -76,7 +76,7 @@ impl<'a> ImageRef<'a> {
     }
 
     /// Get the typed version of the image.
-    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<P>> {
+    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<'_, P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
         }
@@ -223,7 +223,7 @@ impl<'a> Image<'a> {
     }
 
     /// Get the typed version of the image.
-    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<P>> {
+    pub fn typed_image<P: InnerPixel>(&self) -> Option<TypedImageRef<'_, P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
         }
@@ -233,7 +233,7 @@ impl<'a> Image<'a> {
     }
 
     /// Get the typed mutable version of the image.
-    pub fn typed_image_mut<P: InnerPixel>(&mut self) -> Option<TypedImage<P>> {
+    pub fn typed_image_mut<P: InnerPixel>(&mut self) -> Option<TypedImage<'_, P>> {
         if P::pixel_type() != self.pixel_type {
             return None;
         }

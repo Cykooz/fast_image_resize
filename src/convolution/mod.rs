@@ -68,7 +68,7 @@ pub(crate) struct CoefficientsChunk<'a> {
 }
 
 impl Coefficients {
-    pub fn get_chunks(&self) -> Vec<CoefficientsChunk> {
+    pub fn get_chunks(&self) -> Vec<CoefficientsChunk<'_>> {
         let mut coeffs = self.values.as_slice();
         let mut res = Vec::with_capacity(self.bounds.len());
         for bound in &self.bounds {

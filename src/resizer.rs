@@ -12,7 +12,7 @@ use crate::{
 pub enum ResizeAlg {
     Nearest,
     Convolution(FilterType),
-    /// It is like `Convolution` but with fixed kernel size.
+    /// It is like `Convolution` but with a fixed kernel size.
     ///
     /// This algorithm can be useful if you want to get a result
     /// similar to `OpenCV` (except `INTER_AREA` interpolation).
@@ -82,9 +82,9 @@ impl ResizeOptions {
         options
     }
 
-    /// Fit source image into the aspect ratio of destination image without distortions.
+    /// Fit a source image into the aspect ratio of a destination image without distortions.
     ///
-    /// `centering` used to control the cropping position. Use (0.5, 0.5) for
+    /// `centering` is used to control the cropping position. Use (0.5, 0.5) for
     /// center cropping (e.g. if cropping the width, take 50% off
     /// of the left side, and therefore 50% off the right side).
     /// (0.0, 0.0) will crop from the top left corner (i.e. if
@@ -92,7 +92,7 @@ impl ResizeOptions {
     /// side, and if cropping the height, take all of it off the
     /// bottom). (1.0, 0.0) will crop from the bottom left
     /// corner, etc. (i.e. if cropping the width, take all the
-    /// crop off the left side, and if cropping the height take
+    /// crop off the left side, and if cropping the height, take
     /// none from the top, and therefore all off the bottom).
     pub fn fit_into_destination(&self, centering: Option<(f64, f64)>) -> Self {
         let mut options = *self;
@@ -142,16 +142,16 @@ pub struct Resizer {
 }
 
 impl Resizer {
-    /// Creates instance of `Resizer`.
+    /// Creates an instance of `Resizer`.
     ///
     /// By default, an instance of `Resizer` is created with the best CPU
     /// extensions provided by your CPU.
-    /// You can change this by using method [Resizer::set_cpu_extensions].
+    /// You can change this by using the method [Resizer::set_cpu_extensions].
     pub fn new() -> Self {
         Default::default()
     }
 
-    /// Resize the source image to the size of destination image and save
+    /// Resize the source image to the size of the destination image and save
     /// the result to the latter's pixel buffer.
     pub fn resize<'o>(
         &mut self,
@@ -216,7 +216,7 @@ impl Resizer {
         result
     }
 
-    /// Resize the source image to the size of destination image
+    /// Resize the source image to the size of the destination image
     /// and save the result to the latter's pixel buffer.
     pub fn resize_typed<'o, P: PixelTrait>(
         &mut self,
@@ -233,7 +233,7 @@ impl Resizer {
             || dst_view.width() == 0
             || dst_view.height() == 0
         {
-            // Do nothing if any size of source or destination image is equal to zero.
+            // Do nothing if any size of the source or destination image is equal to zero.
             return Ok(());
         }
 
@@ -303,7 +303,7 @@ impl Resizer {
     }
 
     /// # Safety
-    /// This is unsafe because this method allows you to set a CPU extensions
+    /// This is unsafe because this method allows you to set a CPU extension
     /// that is not supported by your CPU.
     pub unsafe fn set_cpu_extensions(&mut self, extensions: CpuExtensions) {
         self.cpu_extensions = extensions;
@@ -428,7 +428,7 @@ impl Resizer {
                         self.cpu_extensions,
                     );
 
-                    // Shift bounds for horizontal pass
+                    // Shift bounds for the horizontal pass
                     horiz_coeffs
                         .bounds
                         .iter_mut()
@@ -460,7 +460,7 @@ impl Resizer {
                         self.cpu_extensions,
                     );
 
-                    // Shift bounds for vertical pass
+                    // Shift bounds for the vertical pass
                     vert_coeffs
                         .bounds
                         .iter_mut()
@@ -472,7 +472,7 @@ impl Resizer {
                 P::horiz_convolution(
                     src_view,
                     dst_view,
-                    crop_box.top as u32, // crop_box.top is exactly an integer if vertical pass is not required
+                    crop_box.top as u32, // crop_box.top is exactly an integer if the vertical pass is not required
                     horiz_coeffs,
                     self.cpu_extensions,
                 );
@@ -481,7 +481,7 @@ impl Resizer {
                 P::vert_convolution(
                     src_view,
                     dst_view,
-                    crop_box.left as u32, // crop_box.left is exactly an integer if horizontal pass is not required
+                    crop_box.left as u32, // crop_box.left is exactly an integer if the horizontal pass is not required
                     vert_coeffs,
                     self.cpu_extensions,
                 );
@@ -533,15 +533,15 @@ impl Resizer {
     }
 }
 
-/// Creates inner image container from part of the given buffer.
-/// Buffer may be expanded if its size is less than required for image.
+/// Creates an inner image container from part of the given buffer.
+/// Buffer may be expanded if its size is less than required for the image.
 fn get_temp_image_from_buffer<P: PixelTrait>(
     buffer: &mut Vec<u8>,
     width: u32,
     height: u32,
-) -> TypedImage<P> {
+) -> TypedImage<'_, P> {
     let pixels_count = width as usize * height as usize;
-    // Add pixel size as gap for alignment of resulted buffer.
+    // Add pixel size as a gap for alignment of resulted buffer.
     let buf_size = pixels_count * P::size() + P::size();
     if buffer.len() < buf_size {
         buffer.resize(buf_size, 0);
@@ -597,7 +597,7 @@ where
         || crop_box.width != crop_box.width.round()
         || crop_box.height != crop_box.height.round()
     {
-        // The crop box has fractional part in some his part
+        // The crop box has a fractional part in some his part
         return Err(DifferentDimensionsError);
     }
     if dst_view.width() != crop_box.width as u32 || dst_view.height() != crop_box.height as u32 {
