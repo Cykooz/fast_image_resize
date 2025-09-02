@@ -2,7 +2,7 @@
 
 ### Added
 
-- Added support for multi-thread for resizing images with `ResizeAlg::Nearest` algorithm
+- Added support for multi-thread image resizing using the `ResizeAlg::Nearest` algorithm.
   ([#54](https://github.com/Cykooz/fast_image_resize/issues/54)).
 
 ## [5.2.2] - 2025-08-29
