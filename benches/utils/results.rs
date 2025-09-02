@@ -139,7 +139,7 @@ pub fn build_md_table(bench_results: &[BenchResult]) -> String {
         let col_index = col_indexes.get(&result.parameter).copied();
         if let (Some(row_index), Some(col_index)) = (row_index, col_index) {
             let value = result.estimate / 1000000.;
-            if value >= 0.10 {
+            if value >= 0.01 {
                 let value_index = row_index * cols_count + col_index;
                 values[value_index] = Cow::Owned(format!("{:.2}", value));
             }

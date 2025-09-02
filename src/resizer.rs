@@ -575,10 +575,26 @@ fn resample_nearest<P: InnerPixel>(
 
     let src_rows = src_view.iter_rows_with_step(y_in_start, y_scale, dst_height);
     let dst_rows = dst_view.iter_rows_mut(0);
-    for (out_row, in_row) in dst_rows.zip(src_rows) {
-        for (&x_in, out_pixel) in x_in_tab.iter().zip(out_row.iter_mut()) {
-            // Safety of x_in value guaranteed by algorithm of creating of x_in_tab
-            *out_pixel = unsafe { *in_row.get_unchecked(x_in) };
+
+    #[cfg(feature = "rayon")]
+    {
+        use rayon::prelude::*;
+
+        let mut row_refs: Vec<(&mut [P], &[P])> = dst_rows.zip(src_rows).collect();
+        row_refs.par_iter_mut().for_each(|(out_row, in_row)| {
+            for (&x_in, out_pixel) in x_in_tab.iter().zip(out_row.iter_mut()) {
+                // Safety of x_in value guaranteed by algorithm of creating of x_in_tab
+                *out_pixel = unsafe { *in_row.get_unchecked(x_in) };
+            }
+        });
+    }
+    #[cfg(not(feature = "rayon"))]
+    {
+        for (out_row, in_row) in dst_rows.zip(src_rows) {
+            for (&x_in, out_pixel) in x_in_tab.iter().zip(out_row.iter_mut()) {
+                // Safety of x_in value guaranteed by algorithm of creating of x_in_tab
+                *out_pixel = unsafe { *in_row.get_unchecked(x_in) };
+            }
         }
     }
 }

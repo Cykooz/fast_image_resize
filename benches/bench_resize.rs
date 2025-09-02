@@ -67,8 +67,8 @@ fn downscale_bench(
     utils::bench(
         bench_group,
         100,
-        &format!("{:?} {:?}", image.pixel_type(), filter_type),
-        &format!("{}{}", cpu_ext_into_str(cpu_extensions), prefix),
+        format!("{:?} {:?}", image.pixel_type(), filter_type),
+        format!("{}{}", cpu_ext_into_str(cpu_extensions), prefix),
         |bencher| bencher.iter(|| resizer.resize(image, &mut res_image, &options).unwrap()),
     );
 }

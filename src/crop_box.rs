@@ -129,6 +129,7 @@ impl<'a, T: ImageView> CroppedSrcImageView<'a, T> {
         }
     }
 
+    /// Returns a reference to the wrapped image view.
     #[inline]
     pub fn image_view(&self) -> &T {
         self.image_view
