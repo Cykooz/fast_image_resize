@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [5.3.0] - 2025-09-02
 
 ### Added
 
