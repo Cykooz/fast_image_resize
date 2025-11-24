@@ -36,6 +36,9 @@ rayon = { version = "1.11", optional = true }
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
+## Enable this feature to implement traits [bytemuck::Pod] and
+## [bytemuck::Zeroable] for `Pixel` type.
+bytemuck = ["dep:bytemuck"]
 ## This feature enables image processing in the ` rayon ` thread pool.
 rayon = ["dep:rayon", "resize/rayon", "image/rayon"]
 for_testing = ["image", "image/png"]

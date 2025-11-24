@@ -208,6 +208,25 @@ where
     }
 }
 
+// SAFETY: bytemuck derives are tripped by the use of generic arguments.
+// However, since Pixel<T, _, _> is repr(C) it introduces no padding after T nor
+// imposes any additional limitations on T.  Hence, if T is Zeroable, Pixel is
+// Zeroable.
+#[cfg(feature = "bytemuck")]
+unsafe impl<T: bytemuck::Zeroable, C, const COUNT_OF_COMPONENTS: usize>
+    bytemuck::Zeroable for Pixel<T, C, COUNT_OF_COMPONENTS>
+where
+    T: Sized + Copy + Clone + PartialEq + Default + 'static,
+    C: PixelComponent {}
+
+// SAFETY: As above.  If T is Pod than Pixel<T> is Pod.
+#[cfg(feature = "bytemuck")]
+unsafe impl<T: bytemuck::Pod, C, const COUNT_OF_COMPONENTS: usize>
+    bytemuck::Pod for Pixel<T, C, COUNT_OF_COMPONENTS>
+where
+    T: Sized + Copy + Clone + PartialEq + Default + 'static,
+    C: PixelComponent {}
+
 macro_rules! pixel_struct {
     ($name:ident, $type:tt, $comp_type:tt, $comp_count:literal, $pixel_type:expr, $doc:expr) => {
         #[doc = $doc]
