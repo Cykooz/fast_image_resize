@@ -23,10 +23,10 @@ exclude = ["/data", "/.github"]
 cfg-if = "1.0"
 num-traits = "0.2.19"
 thiserror = "2.0"
-document-features = "0.2.11"
+document-features = "0.2.12"
 # Optional dependencies
-image = { version = "0.25.6", optional = true, default-features = false }
-bytemuck = { version = "1.23", optional = true }
+image = { version = "0.25.9", optional = true, default-features = false }
+bytemuck = { version = "1.24", optional = true }
 rayon = { version = "1.11", optional = true }
 
 
@@ -37,11 +37,11 @@ rayon = { version = "1.11", optional = true }
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
 ## Enable this feature to implement traits [bytemuck::Pod] and
-## [bytemuck::Zeroable] for `Pixel` type.
+## [bytemuck::Zeroable] for the `Pixel` type.
 bytemuck = ["dep:bytemuck"]
 ## This feature enables image processing in the ` rayon ` thread pool.
 rayon = ["dep:rayon", "resize/rayon", "image/rayon"]
-for_testing = ["image", "image/png"]
+for_testing = ["image", "image/png", "bytemuck"]
 only_u8x4 = []  # This can be used to experiment with the crate's code.
 
 
@@ -76,7 +76,7 @@ incremental = true
 opt-level = 3
 
 
-# release build for procmacros - same config as debug build for procmacros
+# release build for procmacros - the same config as debug build for procmacros
 [profile.release.build-override]
 opt-level = 2
 debug = false # when possible

@@ -133,7 +133,7 @@ pub(crate) fn precompute_coefficients(
         let cur_index = coeffs.len();
         let mut ww: f64 = 0.0;
 
-        // Optimisation for follow for-cycle:
+        // Optimization for follow for-cycle:
         // (x + 0.5) - in_center => x - (in_center - 0.5) => x - center
         let center = in_center - 0.5;
 
@@ -144,7 +144,7 @@ pub(crate) fn precompute_coefficients(
         for x in x_min..x_max {
             let w: f64 = filter((x as f64 - center) * recip_filter_scale);
             if x == bound_start && w == 0. {
-                // Don't use zero coefficients at the start of bound;
+                // Don't use zero coefficients at the start of the bound;
                 bound_start += 1;
             } else {
                 coeffs.push(w);
@@ -155,7 +155,7 @@ pub(crate) fn precompute_coefficients(
             if bound_end <= bound_start || c != 0. {
                 break;
             }
-            // Don't use zero coefficients at the end of bound;
+            // Don't use zero coefficients at the end of the bound;
             bound_end -= 1;
         }
 
@@ -164,7 +164,7 @@ pub(crate) fn precompute_coefficients(
             // The sum of weights must be equal to 1.0.
             coeffs[cur_index..].iter_mut().for_each(|w| *w /= ww);
         }
-        // Remaining values should stay empty if they are used despite x_max.
+        // The remaining values should stay empty if they are used despite x_max.
         coeffs.resize(cur_index + window_size, 0.);
         bounds.push(Bound {
             start: bound_start,

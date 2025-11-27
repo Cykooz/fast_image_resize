@@ -396,13 +396,13 @@ mod not_u8x4 {
     #[test]
     fn downscale_u8() {
         type P = U8;
-        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348]);
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2939241]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2923555],
+                [2942035],
             );
         }
     }
@@ -410,13 +410,13 @@ mod not_u8x4 {
     #[test]
     fn upscale_u8() {
         type P = U8;
-        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [1148754010]);
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [1156367834]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1148811829],
+                [1156403174],
             );
         }
     }
@@ -424,13 +424,13 @@ mod not_u8x4 {
     #[test]
     fn downscale_u8x2() {
         type P = U8x2;
-        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2920348, 6121802]);
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [2939241, 6121802]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [2923555, 6122718],
+                [2942035, 6122718],
             );
         }
     }
@@ -441,14 +441,14 @@ mod not_u8x4 {
         P::upscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
-            [1146218632, 2364895380],
+            [1151087734, 2364895380],
         );
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [1146284886, 2364890085],
+                [1151139254, 2364890085],
             );
         }
     }
@@ -508,13 +508,13 @@ mod not_u8x4 {
     #[test]
     fn downscale_u16() {
         type P = U16;
-        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [750529436]);
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [755389581]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [751401243],
+                [756141850],
             );
         }
     }
@@ -522,13 +522,13 @@ mod not_u8x4 {
     #[test]
     fn upscale_u16() {
         type P = U16;
-        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [295229780570]);
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [297147816110]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [295246940755],
+                [297159428939],
             );
         }
     }
@@ -539,14 +539,14 @@ mod not_u8x4 {
         P::downscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
-            [750529436, 1573303114],
+            [755389581, 1573303114],
         );
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [751401243, 1573563971],
+                [756141850, 1573563971],
             );
         }
     }
@@ -557,14 +557,14 @@ mod not_u8x4 {
         P::upscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
-            [294578188424, 607778112660],
+            [295819031151, 607778112660],
         );
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [294597368766, 607776760273],
+                [295834912005, 607776760273],
             );
         }
     }
@@ -645,13 +645,13 @@ mod not_u8x4 {
     #[test]
     fn downscale_i32() {
         type P = I32;
-        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [24593724281554]);
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [24753100746016]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [36889044005199],
+                [31386938242305],
             );
         }
     }
@@ -659,13 +659,13 @@ mod not_u8x4 {
     #[test]
     fn upscale_i32() {
         type P = I32;
-        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [9674237252903955]);
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [9737127426058749]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [11090415545881916],
+                [10691007188019666],
             );
         }
     }
@@ -674,13 +674,13 @@ mod not_u8x4 {
     #[test]
     fn downscale_f32() {
         type P = F32;
-        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [28891951209032]);
+        P::downscale_test(ResizeAlg::Nearest, CpuExtensions::None, [34175415677930]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [41687319249443],
+                [40529868772858],
             );
         }
     }
@@ -688,13 +688,13 @@ mod not_u8x4 {
     #[test]
     fn upscale_f32() {
         type P = F32;
-        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [11165019414549868]);
+        P::upscale_test(ResizeAlg::Nearest, CpuExtensions::None, [13281344839147584]);
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [12506894762090128],
+                [14128512150723561],
             );
         }
     }
@@ -706,14 +706,14 @@ mod not_u8x4 {
         P::downscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
-            [28891951209032, 26023210300788],
+            [34175415677930, 26023210301282],
         );
 
         for cpu_extensions in P::cpu_extensions() {
             P::downscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [41687319249443, 29873206892121],
+                [40529868772858, 29873206894014],
             );
         }
     }
@@ -724,14 +724,14 @@ mod not_u8x4 {
         P::upscale_test(
             ResizeAlg::Nearest,
             CpuExtensions::None,
-            [9941292360529429, 10060767588318486],
+            [9944784041015554, 10060767588513729],
         );
 
         for cpu_extensions in P::cpu_extensions() {
             P::upscale_test(
                 ResizeAlg::Convolution(FilterType::Lanczos3),
                 cpu_extensions,
-                [10426687457795354, 10465695788378423],
+                [10424760317415172, 10465695787559382],
             );
         }
     }

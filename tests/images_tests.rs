@@ -244,3 +244,21 @@ fn cropped_image_mut() {
     // Bottom border
     assert_eq!(dst_pixels[22 * row_size..], black_block);
 }
+
+#[cfg(feature = "bytemuck")]
+#[test]
+fn use_bytemuck_to_create_typed_image_from_slice() {
+    use bytemuck::{cast_slice, cast_slice_mut};
+
+    let width = 64;
+    let height = 32;
+    let mut buffer = vec![0u32; 65 * 32];
+
+    let pixels_mut: &mut [U8x4] = cast_slice_mut(&mut buffer);
+    let res = TypedImage::from_pixels_slice(width, height, pixels_mut);
+    assert!(res.is_ok());
+
+    let pixels: &[U8x4] = cast_slice(&buffer);
+    let res = TypedImageRef::new(width, height, pixels);
+    assert!(res.is_ok());
+}

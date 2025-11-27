@@ -40,7 +40,7 @@ impl PixelType {
         }
     }
 
-    /// Returns `true` if given buffer is aligned by the alignment of pixel.
+    /// Returns `true` if the given buffer has the same alignment as the pixel.
     pub(crate) fn is_aligned(&self, buffer: &[u8]) -> bool {
         match self {
             Self::U8 => true,
@@ -64,7 +64,7 @@ pub trait GetCount {
     fn count() -> usize;
 }
 
-/// Generic type to represent the number of components in single pixel.
+/// Generic type to represent the number of components in a single pixel.
 pub struct Count<const N: usize>;
 
 impl<const N: usize> GetCount for Count<N> {
@@ -87,7 +87,7 @@ impl<const N: usize> GetCountOfValues for Values<N> {
     }
 }
 
-/// Information about one component of pixel.
+/// Information about one component of a pixel.
 pub trait PixelComponent
 where
     Self: Sized + Copy + Debug + PartialEq + 'static,
@@ -123,7 +123,7 @@ mod private {
     pub trait Sealed {}
 }
 
-/// Inner trait that provides additional information about pixel type.
+/// Inner trait that provides additional information about a pixel type.
 ///
 /// Don't use this trait in your code. You must use the "child"
 /// trait [PixelTrait](crate::PixelTrait) instead.
@@ -166,7 +166,7 @@ pub trait InnerPixel:
         size_of::<Self>()
     }
 
-    /// Create slice of pixel's components from slice of pixels
+    /// Create a slice of pixel's components from a slice of pixels
     fn components(buf: &[Self]) -> &[Self::Component] {
         let size = buf.len() * Self::count_of_components();
         let components_ptr = buf.as_ptr() as *const Self::Component;
@@ -210,22 +210,26 @@ where
 
 // SAFETY: bytemuck derives are tripped by the use of generic arguments.
 // However, since Pixel<T, _, _> is repr(C) it introduces no padding after T nor
-// imposes any additional limitations on T.  Hence, if T is Zeroable, Pixel is
+// imposes any additional limitations on T. Hence, if T is Zeroable, Pixel is
 // Zeroable.
 #[cfg(feature = "bytemuck")]
-unsafe impl<T: bytemuck::Zeroable, C, const COUNT_OF_COMPONENTS: usize>
-    bytemuck::Zeroable for Pixel<T, C, COUNT_OF_COMPONENTS>
+unsafe impl<T: bytemuck::Zeroable, C, const COUNT_OF_COMPONENTS: usize> bytemuck::Zeroable
+    for Pixel<T, C, COUNT_OF_COMPONENTS>
 where
     T: Sized + Copy + Clone + PartialEq + Default + 'static,
-    C: PixelComponent {}
+    C: PixelComponent,
+{
+}
 
-// SAFETY: As above.  If T is Pod than Pixel<T> is Pod.
+// SAFETY: As above. If T is Pod, then Pixel<T> is Pod.
 #[cfg(feature = "bytemuck")]
-unsafe impl<T: bytemuck::Pod, C, const COUNT_OF_COMPONENTS: usize>
-    bytemuck::Pod for Pixel<T, C, COUNT_OF_COMPONENTS>
+unsafe impl<T: bytemuck::Pod, C, const COUNT_OF_COMPONENTS: usize> bytemuck::Pod
+    for Pixel<T, C, COUNT_OF_COMPONENTS>
 where
     T: Sized + Copy + Clone + PartialEq + Default + 'static,
-    C: PixelComponent {}
+    C: PixelComponent,
+{
+}
 
 macro_rules! pixel_struct {
     ($name:ident, $type:tt, $comp_type:tt, $comp_count:literal, $pixel_type:expr, $doc:expr) => {

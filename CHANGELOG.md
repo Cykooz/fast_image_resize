@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added `bytemuck` feature and implemented some `bytemuck` traits for the `Pixel` type
+  ([#56](https://github.com/Cykooz/fast_image_resize/pull/56)).
+
 ## [5.3.0] - 2025-09-02
 
 ### Added
