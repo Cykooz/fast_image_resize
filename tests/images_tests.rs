@@ -252,13 +252,22 @@ fn use_bytemuck_to_create_typed_image_from_slice() {
 
     let width = 64;
     let height = 32;
-    let mut buffer = vec![0u32; 65 * 32];
 
-    let pixels_mut: &mut [U8x4] = cast_slice_mut(&mut buffer);
+    // u32 -> U8x4
+    let mut buffer_u32 = vec![0u32; 65 * 32];
+    let pixels_mut: &mut [U8x4] = cast_slice_mut(&mut buffer_u32);
     let res = TypedImage::from_pixels_slice(width, height, pixels_mut);
     assert!(res.is_ok());
+    let pixels: &[U8x4] = cast_slice(&buffer_u32);
+    let res = TypedImageRef::new(width, height, pixels);
+    assert!(res.is_ok());
 
-    let pixels: &[U8x4] = cast_slice(&buffer);
+    // u8 -> U8x4
+    let mut buffer_u8 = vec![0u8; 65 * 32 * 4];
+    let pixels_mut: &mut [U8x4] = cast_slice_mut(&mut buffer_u8);
+    let res = TypedImage::from_pixels_slice(width, height, pixels_mut);
+    assert!(res.is_ok());
+    let pixels: &[U8x4] = cast_slice(&buffer_u8);
     let res = TypedImageRef::new(width, height, pixels);
     assert!(res.is_ok());
 }
