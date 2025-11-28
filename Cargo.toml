@@ -66,6 +66,10 @@ nix = { version = "0.30.1", default-features = false, features = ["sched"] }
 libvips = "1.7"
 
 
+[package.metadata.docs.rs]
+features = ["image", "bytemuck"]
+
+
 [profile.test]
 opt-level = 1
 incremental = true
