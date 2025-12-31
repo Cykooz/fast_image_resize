@@ -1,5 +1,10 @@
 //! Functions and structs for working with colorspace and gamma.
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use num_traits::bounds::UpperBounded;
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
 use num_traits::Zero;
 
 use crate::pixels::{

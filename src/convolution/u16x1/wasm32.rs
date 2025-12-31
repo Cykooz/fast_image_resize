@@ -1,4 +1,4 @@
-use std::arch::wasm32::*;
+use core::arch::wasm32::*;
 
 use crate::convolution::optimisations::Normalizer32;
 use crate::pixels::U16;

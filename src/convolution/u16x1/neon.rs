@@ -1,4 +1,4 @@
-use std::arch::aarch64::*;
+use core::arch::aarch64::*;
 
 use crate::convolution::optimisations::{CoefficientsI32Chunk, Normalizer32};
 

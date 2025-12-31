@@ -1,4 +1,4 @@
-use std::ops::DerefMut;
+use core::ops::DerefMut;
 
 use crate::image_view::try_pixel_type;
 use crate::images::{TypedImage, TypedImageRef};

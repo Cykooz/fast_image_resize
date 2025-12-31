@@ -1,4 +1,4 @@
-use std::arch::wasm32::*;
+use core::arch::wasm32::*;
 
 use crate::pixels::U8x2;
 use crate::wasm32_utils::u16x8_mul_add_shr16;
