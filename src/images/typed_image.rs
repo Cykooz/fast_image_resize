@@ -102,9 +102,8 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
         let mut res = Vec::with_capacity(num_parts as usize);
         let step = height / num_parts;
         let mut modulo = height % num_parts;
-        let mut top = start_row;
         let row_size = self.width as usize;
-        let mut remains_pixels = self.pixels.split_at(top as usize * row_size).1;
+        let mut remains_pixels = self.pixels.split_at(start_row as usize * row_size).1;
         for _ in 0..num_parts {
             let mut part_height = step;
             if modulo > 0 {
@@ -115,7 +114,6 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
             let image = TypedImageRef::new(self.width, part_height, parts.0).unwrap();
             res.push(image);
             remains_pixels = parts.1;
-            top += part_height;
         }
         Some(res)
     }
