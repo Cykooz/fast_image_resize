@@ -1,3 +1,10 @@
+## [Unreleased] - ReleaseDate
+
+### Added
+
+- Added support of some variants of `ImageBuffer` types
+  form the `image` crate ([#57](https://github.com/Cykooz/fast_image_resize/issues/57)).
+
 ## [5.4.0] - 2025-11-28
 
 ### Added

@@ -3,8 +3,10 @@ use fast_image_resize::images::{
     CroppedImage, CroppedImageMut, Image, ImageRef, TypedCroppedImage, TypedCroppedImageMut,
     TypedImage, TypedImageRef,
 };
-use fast_image_resize::pixels::{U8x4, U8};
+use fast_image_resize::pixels::{U8x3, U8x4, U8};
 use fast_image_resize::{ImageView, IntoImageView, PixelType, ResizeOptions};
+
+mod testing;
 
 #[test]
 fn create_image_ref_from_small_buffer() {
@@ -270,4 +272,38 @@ fn use_bytemuck_to_create_typed_image_from_slice() {
     let pixels: &[U8x4] = cast_slice(&buffer_u8);
     let res = TypedImageRef::new(width, height, pixels);
     assert!(res.is_ok());
+}
+
+#[cfg(feature = "image")]
+mod support_of_image_crate {
+    use super::*;
+    use image::{DynamicImage, RgbImage};
+    use testing::PixelTestingExt;
+
+    #[test]
+    fn use_dynamic_image() {
+        let width = 64;
+        let height = 32;
+
+        let image_buffer = U8x3::load_small_image();
+        let src_dynamic_image: DynamicImage = image_buffer.into();
+        let mut dst_dynamic_image = DynamicImage::new_rgb8(width, height);
+
+        let mut resizer = fr::Resizer::new();
+        let res = resizer.resize(&src_dynamic_image, &mut dst_dynamic_image, None);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn use_image_buffer() {
+        let width = 64;
+        let height = 32;
+
+        let src_image_buffer = U8x3::load_small_image();
+        let mut dst_image_buffer = RgbImage::new(width, height);
+
+        let mut resizer = fr::Resizer::new();
+        let res = resizer.resize(&src_image_buffer, &mut dst_image_buffer, None);
+        assert!(res.is_ok());
+    }
 }

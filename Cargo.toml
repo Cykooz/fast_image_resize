@@ -34,6 +34,8 @@ rayon = { version = "1.11", optional = true }
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
+## type and some variants of
+## [ImageBuffer](https://docs.rs/image/latest/image/struct.ImageBuffer.html)
 ## type from the `image` crate.
 image = ["dep:image", "dep:bytemuck"]
 ## Enable this feature to implement traits [bytemuck::Pod] and
@@ -191,6 +193,7 @@ harness = false
 [[bench]]
 name = "bench_threads"
 harness = false
+required-features = ["rayon"]
 
 
 
