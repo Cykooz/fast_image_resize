@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 use core::arch::aarch64::*;
 use core::mem::transmute;
 
