@@ -91,10 +91,10 @@ where
 /// the already yielded items.
 ///
 /// Since the iterator is passed as a mutable reference and this function calls
-/// `next` at most `N` times, the iterator can still be used afterwards to
+/// `next` at most `N` times, the iterator can still be used afterward to
 /// retrieve the remaining items.
 ///
-/// If `iter.next()` panicks, all items already yielded by the iterator are
+/// If `iter.next()` panics, all items already yielded by the iterator are
 /// dropped.
 ///
 /// Used for [`Iterator::next_chunk`].

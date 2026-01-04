@@ -6,7 +6,7 @@ members = [
 
 [package]
 name = "fast_image_resize"
-version = "5.4.0"
+version = "5.5.0"
 authors = ["Kirill Kuzminykh <cykooz@gmail.com>"]
 edition = "2021"
 rust-version = "1.87.0"
@@ -38,6 +38,8 @@ std = ["thiserror/std", "num-traits/std", "dep:document-features"]
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
+## type and some variants of
+## [ImageBuffer](https://docs.rs/image/latest/image/struct.ImageBuffer.html)
 ## type from the `image` crate.
 image = ["std", "dep:image", "dep:bytemuck"]
 ## Enable this feature to implement traits [bytemuck::Pod] and
@@ -195,6 +197,7 @@ harness = false
 [[bench]]
 name = "bench_threads"
 harness = false
+required-features = ["rayon"]
 
 
 
