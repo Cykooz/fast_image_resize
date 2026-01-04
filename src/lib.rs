@@ -1,9 +1,11 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc = include_str!("../README.md")]
 
+//!
 //! ## Feature flags
 #![cfg_attr(feature = "std", doc = document_features::document_features!())]
-#![cfg_attr(not(feature = "std"), no_std)]
-#![cfg(not(feature = "std"))]
+
+#[cfg(not(feature = "std"))]
 extern crate alloc;
 
 pub use alpha::errors::*;

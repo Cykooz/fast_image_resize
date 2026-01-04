@@ -1,3 +1,4 @@
+#[cfg(not(feature = "std"))]
 use alloc::borrow::ToOwned;
 use core::arch::x86_64::*;
 
