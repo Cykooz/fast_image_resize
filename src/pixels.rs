@@ -1,8 +1,11 @@
 //! Contains types of pixels.
-use std::fmt::{Debug, Formatter};
-use std::marker::PhantomData;
-use std::mem::size_of;
-use std::slice;
+use core::fmt::{Debug, Formatter};
+use core::marker::PhantomData;
+use core::mem::size_of;
+use core::slice;
+
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -248,7 +251,7 @@ macro_rules! pixel_struct {
         }
 
         impl Debug for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
                 let components_ptr = self as *const _ as *const $comp_type;
                 let components: &[$comp_type] =
                     unsafe { slice::from_raw_parts(components_ptr, $comp_count) };

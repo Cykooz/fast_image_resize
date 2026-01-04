@@ -1,4 +1,4 @@
-use std::arch::aarch64::*;
+use core::arch::aarch64::*;
 
 use crate::pixels::InnerPixel;
 
@@ -110,7 +110,7 @@ pub unsafe fn load_deintrel_u16x1x3<T: InnerPixel<Component = u16>>(
     let mut arr = [0u16; 12];
     let src_ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
     let dst_ptr = arr.as_mut_ptr();
-    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 3);
+    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 3);
     vld3_u16(arr.as_ptr())
 }
 
@@ -122,7 +122,7 @@ pub unsafe fn load_deintrel_u16x2x3<T: InnerPixel<Component = u16>>(
     let mut arr = [0u16; 12];
     let src_ptr = buf.get_unchecked(index..).as_ptr() as *const u16;
     let dst_ptr = arr.as_mut_ptr();
-    std::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 6);
+    core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, 6);
     vld3_u16(arr.as_ptr())
 }
 

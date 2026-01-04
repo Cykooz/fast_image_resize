@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 use crate::convolution::{self, FilterType};
 use crate::crop_box::CroppedSrcImageView;
 use crate::image_view::{try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut};
@@ -6,6 +9,9 @@ use crate::pixels::{self, InnerPixel};
 use crate::{
     CpuExtensions, CropBox, DifferentDimensionsError, MulDiv, PixelTrait, PixelType, ResizeError,
 };
+
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[non_exhaustive]
@@ -320,7 +326,7 @@ impl Resizer {
     ) {
         if use_alpha && self.mul_div.is_supported(P::pixel_type()) {
             let src_view = cropped_src_view.image_view();
-            let mut alpha_buffer = std::mem::take(&mut self.alpha_buffer);
+            let mut alpha_buffer = core::mem::take(&mut self.alpha_buffer);
 
             let mut premultiplied_src =
                 get_temp_image_from_buffer(&mut alpha_buffer, src_view.width(), src_view.height());
@@ -517,7 +523,7 @@ impl Resizer {
             let tmp_width = (crop_box.width / factor).round() as u32;
             let tmp_height = (crop_box.height / factor).round() as u32;
 
-            let mut super_sampling_buffer = std::mem::take(&mut self.super_sampling_buffer);
+            let mut super_sampling_buffer = core::mem::take(&mut self.super_sampling_buffer);
             let mut tmp_img =
                 get_temp_image_from_buffer(&mut super_sampling_buffer, tmp_width, tmp_height);
             resample_nearest(cropped_src_view, &mut tmp_img);

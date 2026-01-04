@@ -1,4 +1,4 @@
-use std::num::NonZeroU32;
+use core::num::NonZeroU32;
 
 use rayon::current_num_threads;
 use rayon::prelude::*;

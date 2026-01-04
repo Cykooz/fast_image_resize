@@ -1,4 +1,4 @@
-use std::arch::wasm32::*;
+use core::arch::wasm32::*;
 
 use crate::convolution::optimisations::{CoefficientsI32Chunk, Normalizer32};
 use crate::convolution::vertical_u16::native::convolution_by_u16;

@@ -1,5 +1,7 @@
 //! Contains different types of images and wrappers for them.
-use std::fmt::Debug;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+use core::fmt::Debug;
 
 pub use cropped_image::*;
 pub use image::*;

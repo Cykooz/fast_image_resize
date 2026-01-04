@@ -1,13 +1,16 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+use core::marker::PhantomData;
+use core::num::NonZeroU32;
+
 use crate::{ArrayChunks, ImageView, ImageViewMut};
-use std::marker::PhantomData;
-use std::num::NonZeroU32;
 
 #[derive(Copy)]
 pub(crate) struct UnsafeImageMut<'a, V>
 where
     V: ImageViewMut,
 {
-    image: std::ptr::NonNull<V>,
+    image: core::ptr::NonNull<V>,
     p: PhantomData<&'a V>,
 }
 
@@ -28,7 +31,7 @@ unsafe impl<'a, V: ImageViewMut> Sync for UnsafeImageMut<'a, V> {}
 
 impl<'a, V: ImageViewMut> UnsafeImageMut<'a, V> {
     pub fn new(image: &'a mut V) -> Self {
-        let ptr = std::ptr::NonNull::new(image as *mut V).unwrap();
+        let ptr = core::ptr::NonNull::new(image as *mut V).unwrap();
         Self {
             image: ptr,
             p: PhantomData,

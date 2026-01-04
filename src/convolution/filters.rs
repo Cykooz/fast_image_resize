@@ -1,6 +1,11 @@
-use std::f64::consts::PI;
-use std::fmt::{Debug, Formatter};
+use core::f64::consts::PI;
+use core::fmt::{Debug, Formatter};
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
 use thiserror::Error;
+
+#[cfg(not(feature = "std"))]
+use crate::float_ext::FloatExt;
 
 type FilterFn = fn(f64) -> f64;
 
@@ -24,7 +29,7 @@ impl PartialEq for Filter {
 impl Eq for Filter {}
 
 impl Debug for Filter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Filter")
             .field("name", &self.name)
             .field("support", &self.support)

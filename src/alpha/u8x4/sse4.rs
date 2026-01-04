@@ -1,4 +1,4 @@
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 use crate::pixels::U8x4;
 use crate::utils::foreach_with_pre_reading;

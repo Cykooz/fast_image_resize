@@ -1,5 +1,5 @@
-use std::arch::wasm32::*;
-use std::mem::transmute;
+use core::arch::wasm32::*;
+use core::mem::transmute;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;

@@ -1,4 +1,6 @@
-use std::arch::x86_64::*;
+#[cfg(not(feature = "std"))]
+use alloc::borrow::ToOwned;
+use core::arch::x86_64::*;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8;

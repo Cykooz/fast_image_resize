@@ -1,3 +1,5 @@
+#[cfg(not(feature = "std"))]
+use crate::float_ext::FloatExt;
 use crate::PixelComponentMapper;
 
 fn gamma_into_linear(input: f32) -> f32 {

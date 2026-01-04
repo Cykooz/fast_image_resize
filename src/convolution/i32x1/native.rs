@@ -2,6 +2,9 @@ use crate::convolution::Coefficients;
 use crate::pixels::I32;
 use crate::{ImageView, ImageViewMut};
 
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
+
 pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = I32>,
     dst_view: &mut impl ImageViewMut<Pixel = I32>,

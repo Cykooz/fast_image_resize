@@ -1,7 +1,7 @@
 use core::array::IntoIter;
 use core::iter::Take;
 use core::iter::{FusedIterator, Iterator};
-use std::mem::MaybeUninit;
+use core::mem::MaybeUninit;
 
 /// An iterator over `N` elements of the iterator at a time.
 ///

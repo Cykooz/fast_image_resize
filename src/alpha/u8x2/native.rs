@@ -56,7 +56,7 @@ pub(crate) fn divide_alpha(
 #[inline]
 pub(crate) fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x2>) {
     for dst_row in image_view.iter_rows_mut(0) {
-        let src_row = unsafe { std::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
+        let src_row = unsafe { core::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
         divide_alpha_row(src_row, dst_row);
     }
 }

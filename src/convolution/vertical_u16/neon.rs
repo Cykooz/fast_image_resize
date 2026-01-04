@@ -1,5 +1,8 @@
-use std::arch::aarch64::*;
-use std::mem::transmute;
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
+use core::arch::aarch64::*;
+use core::mem::transmute;
 
 use crate::convolution::optimisations::{CoefficientsI32Chunk, Normalizer32};
 use crate::neon_utils;
