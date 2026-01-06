@@ -580,6 +580,7 @@ dependencies = [
  "fast_image_resize",
  "image",
  "itertools 0.14.0",
+ "libm",
  "libvips",
  "nix",
  "num-traits",

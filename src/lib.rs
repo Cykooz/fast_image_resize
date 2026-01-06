@@ -1,7 +1,12 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc = include_str!("../README.md")]
+
 //!
 //! ## Feature flags
-#![doc = document_features::document_features!()]
+#![cfg_attr(feature = "std", doc = document_features::document_features!())]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
 
 pub use alpha::errors::*;
 pub use array_chunks::*;
@@ -30,6 +35,7 @@ mod convolution;
 mod cpu_extensions;
 mod crop_box;
 mod errors;
+mod float_ext;
 mod image_view;
 pub mod images;
 mod mul_div;

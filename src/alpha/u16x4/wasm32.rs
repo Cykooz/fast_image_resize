@@ -1,4 +1,4 @@
-use std::arch::wasm32::*;
+use core::arch::wasm32::*;
 
 use crate::pixels::U16x4;
 use crate::utils::foreach_with_pre_reading;

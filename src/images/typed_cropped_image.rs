@@ -1,6 +1,9 @@
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+use core::num::NonZeroU32;
+
 use crate::images::{View, ViewMut};
 use crate::{CropBoxError, ImageView, ImageViewMut};
-use std::num::NonZeroU32;
 
 pub(crate) fn check_crop_box(
     img_width: u32,

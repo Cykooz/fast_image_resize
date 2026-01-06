@@ -21,28 +21,32 @@ exclude = ["/data", "/.github"]
 
 [dependencies]
 cfg-if = "1.0"
-num-traits = "0.2.19"
-thiserror = "2.0"
-document-features = "0.2.12"
+num-traits = { version = "0.2.19", default-features = false }
+thiserror = { version = "2.0", default-features = false }
+document-features = { version = "0.2.12", optional = true }
 # Optional dependencies
 image = { version = "0.25.6", optional = true, default-features = false }
 bytemuck = { version = "1.24", optional = true }
 rayon = { version = "1.11", optional = true }
+libm = "0.2.15"
 
 
 [features]
+# default = ["std"]
+## Whether or not to depend on the Rust `std`
+std = ["thiserror/std", "num-traits/std", "dep:document-features"]
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
 ## type and some variants of
 ## [ImageBuffer](https://docs.rs/image/latest/image/struct.ImageBuffer.html)
 ## type from the `image` crate.
-image = ["dep:image", "dep:bytemuck"]
+image = ["std", "dep:image", "dep:bytemuck"]
 ## Enable this feature to implement traits [bytemuck::Pod] and
 ## [bytemuck::Zeroable] for the `Pixel` type.
-bytemuck = ["dep:bytemuck"]
+bytemuck = ["std", "dep:bytemuck"]
 ## This feature enables image processing in the ` rayon ` thread pool.
-rayon = ["dep:rayon", "resize/rayon", "image/rayon"]
+rayon = ["std", "dep:rayon", "resize/rayon", "image/rayon"]
 for_testing = ["image", "image/png", "bytemuck"]
 only_u8x4 = []  # This can be used to experiment with the crate's code.
 

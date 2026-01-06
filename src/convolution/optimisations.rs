@@ -1,3 +1,11 @@
+#[cfg(not(feature = "std"))]
+use alloc::borrow::ToOwned;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
+#[cfg(not(feature = "std"))]
+use num_traits::float::FloatCore;
+
 use crate::convolution::Coefficients;
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd

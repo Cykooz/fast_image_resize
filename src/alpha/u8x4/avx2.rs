@@ -1,7 +1,7 @@
 use crate::pixels::U8x4;
 use crate::utils::foreach_with_pre_reading;
 use crate::{simd_utils, ImageView, ImageViewMut};
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 use super::sse4;
 

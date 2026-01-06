@@ -1,4 +1,4 @@
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 use crate::convolution::optimisations::Normalizer32;
 use crate::pixels::U16x3;

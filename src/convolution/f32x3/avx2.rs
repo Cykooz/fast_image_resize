@@ -1,4 +1,4 @@
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 use crate::convolution::{Coefficients, CoefficientsChunk};
 use crate::pixels::{F32x3, InnerPixel};

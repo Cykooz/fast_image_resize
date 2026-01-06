@@ -952,7 +952,7 @@ mod u8x4 {
 
     #[test]
     fn custom_filter_u8x4() {
-        std::env::set_var("DONT_SAVE_RESULT", "1");
+        unsafe { std::env::set_var("DONT_SAVE_RESULT", "1") };
         const LANCZOS3_RESULT: [u64; 4] = [2942547, 2947799, 2885025, 6122718];
         const LANCZOS4_RESULT: [u64; 4] = [2943083, 2948315, 2885436, 6122629];
 
