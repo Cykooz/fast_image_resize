@@ -30,8 +30,8 @@ bytemuck = { version = "1.24", optional = true }
 rayon = { version = "1.11", optional = true }
 
 
-[target.'cfg(all(not(target_arch = "wasm32"), features = "no_std"))'.dependencies]
-cpufeatures = "0.2.17"
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+cpufeatures = { version = "0.2.17", optional = true }
 
 
 [features]
@@ -42,7 +42,7 @@ std = ["thiserror/std", "num-traits/std", "dep:document-features"]
 ## To prevent conflicts with the `std` feature it is not used for
 ## conditional compilation. It just installs additional dependencies
 ## or activates some features of existing dependencies.
-no_std = ["num-traits/libm"]
+no_std = ["num-traits/libm", 'dep:cpufeatures']
 ## Enable this feature to implement traits [IntoImageView](crate::IntoImageView) and
 ## [IntoImageViewMut](crate::IntoImageViewMut) for the
 ## [DynamicImage](https://docs.rs/image/latest/image/enum.DynamicImage.html)
