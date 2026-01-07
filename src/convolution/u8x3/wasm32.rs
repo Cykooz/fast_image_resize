@@ -1,5 +1,4 @@
 use core::arch::wasm32::*;
-use core::mem::transmute;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;
@@ -153,7 +152,8 @@ unsafe fn horiz_convolution_four_rows(
 
         for i in 0..4 {
             let sss = i16x8_narrow_i32x4(sss_a[i], ZERO);
-            let pixel: u32 = transmute(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, ZERO)));
+            let pixel: u32 =
+                i32::cast_unsigned(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, ZERO)));
             let bytes = pixel.to_le_bytes();
             dst_rows[i].get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
         }
@@ -269,7 +269,7 @@ unsafe fn horiz_convolution_one_row(
         sss = i32x4_shr(sss, precision);
 
         sss = i16x8_narrow_i32x4(sss, sss);
-        let pixel: u32 = transmute(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, sss)));
+        let pixel: u32 = i32::cast_unsigned(i32x4_extract_lane::<0>(u8x16_narrow_i16x8(sss, sss)));
         let bytes = pixel.to_le_bytes();
         dst_row.get_unchecked_mut(dst_x).0 = [bytes[0], bytes[1], bytes[2]];
     }

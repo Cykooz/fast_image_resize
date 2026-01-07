@@ -40,6 +40,12 @@ an env variable with the number of days as a result lifetime:
 WRITE_COMPARE_RESULT=1 RESULTS_LIFETIME=5 cargo bench -- Compare
 ```
 
+Run a specific benchmark in `quick` mode:
+
+```shell
+cargo bench --bench bench_resize -- --color=always --quick
+```
+
 # Wasm32
 
 Specify build target and runner in `.cargo/config.toml` file.
@@ -62,12 +68,6 @@ Run tests with saving result images as files in `./data` directory:
 
 ```shell
 CARGO_TARGET_WASM32_WASIP2_RUNNER="wasmtime --dir=. --env SAVE_RESULT=1 --" cargo test
-```
-
-Run a specific benchmark in `quick` mode:
-
-```shell
-cargo bench --bench bench_resize -- --color=always --quick
 ```
 
 Run benchmarks to compare with other crates for image resizing and write results into

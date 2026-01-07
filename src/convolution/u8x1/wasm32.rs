@@ -1,5 +1,6 @@
 use core::arch::wasm32::*;
 
+use crate::compat::*;
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8;
 use crate::{wasm32_utils, ImageView, ImageViewMut};
