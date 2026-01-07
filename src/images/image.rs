@@ -1,6 +1,4 @@
-#[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
-
+use crate::compat::*;
 use crate::images::{BufferContainer, TypedImage, TypedImageRef};
 use crate::pixels::InnerPixel;
 use crate::{

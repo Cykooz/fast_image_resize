@@ -1,13 +1,9 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 use core::num::NonZeroU32;
 
+use crate::compat::*;
 use crate::images::{TypedCroppedImage, TypedCroppedImageMut, UnsafeImageMut};
 use crate::pixels::InnerPixel;
 use crate::{ArrayChunks, ImageError, PixelTrait, PixelType};
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 
 /// A trait for getting access to image data.
 ///

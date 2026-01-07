@@ -1,14 +1,10 @@
-#[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
 use core::fmt::Debug;
 use core::num::NonZeroU32;
 
+use crate::compat::*;
 use crate::images::BufferContainer;
 use crate::pixels::InnerPixel;
 use crate::{ImageBufferError, ImageView, ImageViewMut, InvalidPixelsSize};
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 
 /// Generic reference to image data that provides [ImageView].
 #[derive(Debug)]

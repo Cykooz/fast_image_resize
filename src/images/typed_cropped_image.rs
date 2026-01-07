@@ -1,7 +1,6 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 use core::num::NonZeroU32;
 
+use crate::compat::*;
 use crate::images::{View, ViewMut};
 use crate::{CropBoxError, ImageView, ImageViewMut};
 

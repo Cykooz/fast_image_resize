@@ -1,6 +1,4 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
+use crate::compat::*;
 use crate::convolution::{self, FilterType};
 use crate::crop_box::CroppedSrcImageView;
 use crate::image_view::{try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut};
@@ -9,9 +7,6 @@ use crate::pixels::{self, InnerPixel};
 use crate::{
     CpuExtensions, CropBox, DifferentDimensionsError, MulDiv, PixelTrait, PixelType, ResizeError,
 };
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[non_exhaustive]

@@ -1,8 +1,7 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 use core::marker::PhantomData;
 use core::num::NonZeroU32;
 
+use crate::compat::*;
 use crate::{ArrayChunks, ImageView, ImageViewMut};
 
 #[derive(Copy)]

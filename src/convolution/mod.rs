@@ -1,13 +1,8 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
 pub use filters::*;
 
+use crate::compat::*;
 use crate::pixels::InnerPixel;
 use crate::{CpuExtensions, ImageView, ImageViewMut};
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 
 #[macro_use]
 mod macros;

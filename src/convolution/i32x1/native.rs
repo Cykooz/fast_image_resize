@@ -1,9 +1,9 @@
+#[allow(unused_imports)]
+// It is used to implement floats in no_std
+use crate::compat::*;
 use crate::convolution::Coefficients;
 use crate::pixels::I32;
 use crate::{ImageView, ImageViewMut};
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 
 pub(crate) fn horiz_convolution(
     src_view: &impl ImageView<Pixel = I32>,

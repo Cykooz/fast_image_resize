@@ -1,9 +1,8 @@
 use core::arch::x86_64::*;
 
+use super::native;
 use crate::pixels::F32x2;
 use crate::{ImageView, ImageViewMut};
-
-use super::native;
 
 #[target_feature(enable = "sse4.1")]
 pub(crate) unsafe fn multiply_alpha(

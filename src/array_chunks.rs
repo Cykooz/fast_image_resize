@@ -1,6 +1,5 @@
 use core::array::IntoIter;
-use core::iter::Take;
-use core::iter::{FusedIterator, Iterator};
+use core::iter::{FusedIterator, Iterator, Take};
 use core::mem::MaybeUninit;
 
 /// An iterator over `N` elements of the iterator at a time.

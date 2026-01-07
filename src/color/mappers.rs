@@ -1,5 +1,6 @@
-#[cfg(not(feature = "std"))]
-use crate::float_ext::FloatExt;
+#[allow(unused_imports)]
+// It is used to implement floats in no_std
+use crate::compat::*;
 use crate::PixelComponentMapper;
 
 fn gamma_into_linear(input: f32) -> f32 {

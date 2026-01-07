@@ -1,10 +1,8 @@
 use core::arch::aarch64::*;
 
-use crate::neon_utils;
-use crate::pixels::U16x2;
-use crate::{ImageView, ImageViewMut};
-
 use super::native;
+use crate::pixels::U16x2;
+use crate::{neon_utils, ImageView, ImageViewMut};
 
 #[target_feature(enable = "neon")]
 pub(crate) unsafe fn multiply_alpha(

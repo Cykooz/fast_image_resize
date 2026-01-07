@@ -3,8 +3,7 @@ use core::mem::transmute;
 
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8x3;
-use crate::wasm32_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::{wasm32_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(

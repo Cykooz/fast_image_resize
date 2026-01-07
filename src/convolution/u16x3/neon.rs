@@ -1,9 +1,8 @@
 use core::arch::aarch64::*;
 
 use crate::convolution::optimisations::{CoefficientsI32Chunk, Normalizer32};
-use crate::neon_utils;
 use crate::pixels::U16x3;
-use crate::{ImageView, ImageViewMut};
+use crate::{neon_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(

@@ -2,8 +2,7 @@ use core::arch::wasm32::*;
 
 use crate::convolution::optimisations::Normalizer32;
 use crate::pixels::U16;
-use crate::wasm32_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::{wasm32_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn horiz_convolution(

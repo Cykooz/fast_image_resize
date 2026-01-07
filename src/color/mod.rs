@@ -1,12 +1,9 @@
 //! Functions and structs for working with colorspace and gamma.
-#[cfg(not(feature = "std"))]
-use alloc::boxed::Box;
 
 use num_traits::bounds::UpperBounded;
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
 use num_traits::Zero;
 
+use crate::compat::*;
 use crate::pixels::{
     GetCount, InnerPixel, IntoPixelComponent, PixelComponent, PixelType, U16x2, U16x3, U16x4, U8x2,
     U8x3, U8x4, Values, U16, U8,

@@ -38,3 +38,7 @@ jobs:
         run: |
           cargo check --features rayon
           cargo test --features rayon
+
+      - name: Check compilation for no_std
+        run: |
+          cargo build --no-default-features --features=no_std

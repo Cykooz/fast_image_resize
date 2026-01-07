@@ -3,8 +3,7 @@ use core::arch::wasm32::*;
 use crate::convolution::optimisations::{CoefficientsI16Chunk, Normalizer16};
 use crate::convolution::vertical_u8::native;
 use crate::pixels::InnerPixel;
-use crate::wasm32_utils;
-use crate::{ImageView, ImageViewMut};
+use crate::{wasm32_utils, ImageView, ImageViewMut};
 
 #[inline]
 pub(crate) fn vert_convolution<T: InnerPixel<Component = u8>>(

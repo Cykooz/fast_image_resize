@@ -1,7 +1,6 @@
-#[cfg(not(feature = "std"))]
-use alloc::borrow::ToOwned;
 use core::arch::x86_64::*;
 
+use crate::compat::*;
 use crate::convolution::optimisations::Normalizer16;
 use crate::pixels::U8;
 use crate::{simd_utils, ImageView, ImageViewMut};

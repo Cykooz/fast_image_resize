@@ -1,6 +1,4 @@
 //! Contains different types of images and wrappers for them.
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 use core::fmt::Debug;
 
 pub use cropped_image::*;
@@ -8,6 +6,8 @@ pub use image::*;
 pub use typed_cropped_image::*;
 pub use typed_image::*;
 pub(crate) use unsafe_image::UnsafeImageMut;
+
+use crate::compat::*;
 
 mod cropped_image;
 mod image;

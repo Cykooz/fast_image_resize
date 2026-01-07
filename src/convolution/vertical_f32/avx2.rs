@@ -1,10 +1,9 @@
 use core::arch::x86_64::*;
 
+use super::native;
 use crate::convolution::{Coefficients, CoefficientsChunk};
 use crate::pixels::InnerPixel;
 use crate::{simd_utils, ImageView, ImageViewMut};
-
-use super::native;
 
 pub(crate) fn vert_convolution<T>(
     src_view: &impl ImageView<Pixel = T>,

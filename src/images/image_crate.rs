@@ -1,13 +1,15 @@
 use core::ops::DerefMut;
 
-use crate::image_view::try_pixel_type;
-use crate::images::{TypedImage, TypedImageRef};
-use crate::{ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait, PixelType};
 use bytemuck::cast_slice_mut;
 use image::{
     DynamicImage, GrayAlphaImage, GrayImage, ImageBuffer, Luma, LumaA, Rgb, Rgb32FImage, RgbImage,
     Rgba, Rgba32FImage, RgbaImage,
 };
+
+use crate::compat::*;
+use crate::image_view::try_pixel_type;
+use crate::images::{TypedImage, TypedImageRef};
+use crate::{ImageView, ImageViewMut, IntoImageView, IntoImageViewMut, PixelTrait, PixelType};
 
 impl IntoImageView for DynamicImage {
     fn pixel_type(&self) -> Option<PixelType> {

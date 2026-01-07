@@ -1,12 +1,6 @@
-#[cfg(not(feature = "std"))]
-use alloc::borrow::ToOwned;
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
-
+use crate::compat::*;
 use crate::convolution::Coefficients;
+
 // This code is based on C-implementation from Pillow-SIMD package for Python
 // https://github.com/uploadcare/pillow-simd
 
@@ -256,6 +250,7 @@ macro_rules! try_process_in_threads_v {
 mod tests {
     use super::*;
     use crate::convolution::Bound;
+
     fn get_coefficients(value: f64) -> Coefficients {
         Coefficients {
             values: vec![value],

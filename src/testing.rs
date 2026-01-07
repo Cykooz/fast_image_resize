@@ -1,4 +1,7 @@
-use std::cell::RefCell;
+use core::cell::RefCell;
+use std::string::{String, ToString};
+use std::thread_local;
+use std::vec::Vec;
 
 thread_local!(static TEST_LOGS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) });
 

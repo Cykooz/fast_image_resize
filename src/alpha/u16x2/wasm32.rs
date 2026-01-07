@@ -1,10 +1,9 @@
 use core::arch::wasm32::*;
 
+use super::native;
 use crate::pixels::U16x2;
 use crate::utils::foreach_with_pre_reading;
 use crate::{ImageView, ImageViewMut};
-
-use super::native;
 
 pub(crate) unsafe fn multiply_alpha(
     src_view: &impl ImageView<Pixel = U16x2>,

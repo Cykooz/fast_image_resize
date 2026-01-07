@@ -1,9 +1,8 @@
+use super::{Coefficients, Convolution};
 use crate::convolution::vertical_f32::vert_convolution_f32;
 use crate::cpu_extensions::CpuExtensions;
 use crate::pixels::F32x3;
 use crate::{ImageView, ImageViewMut};
-
-use super::{Coefficients, Convolution};
 
 #[cfg(target_arch = "x86_64")]
 mod avx2;

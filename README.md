@@ -49,6 +49,16 @@ that converts images from sRGB or gamma 2.2 into linear colorspace and back.
 You should enable `"rayon"` feature to turn on image processing in
 [rayon](https://docs.rs/rayon/latest/rayon/) thread pool.
 
+## Use in a `no_std` environment
+
+To use the crate in a `no_std` environment you must disable
+default features and enabled the `no_std` feature:
+
+```toml
+[dependencies]
+fast_image_resize = { version = "5.6", default-features = false, features = ["no_std"] }
+```
+
 ## Some benchmarks in single-threaded mode for x86_64
 
 _All benchmarks:_

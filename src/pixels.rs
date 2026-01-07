@@ -4,8 +4,9 @@ use core::marker::PhantomData;
 use core::mem::size_of;
 use core::slice;
 
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
+#[allow(unused_imports)]
+// It is used to implement floats in no_std
+use crate::compat::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]

@@ -1,8 +1,7 @@
+use super::AlphaMulDiv;
 use crate::cpu_extensions::CpuExtensions;
 use crate::pixels::F32x2;
 use crate::{ImageError, ImageView, ImageViewMut};
-
-use super::AlphaMulDiv;
 
 #[cfg(target_arch = "x86_64")]
 mod avx2;

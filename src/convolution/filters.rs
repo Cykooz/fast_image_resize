@@ -1,11 +1,11 @@
 use core::f64::consts::PI;
 use core::fmt::{Debug, Formatter};
-#[cfg(not(feature = "std"))]
-use num_traits::float::FloatCore;
+
 use thiserror::Error;
 
-#[cfg(not(feature = "std"))]
-use crate::float_ext::FloatExt;
+#[allow(unused_imports)]
+// It is used to implement floats in no_std
+use crate::compat::*;
 
 type FilterFn = fn(f64) -> f64;
 
