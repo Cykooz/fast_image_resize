@@ -23,8 +23,8 @@ exclude = ["/data", "/.github"]
 cfg-if = "1.0"
 num-traits = { version = "0.2.19", default-features = false }
 thiserror = { version = "2.0", default-features = false }
-document-features = { version = "0.2.12", optional = true }
 # Optional dependencies
+document-features = { version = "0.2.12", optional = true }
 image = { version = "0.25.6", optional = true, default-features = false }
 bytemuck = { version = "1.24", optional = true }
 rayon = { version = "1.11", optional = true }
