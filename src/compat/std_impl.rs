@@ -3,14 +3,16 @@ pub use std::boxed::Box;
 pub use std::vec;
 pub use std::vec::Vec;
 
-#[cfg(target_arch = "x86_64")]
-pub fn has_avx2() -> bool {
-    std::is_x86_feature_detected!("avx2")
-}
+cfg_if::cfg_if! {
+    if #[cfg(target_arch = "x86_64")] {
+        pub fn has_sse41() -> bool {
+            std::is_x86_feature_detected!("sse4.1")
+        }
 
-#[cfg(target_arch = "x86_64")]
-pub fn has_sse41() -> bool {
-    std::is_x86_feature_detected!("sse4.1")
+        pub fn has_avx2() -> bool {
+            std::is_x86_feature_detected!("avx2")
+        }
+    }
 }
 
 #[cfg(target_arch = "aarch64")]

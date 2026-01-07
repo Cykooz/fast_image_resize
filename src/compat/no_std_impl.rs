@@ -6,18 +6,20 @@ pub use alloc::vec::Vec;
 // `no_std` feature must be enabled
 pub use num_traits::Float;
 
-// `no_std` feature must be enabled
-cpufeatures::new!(cpuid_sse41, "sse4.1");
-cpufeatures::new!(cpuid_avx2, "avx2");
+cfg_if::cfg_if! {
+    if #[cfg(target_arch = "x86_64")] {
+        // `no_std` feature must be enabled
+        cpufeatures::new!(cpuid_sse41, "sse4.1");
+        cpufeatures::new!(cpuid_avx2, "avx2");
 
-#[cfg(target_arch = "x86_64")]
-pub fn has_avx2() -> bool {
-    cpuid_avx2::get()
-}
+        pub fn has_sse41() -> bool {
+            cpuid_sse41::get()
+        }
 
-#[cfg(target_arch = "x86_64")]
-pub fn has_sse41() -> bool {
-    cpuid_sse41::get()
+        pub fn has_avx2() -> bool {
+            cpuid_avx2::get()
+        }
+    }
 }
 
 #[cfg(target_arch = "aarch64")]
