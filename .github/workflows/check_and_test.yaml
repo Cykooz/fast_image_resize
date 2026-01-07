@@ -73,3 +73,17 @@ jobs:
         run: |
           cargo check
           cargo test
+
+  doc:
+    name: Test documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust toolchain and target
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          cache-on-failure: "true"
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs
