@@ -63,6 +63,7 @@ jobs:
         with:
           target: wasm32-wasip2
           cache-on-failure: "true"
+          rustflags: ""
 
       - name: Check compilation for no_std
         run: |
