@@ -51,11 +51,20 @@ impl Default for CpuExtensions {
 
     #[cfg(target_arch = "aarch64")]
     fn default() -> Self {
-        has_neon()
+        if has_neon() {
+            Self::Neon
+        } else {
+            Self::None
+        }
     }
+
     #[cfg(target_arch = "wasm32")]
     fn default() -> Self {
-        has_simd128()
+        if has_simd128() {
+            Self::Simd128
+        } else {
+            Self::None
+        }
     }
 
     #[cfg(not(any(
