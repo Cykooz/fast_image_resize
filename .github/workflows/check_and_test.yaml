@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
 
-    name: Test `cargo check/test` on ${{ matrix.os }}
+    name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -44,7 +44,7 @@ jobs:
           cargo test --features rayon
 
   run_tests_for_wasm:
-    name: Test under Wasm32 on ubuntu-latest
+    name: Test wasm32 on ubuntu-latest
     runs-on: ubuntu-latest
     env:
       CARGO_BUILD_TARGET: "wasm32-wasip2"
