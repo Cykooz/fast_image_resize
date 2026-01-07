@@ -11,7 +11,6 @@ env:
   CARGO_TERM_COLOR: always
   DONT_SAVE_RESULT: 1
   RAYON_NUM_THREADS: 4
-  CARGO_TARGET_WASM32_WASIP2_RUNNER: "wasmtime --dir=. --"
 
 jobs:
   run_tests:
@@ -44,20 +43,31 @@ jobs:
           cargo check --features rayon
           cargo test --features rayon
 
+  run_tests_for_wasm:
+    name: Test under Wasm32 on ubuntu-latest
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_TARGET: "wasm32-wasip2"
+      CARGO_TARGET_WASM32_WASIP2_RUNNER: "wasmtime --dir=. --"
+
+    steps:
+      - uses: actions/checkout@v6
+
       - name: Setup `wasmtime`
-        if: "${{ matrix.os == 'ubuntu-latest' }}"
         # Use the action provided by the Bytecode Alliance
         uses: bytecodealliance/actions/wasmtime/setup@v1
         with:
           version: "40.0"
 
-      - name: Check compilation for no_std + WASI
-        if: "${{ matrix.os == 'ubuntu-latest' }}"
-        run: |
-          cargo build --target=wasm32-wasip2 --no-default-features --features=no_std
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: "true"
 
-      - name: Run tests for WASI
-        if: "${{ matrix.os == 'ubuntu-latest' }}"
+      - name: Check compilation for no_std
         run: |
-          cargo check --target=wasm32-wasip2
-          cargo test --target=wasm32-wasip2
+          cargo build --no-default-features --features=no_std
+
+      - name: Run tests
+        run: |
+          cargo check
+          cargo test
