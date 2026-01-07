@@ -575,6 +575,7 @@ version = "5.5.0"
 dependencies = [
  "bytemuck",
  "cfg-if",
+ "cpufeatures",
  "criterion",
  "document-features",
  "fast_image_resize",

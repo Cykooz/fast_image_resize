@@ -2,15 +2,10 @@
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "std")] {
-        pub use std::boxed::Box;
-        pub use std::{vec, vec::Vec};
-        pub use std::borrow::ToOwned;
+        mod std_impl;
+        pub use std_impl::*;
     } else {
-        pub use alloc::boxed::Box;
-        pub use alloc::{vec, vec::Vec};
-        pub use alloc::borrow::ToOwned;
-
-        // `no_std` feature must be enabled
-        pub use num_traits::Float;
+        mod no_std_impl;
+        pub use no_std_impl::*;
     }
 }
