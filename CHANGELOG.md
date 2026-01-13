@@ -13,8 +13,8 @@
 
 ## [5.6.0] - 2026-01-07 (yanked)
 
-This release was yanked due to a breaking backward compatibility -
-the new feature `std` was added into the list of default features.
+This version was retracted due to a backwards compatibility break -
+a new feature `std` was added to the list of default features.
 
 ## [5.5.0] - 2026-01-02
 
