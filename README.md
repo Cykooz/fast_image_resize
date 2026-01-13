@@ -56,7 +56,7 @@ default features and enabled the `no_std` feature:
 
 ```toml
 [dependencies]
-fast_image_resize = { version = "5.6", default-features = false, features = ["no_std"] }
+fast_image_resize = { version = "6.0", default-features = false, features = ["no_std"] }
 ```
 
 ## Some benchmarks in single-threaded mode for x86_64

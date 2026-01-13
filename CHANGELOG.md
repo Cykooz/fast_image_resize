@@ -1,10 +1,15 @@
-## [5.6.0] - 2026-01-07
+## [Unreleased] - ReleaseDate
 
 ### Added
 
 - Added support of `no_std` environment ([#58](https://github.com/Cykooz/fast_image_resize/issues/58)).
-  To use the crate in a such environment you must disable
+  To use the crate in a such environment, you must disable
   default features and enabled the `no_std` feature.
+
+## [5.6.0] - 2026-01-07 (yanked)
+
+This release was yanked due to a breaking backward compatibility -
+the new feature `std` was added into the list of default features.
 
 ## [5.5.0] - 2026-01-02
 
