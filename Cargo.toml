@@ -15,7 +15,7 @@ description = "Library for fast image resizing with using of SIMD instructions"
 readme = "README.md"
 keywords = ["image", "resize", "no_std"]
 repository = "https://github.com/cykooz/fast_image_resize"
-documentation = "https://docs.rs/crate/fast_image_resize"
+documentation = "https://docs.rs/fast_image_resize"
 exclude = ["/data", "/.github"]
 
 
