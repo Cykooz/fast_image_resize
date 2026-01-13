@@ -2,9 +2,14 @@
 
 ### Added
 
-- Added support of `no_std` environment ([#58](https://github.com/Cykooz/fast_image_resize/issues/58)).
+- **BREAKING**: Added support of `no_std`
+  environment ([#58](https://github.com/Cykooz/fast_image_resize/issues/58)).
   To use the crate in a such environment, you must disable
   default features and enabled the `no_std` feature.
+
+  If you already have default features disabled and want to continue
+  using the crate in `std` environment, you have to enable
+  the `std` feature.
 
 ## [5.6.0] - 2026-01-07 (yanked)
 
