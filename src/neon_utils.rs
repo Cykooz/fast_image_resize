@@ -103,6 +103,36 @@ pub unsafe fn load_u16x8x4<T>(buf: &[T], index: usize) -> uint16x8x4_t {
 }
 
 #[inline(always)]
+pub unsafe fn load_f32x2<T>(buf: &[T], index: usize) -> float32x2_t {
+    vld1_f32(buf.get_unchecked(index..).as_ptr() as *const f32)
+}
+
+#[inline(always)]
+pub unsafe fn store_f32x2<T>(buf: &mut [T], index: usize, v: float32x2_t) {
+    vst1_f32(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut f32, v);
+}
+
+#[inline(always)]
+pub unsafe fn load_f32x4<T>(buf: &[T], index: usize) -> float32x4_t {
+    vld1q_f32(buf.get_unchecked(index..).as_ptr() as *const f32)
+}
+
+#[inline(always)]
+pub unsafe fn store_f32x4<T>(buf: &mut [T], index: usize, v: float32x4_t) {
+    vst1q_f32(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut f32, v);
+}
+
+#[inline(always)]
+pub unsafe fn load_f32x4x4<T>(buf: &[T], index: usize) -> float32x4x4_t {
+    vld1q_f32_x4(buf.get_unchecked(index..).as_ptr() as *const f32)
+}
+
+#[inline(always)]
+pub unsafe fn store_f32x4x4<T>(buf: &mut [T], index: usize, v: float32x4x4_t) {
+    vst1q_f32_x4(buf.get_unchecked_mut(index..).as_mut_ptr() as *mut f32, v);
+}
+
+#[inline(always)]
 pub unsafe fn load_deintrel_u16x1x3<T: InnerPixel<Component = u16>>(
     buf: &[T],
     index: usize,
