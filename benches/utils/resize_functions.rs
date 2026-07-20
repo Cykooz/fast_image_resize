@@ -1,4 +1,3 @@
-use std::hint::black_box;
 use std::ops::Deref;
 
 use fast_image_resize::images::Image;
@@ -84,6 +83,8 @@ pub fn libvips_resize<P: PixelTestingExt>(bench_group: &mut BenchGroup, has_alph
 
 #[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
 mod vips {
+    use std::hint::black_box;
+
     use libvips::ops::{self, BandFormat, Kernel, ReduceOptions};
     use libvips::{VipsApp, VipsImage};
 

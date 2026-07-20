@@ -76,3 +76,15 @@ report files, such as `./benchmarks-wasm32.md`:
 ```shell
 CARGO_TARGET_WASM32_WASIP2_RUNNER="wasmtime --dir=. --env WRITE_COMPARE_RESULT=1 --" cargo bench --no-fail-fast -- --color=always Compare
 ```
+
+# Wasm32 in browser
+
+Install Wasm-Pack:
+
+```shell
+cargo install wasm-pack
+cargo install wasm-bindgen-cli
+cargo install geckodriver
+
+NO_HEADLESS=1 cargo bench --bench bench_wasm -- bench_image_l8
+```

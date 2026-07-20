@@ -75,18 +75,18 @@ fn downscale_bench(
 
 pub fn resize_in_one_dimension_bench(bench_group: &mut utils::BenchGroup) {
     let pixel_types = [
-        PixelType::U8,
-        PixelType::U8x2,
-        PixelType::U8x3,
-        PixelType::U8x4,
-        PixelType::U16,
-        PixelType::U16x2,
+        // PixelType::U8,
+        // PixelType::U8x2,
+        // PixelType::U8x3,
+        // PixelType::U8x4,
+        // PixelType::U16,
+        // PixelType::U16x2,
         PixelType::U16x3,
-        PixelType::U16x4,
-        PixelType::F32,
-        PixelType::F32x2,
-        PixelType::F32x3,
-        PixelType::F32x4,
+        // PixelType::U16x4,
+        // PixelType::F32,
+        // PixelType::F32x2,
+        // PixelType::F32x3,
+        // PixelType::F32x4,
     ];
     let mut cpu_extensions = vec![CpuExtensions::None];
     #[cfg(target_arch = "x86_64")]

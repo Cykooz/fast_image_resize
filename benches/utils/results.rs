@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -8,41 +6,8 @@ use itertools::Itertools;
 use serde::Deserialize;
 use walkdir::WalkDir;
 
-use super::get_arch_id_and_name;
-
-#[derive(Debug, Clone)]
-pub struct BenchResult {
-    pub function_name: String,
-    pub parameter: String,
-    /// Estimate time in nanoseconds
-    pub estimate: f64,
-}
-
-impl BenchResult {
-    pub fn new(function_name: String, parameter: Option<String>, path: &Path) -> Self {
-        #[derive(Deserialize)]
-        struct Mean {
-            point_estimate: f64,
-        }
-
-        #[derive(Deserialize)]
-        struct Estimates {
-            mean: Mean,
-        }
-
-        let data =
-            std::fs::read_to_string(path).expect("Unable to read file with benchmark results");
-
-        let estimates: Estimates =
-            serde_json::from_str(&data).expect("Unable to parse JSON data with benchmark results");
-
-        Self {
-            function_name,
-            parameter: parameter.unwrap_or_default(),
-            estimate: estimates.mean.point_estimate,
-        }
-    }
-}
+use super::{get_arch_id_and_name, md_table};
+use crate::utils::md_table::BenchResult;
 
 /// Find all "new/estimates.json" files inside of given directory.
 /// Get only files what were created after the given time.
@@ -90,121 +55,37 @@ pub fn get_results(parent_dir: &PathBuf, modified_after: &SystemTime) -> Vec<Ben
             _ => panic!("Relative path to bench result is invalid"),
         };
 
-        result.push(BenchResult::new(function_name, parameter_name, &path));
+        result.push(load_bench_result(function_name, parameter_name, &path));
     }
 
     result
 }
 
-static COL_ORDER: [&str; 5] = ["Nearest", "Box", "Bilinear", "Bicubic", "Lanczos3"];
-
-pub fn build_md_table(bench_results: &[BenchResult]) -> String {
-    let mut row_names: Vec<String> = Vec::new();
-    let mut row_indexes: HashMap<String, usize> = HashMap::new();
-    let mut col_names: Vec<String> = Vec::new();
-
-    for result in bench_results {
-        let row_name = result.function_name.clone();
-        if !row_names.contains(&row_name) {
-            row_names.push(row_name.clone());
-            row_indexes.insert(row_name.clone(), row_names.len() - 1);
-        }
-        let col_name = result.parameter.clone();
-        if !col_names.contains(&col_name) {
-            col_names.push(col_name.clone());
-        }
+pub fn load_bench_result(
+    function_name: String,
+    parameter: Option<String>,
+    path: &Path,
+) -> BenchResult {
+    #[derive(Deserialize)]
+    struct Mean {
+        point_estimate: f64,
     }
 
-    // Reorder columns
-    let mut ordered_pos = 0;
-    for name in COL_ORDER {
-        if let Some((cur_pos, _)) = col_names.iter().find_position(|s| s.as_str() == name) {
-            if cur_pos != ordered_pos {
-                col_names.swap(cur_pos, ordered_pos);
-            }
-            ordered_pos += 1;
-        }
-    }
-    let col_indexes: HashMap<String, usize> = col_names
-        .iter()
-        .enumerate()
-        .map(|(i, v)| (v.clone(), i))
-        .collect();
-
-    let cols_count = col_names.len();
-    let mut values = vec![Cow::Borrowed("-"); row_names.len() * cols_count];
-
-    for result in bench_results {
-        let row_index = row_indexes.get(&result.function_name).copied();
-        let col_index = col_indexes.get(&result.parameter).copied();
-        if let (Some(row_index), Some(col_index)) = (row_index, col_index) {
-            let value = result.estimate / 1000000.;
-            if value >= 0.01 {
-                let value_index = row_index * cols_count + col_index;
-                values[value_index] = Cow::Owned(format!("{:.2}", value));
-            }
-        }
+    #[derive(Deserialize)]
+    struct Estimates {
+        mean: Mean,
     }
 
-    let first_column_width = row_names.iter().map(|s| s.len()).max().unwrap_or(0);
-    let mut column_width: Vec<usize> = vec![first_column_width];
+    let data = std::fs::read_to_string(path).expect("Unable to read file with benchmark results");
 
-    for (col_index, col_name) in col_names.iter().enumerate() {
-        let width = (0..row_names.len())
-            .map(|row_index| {
-                let value_index = row_index * cols_count + col_index;
-                values.get(value_index).map(|v| v.len()).unwrap_or(0)
-            })
-            .max()
-            .unwrap_or(0);
-        column_width.push(width.max(col_name.len()));
+    let estimates: Estimates =
+        serde_json::from_str(&data).expect("Unable to parse JSON data with benchmark results");
+
+    BenchResult {
+        function_name,
+        parameter: parameter.unwrap_or_default(),
+        estimate: estimates.mean.point_estimate,
     }
-
-    let mut first_row: Vec<String> = vec!["".to_owned()];
-    col_names.iter().for_each(|s| first_row.push(s.to_owned()));
-
-    let mut str_buffer: Vec<String> = vec![];
-    table_row(&mut str_buffer, &column_width, &first_row);
-    table_header_underline(&mut str_buffer, &column_width);
-
-    for row_name in row_names.iter() {
-        let mut row = vec![row_name.clone()];
-        for col_name in col_names.iter() {
-            let row_index = row_indexes.get(row_name).copied();
-            let col_index = col_indexes.get(col_name).copied();
-            if let (Some(row_index), Some(col_index)) = (row_index, col_index) {
-                let value_index = row_index * cols_count + col_index;
-                let value = values
-                    .get(value_index)
-                    .map(|v| v.to_string())
-                    .unwrap_or_default();
-                row.push(value);
-            }
-        }
-        table_row(&mut str_buffer, &column_width, &row);
-    }
-
-    str_buffer.join("")
-}
-
-fn table_row(buffer: &mut Vec<String>, widths: &[usize], values: &[String]) {
-    for (i, (&width, value)) in widths.iter().zip(values).enumerate() {
-        match i {
-            0 => buffer.push(format!("| {:width$} ", value, width = width)),
-            _ => buffer.push(format!("| {:^width$} ", value, width = width)),
-        }
-    }
-    buffer.push("|\n".to_string());
-}
-
-fn table_header_underline(buffer: &mut Vec<String>, widths: &[usize]) {
-    for (i, &width) in widths.iter().enumerate() {
-        match i {
-            0 => buffer.push(format!("|{:-<width$}", "", width = width + 2)),
-            _ => buffer.push(format!("|:{:-<width$}:", "", width = width)),
-        }
-    }
-    buffer.push("|\n".to_string());
 }
 
 fn insert_string_into_file(path: &Path, placeholder_name: &str, string: &str) {
@@ -288,7 +169,7 @@ fn write_bench_results_into_file(md_table: &str) {
 
 pub fn print_and_write_compare_result(bench_results: &[BenchResult]) {
     if !bench_results.is_empty() {
-        let md_table = build_md_table(bench_results);
+        let md_table = md_table::build_md_table(bench_results);
         println!("{}", md_table);
         if env::var("WRITE_COMPARE_RESULT").unwrap_or_else(|_| "".to_owned()) == "1" {
             write_bench_results_into_file(&md_table);

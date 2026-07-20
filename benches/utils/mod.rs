@@ -3,11 +3,13 @@ use std::path::PathBuf;
 use std::process::Command;
 
 pub use bencher::*;
+pub use md_table::*;
 pub use resize_functions::*;
 pub use results::*;
 use serde::Deserialize;
 
 mod bencher;
+mod md_table;
 mod resize_functions;
 mod results;
 pub mod testing;
