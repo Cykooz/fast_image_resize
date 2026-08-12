@@ -9,8 +9,8 @@ pub(crate) mod native;
 // mod neon;
 #[cfg(target_arch = "x86_64")]
 pub(crate) mod sse4;
-// #[cfg(target_arch = "wasm32")]
-// pub mod wasm32;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm32;
 
 pub(crate) fn vert_convolution_f32<T: InnerPixel<Component = f32>>(
     src_view: &impl ImageView<Pixel = T>,
@@ -30,8 +30,8 @@ pub(crate) fn vert_convolution_f32<T: InnerPixel<Component = f32>>(
         CpuExtensions::Sse4_1 => sse4::vert_convolution(src_view, dst_view, offset, coeffs),
         // #[cfg(target_arch = "aarch64")]
         // CpuExtensions::Neon => neon::vert_convolution(src_view, dst_view, offset, coeffs),
-        // #[cfg(target_arch = "wasm32")]
-        // CpuExtensions::Simd128 => wasm32::vert_convolution(src_view, dst_view, offset, coeffs),
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Simd128 => wasm32::vert_convolution(src_view, dst_view, offset, coeffs),
         _ => native::vert_convolution(src_view, dst_view, offset, coeffs),
     }
 }

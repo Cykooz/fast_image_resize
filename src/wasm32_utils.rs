@@ -98,6 +98,33 @@ pub unsafe fn u8x16_narrow_u16x8(mut a_u8x16: v128, mut b_u8x16: v128) -> v128 {
     u8x16_shuffle::<0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30>(a_u8x16, b_u8x16)
 }
 
+/// Promotes the two high `f32` lanes of `v` into a `f64x2`.
+///
+/// This is the WASM counterpart of `_mm_cvtps_pd(_mm_movehl_ps(v, v))`.
+#[inline]
+#[target_feature(enable = "simd128")]
+pub(crate) unsafe fn f64x2_promote_high_f32x4(v: v128) -> v128 {
+    f64x2_promote_low_f32x4(i32x4_shuffle::<2, 3, 2, 3>(v, v))
+}
+
+/// Computes `acc + a * b` for `f64x2` vectors.
+///
+/// When the crate is built with the `relaxed-simd` target feature, this uses
+/// the possibly fused `f64x2_relaxed_madd` instruction. Otherwise it falls
+/// back to a separate multiply and add.
+#[inline]
+#[target_feature(enable = "simd128")]
+pub(crate) unsafe fn f64x2_mul_add(acc: v128, a: v128, b: v128) -> v128 {
+    #[cfg(target_feature = "relaxed-simd")]
+    {
+        f64x2_relaxed_madd(a, b, acc)
+    }
+    #[cfg(not(target_feature = "relaxed-simd"))]
+    {
+        f64x2_add(acc, f64x2_mul(a, b))
+    }
+}
+
 #[inline]
 #[target_feature(enable = "simd128")]
 pub(crate) unsafe fn i64x2_mul_lo(a: v128, b: v128) -> v128 {

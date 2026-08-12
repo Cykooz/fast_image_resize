@@ -8,6 +8,8 @@ mod avx2;
 mod native;
 #[cfg(target_arch = "x86_64")]
 mod sse4;
+#[cfg(target_arch = "wasm32")]
+mod wasm32;
 
 type P = F32x2;
 
@@ -67,8 +69,8 @@ fn multiple(
         CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha(src_view, dst_view) },
         // #[cfg(target_arch = "aarch64")]
         // CpuExtensions::Neon => unsafe { neon::multiply_alpha(src_view, dst_view) },
-        // #[cfg(target_arch = "wasm32")]
-        // CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_view, dst_view) },
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha(src_view, dst_view) },
         _ => native::multiply_alpha(src_view, dst_view),
     }
 }
@@ -81,8 +83,8 @@ fn multiply_inplace(image_view: &mut impl ImageViewMut<Pixel = P>, cpu_extension
         CpuExtensions::Sse4_1 => unsafe { sse4::multiply_alpha_inplace(image_view) },
         // #[cfg(target_arch = "aarch64")]
         // CpuExtensions::Neon => unsafe { neon::multiply_alpha_inplace(image_view) },
-        // #[cfg(target_arch = "wasm32")]
-        // CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image_view) },
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Simd128 => unsafe { wasm32::multiply_alpha_inplace(image_view) },
         _ => native::multiply_alpha_inplace(image_view),
     }
 }
@@ -99,8 +101,8 @@ fn divide(
         CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha(src_view, dst_view) },
         // #[cfg(target_arch = "aarch64")]
         // CpuExtensions::Neon => unsafe { neon::divide_alpha(src_view, dst_view) },
-        // #[cfg(target_arch = "wasm32")]
-        // CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha(src_view, dst_view) },
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha(src_view, dst_view) },
         _ => native::divide_alpha(src_view, dst_view),
     }
 }
@@ -113,8 +115,8 @@ fn divide_inplace(image_view: &mut impl ImageViewMut<Pixel = P>, cpu_extensions:
         CpuExtensions::Sse4_1 => unsafe { sse4::divide_alpha_inplace(image_view) },
         // #[cfg(target_arch = "aarch64")]
         // CpuExtensions::Neon => unsafe { neon::divide_alpha_inplace(image_view) },
-        // #[cfg(target_arch = "wasm32")]
-        // CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha_inplace(image_view) },
+        #[cfg(target_arch = "wasm32")]
+        CpuExtensions::Simd128 => unsafe { wasm32::divide_alpha_inplace(image_view) },
         _ => native::divide_alpha_inplace(image_view),
     }
 }
