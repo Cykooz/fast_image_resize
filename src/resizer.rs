@@ -375,34 +375,45 @@ impl Resizer {
 
         let (filter_fn, filter_support) = convolution::get_filter_func(filter_type);
 
+        let horiz_args = (
+            src_view.width(),
+            crop_box.left,
+            crop_box.left + crop_box.width,
+            dst_width,
+        );
+        let vert_args = (
+            src_view.height(),
+            crop_box.top,
+            crop_box.top + crop_box.height,
+            dst_height,
+        );
+        let precompute = |(in_size, in0, in1, out_size): (u32, f64, f64, u32)| {
+            convolution::precompute_coefficients(
+                in_size,
+                in0,
+                in1,
+                out_size,
+                filter_fn,
+                filter_support,
+                adaptive_kernel_size,
+            )
+        };
+
         let need_horizontal =
             dst_width as f64 != crop_box.width || crop_box.left != crop_box.left.round();
         let horiz_coeffs = need_horizontal.then(|| {
             test_log!("compute horizontal convolution coefficients");
-            convolution::precompute_coefficients(
-                src_view.width(),
-                crop_box.left,
-                crop_box.left + crop_box.width,
-                dst_width,
-                filter_fn,
-                filter_support,
-                adaptive_kernel_size,
-            )
+            precompute(horiz_args)
         });
 
         let need_vertical =
             dst_height as f64 != crop_box.height || crop_box.top != crop_box.top.round();
-        let vert_coeffs = need_vertical.then(|| {
-            test_log!("compute vertical convolution coefficients");
-            convolution::precompute_coefficients(
-                src_view.height(),
-                crop_box.top,
-                crop_box.top + crop_box.height,
-                dst_height,
-                filter_fn,
-                filter_support,
-                adaptive_kernel_size,
-            )
+        let vert_coeffs = need_vertical.then(|| match &horiz_coeffs {
+            Some(coeffs) if horiz_args == vert_args => coeffs.clone(),
+            _ => {
+                test_log!("compute vertical convolution coefficients");
+                precompute(vert_args)
+            }
         });
 
         match (horiz_coeffs, vert_coeffs) {

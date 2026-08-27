@@ -255,6 +255,46 @@ fn resize_to_same_width_or_height_after_cropping() {
     }
 }
 
+/// The vertical pass must reuse the horizontal coefficients, not recompute them.
+#[test]
+fn reuse_coefficients_for_identical_passes() {
+    fn run(
+        src_width: u32,
+        src_height: u32,
+        dst_width: u32,
+        dst_height: u32,
+        crop: Option<(f64, f64, f64, f64)>,
+    ) -> (bool, bool) {
+        fr_testing::clear_log();
+        let src_image = Image::new(src_width, src_height, PixelType::U8x4);
+        let mut dst_image = Image::new(dst_width, dst_height, PixelType::U8x4);
+        let mut options = ResizeOptions::new()
+            .resize_alg(ResizeAlg::Convolution(FilterType::Lanczos3))
+            .use_alpha(false);
+        if let Some((left, top, width, height)) = crop {
+            options = options.crop(left, top, width, height);
+        }
+        Resizer::new()
+            .resize(&src_image, &mut dst_image, &options)
+            .unwrap();
+        (
+            fr_testing::logs_contain("compute horizontal convolution coefficients"),
+            fr_testing::logs_contain("compute vertical convolution coefficients"),
+        )
+    }
+
+    assert_eq!(run(64, 64, 32, 32, None), (true, false));
+    assert_eq!(run(512, 512, 64, 64, None), (true, false));
+    assert_eq!(run(64, 64, 32, 32, Some((0.5, 0.5, 40., 40.))), (true, false));
+
+    assert_eq!(run(64, 64, 33, 32, None), (true, true));
+    assert_eq!(run(64, 64, 32, 33, None), (true, true));
+    assert_eq!(run(64, 65, 32, 32, None), (true, true));
+    assert_eq!(run(65, 64, 32, 32, None), (true, true));
+    assert_eq!(run(64, 64, 32, 32, Some((0.5, 1.5, 40., 40.))), (true, true));
+    assert_eq!(run(64, 64, 32, 32, Some((0.5, 0.5, 40., 30.))), (true, true));
+}
+
 trait ResizeTest<const CC: usize> {
     fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
     fn upscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
