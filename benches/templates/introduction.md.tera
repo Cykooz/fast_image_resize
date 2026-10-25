@@ -8,12 +8,12 @@ Environment:
 - CPU: AMD Ryzen 9 5950X
 - RAM: DDR4 4000 MHz
 {% endif -%}
-- Ubuntu 24.04 (linux 7.0.0)
-- Rust 1.97.1
+- Ubuntu 26.04 (linux 7.0.0)
+- Rust 1.99
 - criterion = "0.7.0"
-- fast_image_resize = "6.0.1"
+- fast_image_resize = "6.2.0"
 {% if arch_id == "wasm32" -%}
-- wasmtime = "47.0.1"
+- wasmtime = "50.0.0"
 {% endif %}
 
 Other libraries used to compare of resizing speed:

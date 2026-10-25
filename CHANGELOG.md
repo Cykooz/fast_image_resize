@@ -2,7 +2,7 @@
 
 ### Added
 
-- Added support of optimisation with the help of `Wasm32 SIMD128` for all `F32`
+- Added support of optimization with the help of `Wasm32 SIMD128` for all `F32`
   based pixel types ([#61](https://github.com/Cykooz/fast_image_resize/pull/61))
 
   The convolution accumulation uses the fused `f64x2_relaxed_madd` instruction
@@ -48,8 +48,7 @@ This version was yanked due to a backwards compatibility break - a new feature
 
 ### Added
 
-- Added support of some variants of `ImageBuffer` type from the `image` crate
-  ([#57](https://github.com/Cykooz/fast_image_resize/issues/57)).
+- Added support of some variants of `ImageBuffer` type from the `image` crate ([#57](https://github.com/Cykooz/fast_image_resize/issues/57)).
 
 ## [5.4.0] - 2025-11-28
 
@@ -70,8 +69,7 @@ This version was yanked due to a backwards compatibility break - a new feature
 ### Fixed
 
 - Fixed a "divide by zero" error in case of using multithreading to resize
-  images with particular sizes
-  ([#55](https://github.com/Cykooz/fast_image_resize/issues/55)).
+  images with particular sizes ([#55](https://github.com/Cykooz/fast_image_resize/issues/55)).
 
 ## [5.2.1] - 2025-07-27
 
@@ -84,8 +82,7 @@ This version was yanked due to a backwards compatibility break - a new feature
 ### Added
 
 - Added support of `DynamicImage::ImageRgb32F` and `DynamicImage::ImageRgba32F`
-  form the `image` crate
-  ([#50](https://github.com/Cykooz/fast_image_resize/pull/50)).
+  form the `image` crate ([#50](https://github.com/Cykooz/fast_image_resize/pull/50)).
 
 ## [5.1.4] - 2025-05-16
 
@@ -101,11 +98,9 @@ This version was yanked due to a backwards compatibility break - a new feature
 ### Fixed
 
 - Fixed error in `NEON` implementation of `MulDiv::multiply_alpha()` and
-  `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels
-  ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
+  `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
 - Replaced the internal crate `testing` on the corresponding module in the
-  `tests` directory
-  ([#48](https://github.com/Cykooz/fast_image_resize/issues/48)).
+  `tests` directory ([#48](https://github.com/Cykooz/fast_image_resize/issues/48)).
 
 ## [5.1.2] - 2025-02-16
 
@@ -174,8 +169,7 @@ This version was yanked due to a backwards compatibility break - a new feature
 ## Fixed
 
 - Fixed error in `NEON` implementation of `MulDiv::multiply_alpha()` and
-  `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels
-  ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
+  `MulDiv::multiply_alpha_inplace()` for `U8x2` pixels ([#49](https://github.com/Cykooz/fast_image_resize/issues/49)).
 
 ## [4.2.1] - 2024-07-24
 
@@ -408,16 +402,14 @@ fn my_resize(
 ### Fixed
 
 - Fixed size of rows in cropped `ImageViewMut` created by
-  `ImageViewMut::crop` method
-  ([#17](https://github.com/Cykooz/fast_image_resize/issues/17)).
+  `ImageViewMut::crop` method ([#17](https://github.com/Cykooz/fast_image_resize/issues/17)).
 
 ## [2.7.2] - 2023-05-04
 
 ### Fixed
 
 - Added using of (read|write)_unaligned for unaligned pointers on `arm64` and
-  `wasm32` architectures.
-  ([#15](https://github.com/Cykooz/fast_image_resize/issues/15)).
+  `wasm32` architectures. ([#15](https://github.com/Cykooz/fast_image_resize/issues/15)).
 
 ## [2.7.1] - 2023-04-28
 
@@ -442,8 +434,7 @@ fn my_resize(
 
 - Slightly improved speed of `Convolution` implementation for `U8x2` images and
   `Wasm32 SIMD128` instructions.
-- Method `Image::buffer_mut()` was made public
-  ([#14](https://github.com/Cykooz/fast_image_resize/pull/14))
+- Method `Image::buffer_mut()` was made public ([#14](https://github.com/Cykooz/fast_image_resize/pull/14))
 
 ## [2.5.0] - 2023-01-29
 
@@ -618,8 +609,7 @@ fn my_resize(
 - Added partial optimisation for convolution of U8 images with helps of
   `SSE4.1` instructions.
 - Allowed to create an instance of `Image`, `ImageVew` and `ImageViewMut`
-  from a buffer larger than necessary
-  ([#5](https://github.com/Cykooz/fast_image_resize/issues/5)).
+  from a buffer larger than necessary ([#5](https://github.com/Cykooz/fast_image_resize/issues/5)).
 - Breaking changes:
     - Removed methods: `Image::from_vec_u32()`, `Image::from_slice_u32()`.
     - Removed error `InvalidBufferSizeError`.

@@ -16,6 +16,11 @@ Install additional toolchains:
   ```
   Install [Wasmtime](https://wasmtime.dev/).
 
+  Create symlink for Wasmtime to run tests from RustRover:
+  ```shell
+  ln -s ~/.wasmtime/bin/wasmtime ~/.local/bin/wasmtime
+  ```
+
 # Tests
 
 Run tests with saving result images as files in `./data` directory:

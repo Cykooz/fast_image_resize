@@ -28,8 +28,7 @@ Supported pixel formats and available optimizations:
 
 ## Rust version
 
-Rust 1.95 and 1.96 (actually LLVM)
-have [regression](https://github.com/rust-lang/rust/issues/157456)
+Rust 1.95-1.98 (actually LLVM) have [regression](https://github.com/rust-lang/rust/issues/157456)
 in Wasm32 SIMD128 implementation. It affects the implementation of dividing U8x4 pixels by
 alpha channel for Wasm32 SIMD128.
 
@@ -62,7 +61,7 @@ the `no_std` feature:
 
 ```toml
 [dependencies]
-fast_image_resize = { version = "6.0", default-features = false, features = ["no_std"] }
+fast_image_resize = { version = "6.2", default-features = false, features = ["no_std"] }
 ```
 
 ## Some benchmarks in single-threaded mode for x86_64
