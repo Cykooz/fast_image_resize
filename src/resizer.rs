@@ -2,7 +2,7 @@ use crate::compat::*;
 use crate::convolution::{self, FilterType};
 use crate::crop_box::CroppedSrcImageView;
 use crate::image_view::{try_pixel_type, ImageView, ImageViewMut, IntoImageView, IntoImageViewMut};
-use crate::images::TypedImage;
+use crate::images::{TypedImage, TypedImageRef};
 use crate::pixels::{self, InnerPixel};
 use crate::{
     CpuExtensions, CropBox, DifferentDimensionsError, MulDiv, PixelTrait, PixelType, ResizeError,
@@ -228,6 +228,21 @@ impl Resizer {
         let default_options = ResizeOptions::default();
         let options = options.into().unwrap_or(&default_options);
 
+        // Convert `TypedImage` (and possibly other compatible types) to `TypedImageRef` to reduce
+        // possible monomorphization and binary size. We have support many `Pixel` types, so this
+        // could be a significant amount of code.
+        if let Some(src_view) = src_view.as_typed_image_ref() {
+            return self.resize_typed_inner(&src_view, dst_view, options);
+        }
+        self.resize_typed_inner(src_view, dst_view, options)
+    }
+
+    fn resize_typed_inner<P: PixelTrait>(
+        &mut self,
+        src_view: &impl ImageView<Pixel = P>,
+        dst_view: &mut impl ImageViewMut<Pixel = P>,
+        options: &ResizeOptions,
+    ) -> Result<(), ResizeError> {
         let crop_box = options.get_crop_box(src_view, dst_view);
         if crop_box.width == 0.
             || crop_box.height == 0.
@@ -331,6 +346,7 @@ impl Resizer {
                 .multiply_alpha_typed(src_view, &mut premultiplied_src)
                 .is_ok()
             {
+                let premultiplied_src = TypedImageRef::from(&premultiplied_src);
                 // SAFETY: `premultiplied_src` has the same size as `src_view`
                 let cropped_premultiplied_src = unsafe {
                     CroppedSrcImageView::crop_unchecked(
@@ -436,7 +452,7 @@ impl Resizer {
                         .for_each(|b| b.start -= x_first);
 
                     P::horiz_convolution(
-                        &temp_image,
+                        &TypedImageRef::from(&temp_image),
                         dst_view,
                         0,
                         horiz_coeffs,
@@ -466,7 +482,13 @@ impl Resizer {
                         .bounds
                         .iter_mut()
                         .for_each(|b| b.start -= y_first);
-                    P::vert_convolution(&temp_image, dst_view, 0, vert_coeffs, self.cpu_extensions);
+                    P::vert_convolution(
+                        &TypedImageRef::from(&temp_image),
+                        dst_view,
+                        0,
+                        vert_coeffs,
+                        self.cpu_extensions,
+                    );
                 }
             }
             (Some(horiz_coeffs), None) => {
@@ -523,7 +545,9 @@ impl Resizer {
                 get_temp_image_from_buffer(&mut super_sampling_buffer, tmp_width, tmp_height);
             resample_nearest(cropped_src_view, &mut tmp_img);
             // The second step is resizing the temporary image with a convolution.
-            let cropped_tmp_img = CroppedSrcImageView::new(&tmp_img);
+            // Prefer TypedImageRef over TypedImage to reduce monomorphization overhead.
+            let tmp_img_ref = TypedImageRef::from(&tmp_img);
+            let cropped_tmp_img = CroppedSrcImageView::new(&tmp_img_ref);
             self.resample_convolution(&cropped_tmp_img, dst_view, filter_type, true, use_alpha);
             self.super_sampling_buffer = super_sampling_buffer;
         } else {
