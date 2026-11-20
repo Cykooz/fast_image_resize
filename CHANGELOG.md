@@ -1,4 +1,4 @@
-## [Unreleased] - ReleaseDate
+## [6.2.0] - 2026-11-20
 
 ### Added
 
