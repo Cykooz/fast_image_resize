@@ -1,7 +1,7 @@
 use core::num::NonZeroU32;
 
 use crate::compat::*;
-use crate::images::{TypedCroppedImage, TypedCroppedImageMut, UnsafeImageMut};
+use crate::images::{TypedCroppedImage, TypedCroppedImageMut, TypedImageRef, UnsafeImageMut};
 use crate::pixels::InnerPixel;
 use crate::{ArrayChunks, ImageError, PixelTrait, PixelType};
 
@@ -130,6 +130,16 @@ pub unsafe trait ImageView: Sync + Send + Sized {
         }
         debug_assert!(left - start_col == width);
         Some(res)
+    }
+
+    /// Returns the image as a [`TypedImageRef`], if it can be cheaply converted to that
+    /// representation.
+    ///
+    /// [`Resizer`](crate::Resizer) converts images with this before resizing them, so that its
+    /// code is only monomorphized for [`TypedImageRef`] and not all implementations of
+    /// [`ImageView`] (e.g. we don't monomorphize over [`TypedImage`](crate::images::TypedImage)).
+    fn as_typed_image_ref(&self) -> Option<TypedImageRef<'_, Self::Pixel>> {
+        None
     }
 }
 

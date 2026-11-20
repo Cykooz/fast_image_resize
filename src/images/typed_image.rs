@@ -119,6 +119,14 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImageRef<'a, P> {
         }
         Some(res)
     }
+
+    fn as_typed_image_ref(&self) -> Option<TypedImageRef<'_, Self::Pixel>> {
+        Some(TypedImageRef {
+            width: self.width,
+            height: self.height,
+            pixels: self.pixels,
+        })
+    }
 }
 
 /// Generic image container that provides [ImageView] and [ImageViewMut].
@@ -192,6 +200,16 @@ impl<'a, P: InnerPixel> TypedImage<'a, P> {
     }
 }
 
+impl<'a, P: InnerPixel> From<&'a TypedImage<'_, P>> for TypedImageRef<'a, P> {
+    fn from(image: &'a TypedImage<'_, P>) -> Self {
+        Self {
+            width: image.width,
+            height: image.height,
+            pixels: image.pixels.borrow(),
+        }
+    }
+}
+
 unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
     type Pixel = P;
 
@@ -248,6 +266,10 @@ unsafe impl<'a, P: InnerPixel> ImageView for TypedImage<'a, P> {
         }
         debug_assert!(top - start_row == height);
         Some(res)
+    }
+
+    fn as_typed_image_ref(&self) -> Option<TypedImageRef<'_, Self::Pixel>> {
+        Some(self.into())
     }
 }
 
