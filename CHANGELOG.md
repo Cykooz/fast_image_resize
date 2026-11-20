@@ -16,7 +16,10 @@
 ### Fixed
 
 - Fixed integer overflow in `check_crop_box()` function.
-- Fixed temp image size calculation during resize ([#63](https://github.com/Cykooz/fast_image_resize/issues/63)).
+- Fixed temp image size calculation during
+  resize ([#63](https://github.com/Cykooz/fast_image_resize/issues/63)).
+- Fixed UB in ``divide_alpha_inplace()`` function
+  for ``U8x2`` ([#65](https://github.com/Cykooz/fast_image_resize/issues/65)).
 
 ## [6.1.0] - 2026-07-21
 

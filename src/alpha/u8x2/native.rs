@@ -55,21 +55,27 @@ pub(crate) fn divide_alpha(
 
 #[inline]
 pub(crate) fn divide_alpha_inplace(image_view: &mut impl ImageViewMut<Pixel = U8x2>) {
-    for dst_row in image_view.iter_rows_mut(0) {
-        let src_row = unsafe { core::slice::from_raw_parts(dst_row.as_ptr(), dst_row.len()) };
-        divide_alpha_row(src_row, dst_row);
+    for row in image_view.iter_rows_mut(0) {
+        for pixel in row {
+            pixel.0 = divide_alpha_pixel(pixel);
+        }
     }
 }
 
 #[inline(always)]
-pub(crate) fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
+fn divide_alpha_row(src_row: &[U8x2], dst_row: &mut [U8x2]) {
     src_row
         .iter()
         .zip(dst_row)
         .for_each(|(src_pixel, dst_pixel)| {
-            let components: [u8; 2] = src_pixel.0;
-            let alpha = components[1];
-            let recip_alpha = RECIP_ALPHA[alpha as usize];
-            dst_pixel.0 = [div_and_clip(components[0], recip_alpha), alpha];
+            dst_pixel.0 = divide_alpha_pixel(src_pixel);
         });
+}
+
+#[inline(always)]
+fn divide_alpha_pixel(pixel: &U8x2) -> [u8; 2] {
+    let components: [u8; 2] = pixel.0;
+    let alpha = components[1];
+    let recip_alpha = RECIP_ALPHA[alpha as usize];
+    [div_and_clip(components[0], recip_alpha), alpha]
 }
