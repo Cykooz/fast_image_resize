@@ -15,15 +15,15 @@ pub(crate) fn check_crop_box(
     if left >= img_width || top >= img_height {
         return Err(CropBoxError::PositionIsOutOfImageBoundaries);
     }
-    let right = left + width;
-    let bottom = top + height;
+    let right = left.checked_add(width).ok_or(CropBoxError::SizeIsOutOfImageBoundaries)?;
+    let bottom = top.checked_add(height).ok_or(CropBoxError::SizeIsOutOfImageBoundaries)?;
     if right > img_width || bottom > img_height {
         return Err(CropBoxError::SizeIsOutOfImageBoundaries);
     }
     Ok(())
 }
 
-/// It is a typed wrapper that provides [ImageView] for part of wrapped image.
+/// It is a typed wrapper that provides [ImageView] for part of the wrapped image.
 pub struct TypedCroppedImage<'a, V: ImageView + 'a> {
     image_view: View<'a, V>,
     left: u32,
@@ -226,7 +226,7 @@ image_view_impl!(TypedCroppedImage<ImageView>);
 image_view_impl!(TypedCroppedImageMut<ImageViewMut>);
 
 unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
-    fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item = &mut [Self::Pixel]> {
+    fn iter_rows_mut(&mut self, start_row: u32) -> impl Iterator<Item=&mut [Self::Pixel]> {
         let left = self.left as usize;
         let right = left + self.width as usize;
         self.image_view
@@ -243,7 +243,7 @@ unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
         start_row: u32,
         height: NonZeroU32,
         num_parts: NonZeroU32,
-    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+    ) -> Option<Vec<impl ImageViewMut<Pixel=Self::Pixel>>> {
         let height_u32 = height.get();
         if num_parts > height
             || height_u32 > self.height()
@@ -268,7 +268,7 @@ unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
         start_col: u32,
         width: NonZeroU32,
         num_parts: NonZeroU32,
-    ) -> Option<Vec<impl ImageViewMut<Pixel = Self::Pixel>>> {
+    ) -> Option<Vec<impl ImageViewMut<Pixel=Self::Pixel>>> {
         let width_u32 = width.get();
         if num_parts > width || width_u32 > self.width() || start_col > self.width() - width_u32 {
             return None;
@@ -283,5 +283,68 @@ unsafe impl<'a, V: ImageViewMut> ImageViewMut for TypedCroppedImageMut<'a, V> {
                 })
                 .collect()
         })
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::check_crop_box;
+    use crate::CropBoxError;
+
+    #[test]
+    fn check_crop_box_accepts_valid_boxes() {
+        assert_eq!(check_crop_box(10, 8, 2, 3, 4, 2), Ok(()));
+        assert_eq!(check_crop_box(10, 8, 0, 0, 10, 8), Ok(()));
+    }
+
+    #[test]
+    fn check_crop_box_accepts_zero_width_or_height() {
+        assert_eq!(check_crop_box(10, 8, 4, 3, 0, 2), Ok(()));
+        assert_eq!(check_crop_box(10, 8, 4, 3, 2, 0), Ok(()));
+    }
+
+    #[test]
+    fn check_crop_box_rejects_positions_outside_image() {
+        assert_eq!(
+            check_crop_box(10, 8, 10, 0, 0, 0),
+            Err(CropBoxError::PositionIsOutOfImageBoundaries)
+        );
+        assert_eq!(
+            check_crop_box(10, 8, 0, 8, 0, 0),
+            Err(CropBoxError::PositionIsOutOfImageBoundaries)
+        );
+        assert_eq!(
+            check_crop_box(0, 8, 0, 0, 0, 0),
+            Err(CropBoxError::PositionIsOutOfImageBoundaries)
+        );
+        assert_eq!(
+            check_crop_box(10, 0, 0, 0, 0, 0),
+            Err(CropBoxError::PositionIsOutOfImageBoundaries)
+        );
+    }
+
+    #[test]
+    fn check_crop_box_rejects_sizes_outside_image() {
+        assert_eq!(
+            check_crop_box(10, 8, 8, 0, 3, 1),
+            Err(CropBoxError::SizeIsOutOfImageBoundaries)
+        );
+        assert_eq!(
+            check_crop_box(10, 8, 0, 6, 1, 3),
+            Err(CropBoxError::SizeIsOutOfImageBoundaries)
+        );
+    }
+
+    #[test]
+    fn check_crop_box_rejects_overflowing_sizes() {
+        assert_eq!(
+            check_crop_box(10, 8, 1, 0, u32::MAX, 1),
+            Err(CropBoxError::SizeIsOutOfImageBoundaries)
+        );
+        assert_eq!(
+            check_crop_box(10, 8, 0, 1, 1, u32::MAX),
+            Err(CropBoxError::SizeIsOutOfImageBoundaries)
+        );
     }
 }

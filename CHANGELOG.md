@@ -13,6 +13,10 @@
   This provides an additional 5-10% reduction in `f32` convolution benchmark
   times.
 
+### Fixed
+
+- Fixed integer overflow in `check_crop_box()` function.
+
 ## [6.1.0] - 2026-07-21
 
 ### Changed
