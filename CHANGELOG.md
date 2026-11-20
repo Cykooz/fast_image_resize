@@ -20,6 +20,8 @@
   resize ([#63](https://github.com/Cykooz/fast_image_resize/issues/63)).
 - Fixed UB in ``divide_alpha_inplace()`` function
   for ``U8x2`` ([#65](https://github.com/Cykooz/fast_image_resize/issues/65)).
+- Removed the `image/rayon` feature requirement for
+  the `rayon` crate ([#64](https://github.com/Cykooz/fast_image_resize/issues/64)).
 
 ## [6.1.0] - 2026-07-21
 
