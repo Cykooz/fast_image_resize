@@ -256,6 +256,8 @@ mod tests {
             values: vec![value],
             window_size: 1,
             bounds: vec![Bound { start: 0, size: 1 }],
+            min_bound_start: 0,
+            max_bound_end: 1,
         }
     }
 

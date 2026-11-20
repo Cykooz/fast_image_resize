@@ -16,6 +16,7 @@
 ### Fixed
 
 - Fixed integer overflow in `check_crop_box()` function.
+- Fixed temp image size calculation during resize ([#63](https://github.com/Cykooz/fast_image_resize/issues/63)).
 
 ## [6.1.0] - 2026-07-21
 

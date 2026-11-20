@@ -60,6 +60,8 @@ pub(crate) struct Coefficients {
     pub values: Vec<f64>,
     pub window_size: usize,
     pub bounds: Vec<Bound>,
+    min_bound_start: u32,
+    max_bound_end: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -82,6 +84,14 @@ impl Coefficients {
             });
         }
         res
+    }
+
+    pub fn min_bound_start(&self) -> u32 {
+        self.min_bound_start
+    }
+
+    pub fn max_bound_end(&self) -> u32 {
+        self.max_bound_end
     }
 }
 
@@ -118,6 +128,8 @@ pub(crate) fn precompute_coefficients(
     let count_of_coeffs = window_size * out_size as usize;
     let mut coeffs: Vec<f64> = Vec::with_capacity(count_of_coeffs);
     let mut bounds: Vec<Bound> = Vec::with_capacity(out_size as usize);
+    let mut min_bound_start = u32::MAX;
+    let mut max_bound_end = 0;
 
     for out_x in 0..out_size {
         // Find the point in the input image corresponding to the center
@@ -161,7 +173,7 @@ pub(crate) fn precompute_coefficients(
         }
 
         if ww != 0.0 {
-            // Normalise values of weights.
+            // Normalize values of weights.
             // The sum of weights must be equal to 1.0.
             coeffs[cur_index..].iter_mut().for_each(|w| *w /= ww);
         }
@@ -171,11 +183,59 @@ pub(crate) fn precompute_coefficients(
             start: bound_start,
             size: bound_end - bound_start,
         });
+        min_bound_start = min_bound_start.min(bound_start);
+        max_bound_end = max_bound_end.max(bound_end);
+    }
+
+    if bounds.is_empty() {
+        min_bound_start = 0;
     }
 
     Coefficients {
         values: coeffs,
         window_size,
         bounds,
+        min_bound_start,
+        max_bound_end,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::CropBox;
+
+    #[test]
+    fn test_min_bound_start_and_max_bound_end() {
+        // https://github.com/Cykooz/fast_image_resize/issues/63
+        let crop_box = CropBox {
+            left: 10.0 + 1.0 / 6.0,
+            top: 0.0,
+            width: 20.0,
+            height: 8.0,
+        };
+        let (filter_fn, filter_support) = get_filter_func(FilterType::CatmullRom);
+        let coeffs = precompute_coefficients(
+            100,
+            crop_box.left,
+            crop_box.left + crop_box.width,
+            30,
+            filter_fn,
+            filter_support,
+            true,
+        );
+        assert_eq!(
+            coeffs.min_bound_start,
+            coeffs.bounds.iter().map(|b| b.start).min().unwrap_or(0)
+        );
+        assert_eq!(
+            coeffs.max_bound_end,
+            coeffs
+                .bounds
+                .iter()
+                .map(|b| b.start + b.size)
+                .max()
+                .unwrap_or(0)
+        );
     }
 }

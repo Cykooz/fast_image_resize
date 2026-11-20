@@ -410,11 +410,8 @@ impl Resizer {
                 if P::components_is_u8() {
                     // For u8-based images, it is faster to do the vertical pass first
                     // instead of the horizontal.
-                    let x_first = horiz_coeffs.bounds[0].start;
-                    // Last used col in the source image
-                    let last_x_bound = horiz_coeffs.bounds.last().unwrap();
-                    let x_last = last_x_bound.start + last_x_bound.size;
-                    let temp_width = x_last - x_first;
+                    let x_first = horiz_coeffs.min_bound_start();
+                    let temp_width = horiz_coeffs.max_bound_end() - x_first;
                     let mut temp_image = get_temp_image_from_buffer(
                         &mut self.convolution_buffer,
                         temp_width,
@@ -443,11 +440,8 @@ impl Resizer {
                         self.cpu_extensions,
                     );
                 } else {
-                    let y_first = vert_coeffs.bounds[0].start;
-                    // Last used row in the source image
-                    let last_y_bound = vert_coeffs.bounds.last().unwrap();
-                    let y_last = last_y_bound.start + last_y_bound.size;
-                    let temp_height = y_last - y_first;
+                    let y_first = vert_coeffs.min_bound_start();
+                    let temp_height = vert_coeffs.max_bound_end() - y_first;
                     let mut temp_image = get_temp_image_from_buffer(
                         &mut self.convolution_buffer,
                         dst_width,

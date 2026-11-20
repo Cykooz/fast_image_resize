@@ -255,6 +255,18 @@ fn resize_to_same_width_or_height_after_cropping() {
     }
 }
 
+#[test]
+fn check_temp_image_size_calculation_during_resize() {
+    // https://github.com/Cykooz/fast_image_resize/issues/63
+    let src = Image::new(100, 8, PixelType::U8x4);
+    let mut dst = Image::new(30, 9, PixelType::U8x4);
+    let options = ResizeOptions::new()
+        .resize_alg(ResizeAlg::Convolution(FilterType::CatmullRom))
+        .crop(10.0 + 1.0 / 6.0, 0.0, 20.0, 8.0)
+        .use_alpha(false);
+    assert!(Resizer::new().resize(&src, &mut dst, &options).is_ok());
+}
+
 trait ResizeTest<const CC: usize> {
     fn downscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
     fn upscale_test(resize_alg: ResizeAlg, cpu_extensions: CpuExtensions, checksum: [u64; CC]);
